@@ -1,4 +1,4 @@
-# Alan's Pack（模組包開發 monorepo）
+# Alan's Modpack（模組包開發 monorepo）
 
 Minecraft Java **26.3**／Fabric Loader **0.19.5**／Fabric API **0.160.6+26.3**／Java **25**。
 
@@ -31,7 +31,7 @@ game2/
 ./gradlew :mods:alchemy-backpack:build   # 只建置單一模組
 ./gradlew :mods:alchemy-backpack:runClient  # 只載入單一模組測試
 ./gradlew :pack:runClient                # 載入「全部」模組測試（檢查衝突）
-./gradlew :pack:mrpack                   # → pack/build/distributions/alan-pack-<ver>.mrpack
+./gradlew :pack:mrpack                   # → pack/build/distributions/alans-modpack-<ver>.mrpack
 ./gradlew :pack:packMods                 # → pack/build/pack-mods/（直接丟進 mods 資料夾用）
 ```
 
