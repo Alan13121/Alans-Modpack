@@ -8,7 +8,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -19,13 +18,12 @@ import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The item list with its search box, paging and bookmark row. On an inventory-style screen it sits on the
- * right edge; on the standalone {@link LookupScreen} it is centred.
+ * The item list with its search box, paging and bookmark row, on the right edge of an inventory-style screen.
  */
 final class ItemListOverlay {
     private static final int CELL = 18;
 
-    private final Screen screen;
+    private final AbstractContainerScreen<?> screen;
     private final Minecraft mc;
     private final Font font;
     private EditBox search;
@@ -33,21 +31,16 @@ final class ItemListOverlay {
     private boolean visible;
     private int left, top, cols, rows, page, width, height;
 
-    ItemListOverlay(Minecraft mc, Screen screen, int width, int height, boolean standalone) {
+    ItemListOverlay(Minecraft mc, AbstractContainerScreen<?> screen, int width, int height) {
         this.mc = mc;
         this.screen = screen;
         this.font = mc.font;
         this.width = width;
         this.height = height;
-        if (standalone) {
-            cols = Math.min((width - 16) / CELL, 14);
-            left = (width - cols * CELL) / 2;
-        } else {
-            var accessor = (AbstractContainerScreenAccessor) screen;
-            int free = width - 4 - (accessor.lookup$leftPos() + accessor.lookup$imageWidth() + 8);
-            cols = Math.min(free / CELL, 12);
-            left = width - 4 - cols * CELL;
-        }
+        var accessor = (AbstractContainerScreenAccessor) screen;
+        int free = width - 4 - (accessor.lookup$leftPos() + accessor.lookup$imageWidth() + 8);
+        cols = Math.min(free / CELL, 12);
+        left = width - 4 - cols * CELL;
         visible = cols >= 3 && mc.level != null;
         RecipeIndex.refreshPlugins();
         if (!visible) return;
@@ -57,7 +50,6 @@ final class ItemListOverlay {
         search.setHint(Component.translatable("lookup.search"));
         search.setMaxLength(60);
         search.setResponder(text -> { page = 0; refilter(); });
-        if (standalone) search.setFocused(true);
         refilter();
     }
 
@@ -92,11 +84,8 @@ final class ItemListOverlay {
         if (!visible) return null;
         ItemStack own = itemAt(x, y);
         if (own != null) return own;
-        if (screen instanceof AbstractContainerScreen<?> container) {
-            Slot slot = ((AbstractContainerScreenAccessor) container).lookup$hoveredSlot();
-            if (slot != null && slot.hasItem()) return slot.getItem();
-        }
-        return null;
+        Slot slot = ((AbstractContainerScreenAccessor) screen).lookup$hoveredSlot();
+        return slot != null && slot.hasItem() ? slot.getItem() : null;
     }
 
     boolean searchFocused() { return visible && search.isFocused(); }
@@ -105,8 +94,12 @@ final class ItemListOverlay {
         if (!visible) return;
         page = Math.max(0, Math.min(page, pages() - 1));
         Component pageText = Component.translatable("lookup.page", page + 1, pages());
-        g.text(font, pageText, left + (cols * CELL - font.width(pageText)) / 2, 8, 0xFFFFFFFF, true);
-        if (LookupConfig.cheatMode()) g.text(font, Component.translatable("lookup.cheat"), left, 8, 0xFFFFAA00, true);
+        g.text(font, pageText, left + (cols * CELL - font.width(pageText)) / 2, 13, 0xFFFFFFFF, true);
+        boolean cheat = LookupConfig.cheatMode();
+        Component label = Component.translatable(cheat ? "lookup.cheat.label_on" : "lookup.cheat.label_off");
+        boolean overLabel = mouseX >= left && mouseX < left + font.width(label) + 2 && mouseY >= 2 && mouseY < 12;
+        g.text(font, label, left, 3, cheat ? 0xFFFFAA00 : overLabel ? 0xFFFFFFFF : 0xFF909090, true);
+        if (overLabel) g.setTooltipForNextFrame(font, Component.translatable("lookup.cheat.tip"), mouseX, mouseY);
         ItemStack hover = itemAt(mouseX, mouseY);
         if (bookmarkRows() == 1) {
             g.fill(left, top, left + cols * CELL, top + CELL, 0x50FFCC00);
@@ -143,6 +136,11 @@ final class ItemListOverlay {
     boolean mouseClicked(MouseButtonEvent event) {
         if (!visible) return false;
         double x = event.x(), y = event.y();
+        // The cheat label doubles as a switch.
+        if (event.button() == 0 && x >= left && x < left + font.width(Component.translatable(LookupConfig.cheatMode() ? "lookup.cheat.label_on" : "lookup.cheat.label_off")) + 2 && y >= 2 && y < 12) {
+            LookupClient.toggleCheat(mc);
+            return true;
+        }
         boolean onSearch = x >= search.getX() && x < search.getX() + search.getWidth() && y >= search.getY() && y < search.getY() + 18;
         search.setFocused(onSearch);
         if (onSearch) {
@@ -177,9 +175,13 @@ final class ItemListOverlay {
     /** Returns true when the key was ours and the screen should not see it. */
     boolean keyPressed(KeyEvent event, double mouseX, double mouseY) {
         if (!visible) return false;
+        // The key mapping only fires in the world, so inventory screens check it here.
+        if (LookupClient.TOGGLE_CHEAT.matches(event)) {
+            LookupClient.toggleCheat(mc);
+            return true;
+        }
         if (search.isFocused()) {
-            if (event.isEscape() && !(screen instanceof LookupScreen)) search.setFocused(false);
-            else if (event.isEscape()) return false;
+            if (event.isEscape()) search.setFocused(false);
             else search.keyPressed(event);
             return true;
         }

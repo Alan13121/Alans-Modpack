@@ -26,10 +26,15 @@ public final class LookupClient implements ClientModInitializer {
 
     public static final KeyMapping BOOKMARK = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.lookup.bookmark", InputConstants.Type.KEYBOARD, InputConstants.KEY_A, CATEGORY));
-    public static final KeyMapping OPEN_LIST = KeyMappingHelper.registerKeyMapping(
-        new KeyMapping("key.lookup.open", InputConstants.Type.KEYBOARD, InputConstants.KEY_O, CATEGORY));
     public static final KeyMapping TOGGLE_CHEAT = KeyMappingHelper.registerKeyMapping(
         new KeyMapping("key.lookup.cheat", InputConstants.Type.KEYBOARD, InputConstants.KEY_F9, CATEGORY));
+
+    /** Works from the world (via the key mapping) and from inventory screens (via the overlay). */
+    static void toggleCheat(net.minecraft.client.Minecraft client) {
+        LookupConfig.setCheatMode(!LookupConfig.cheatMode());
+        if (client.player != null) client.player.sendOverlayMessage(Component.translatable(
+            LookupConfig.cheatMode() ? "lookup.cheat.on" : "lookup.cheat.off"));
+    }
 
     @Override public void onInitializeClient() {
         LookupConfig.load();
@@ -40,13 +45,7 @@ public final class LookupClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(LootSync.TYPE, (payload, context) -> LootViews.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(BrewingSync.TYPE, (payload, context) -> RecipeIndex.receiveBrewing(payload));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (OPEN_LIST.consumeClick())
-                if (client.gui.screen() == null && client.player != null) client.gui.setScreen(new LookupScreen());
-            while (TOGGLE_CHEAT.consumeClick()) {
-                LookupConfig.setCheatMode(!LookupConfig.cheatMode());
-                if (client.player != null) client.player.sendOverlayMessage(Component.translatable(
-                    LookupConfig.cheatMode() ? "lookup.cheat.on" : "lookup.cheat.off"));
-            }
+            while (TOGGLE_CHEAT.consumeClick()) toggleCheat(client);
         });
         ClientPlayNetworking.registerGlobalReceiver(RecipeSync.TYPE, (payload, context) -> RecipeIndex.receive(payload));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
@@ -56,7 +55,7 @@ public final class LookupClient implements ClientModInitializer {
         });
         ScreenEvents.AFTER_INIT.register((mc, screen, width, height) -> {
             if (!(screen instanceof AbstractContainerScreen<?> container)) return;
-            var overlay = new ItemListOverlay(mc, container, width, height, false);
+            var overlay = new ItemListOverlay(mc, container, width, height);
             ScreenEvents.afterExtract(screen).register((s, g, mouseX, mouseY, a) -> overlay.extract(g, mouseX, mouseY));
             ScreenMouseEvents.allowMouseClick(screen).register((s, event) -> !overlay.mouseClicked(event));
             ScreenMouseEvents.allowMouseScroll(screen).register((s, x, y, scrollX, scrollY) -> !overlay.mouseScrolled(x, y, scrollY));

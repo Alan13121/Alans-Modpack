@@ -3,7 +3,6 @@ package dev.alan.lookup.test;
 import dev.alan.lookup.GiveItem;
 import dev.alan.lookup.client.Bookmarks;
 import dev.alan.lookup.client.ItemList;
-import dev.alan.lookup.client.LookupScreen;
 import dev.alan.lookup.client.LookupConfig;
 import dev.alan.lookup.client.RecipeIndex;
 import dev.alan.lookup.client.RecipeScreen;
@@ -93,11 +92,6 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             context.runOnClient(mc -> { Bookmarks.toggle(Items.DIAMOND); Bookmarks.toggle(Items.NETHER_STAR); });
             check(context.computeOnClient(mc -> Bookmarks.items().isEmpty()), "bookmarks removed");
 
-            // The standalone list opens without any container.
-            context.runOnClient(mc -> mc.gui.setScreen(new LookupScreen()));
-            context.waitTicks(5);
-            context.takeScreenshot("16-standalone-list");
-
             // Recipe fill: click "+" on a stick recipe and the ingredients land in the 2x2 grid.
             world.getServer().runCommand("give @p minecraft:oak_planks 8");
             context.waitTicks(10);
@@ -132,9 +126,26 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             context.runOnClient(mc -> ClientPlayNetworking.send(new GiveItem(new ItemStack(Items.DIAMOND, 64))));
             context.waitTicks(10);
             check(context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.DIAMOND)) == 64, "cheat give delivers a stack");
-            context.runOnClient(mc -> LookupConfig.setCheatMode(true));
+            // Cheat toggle inside an inventory screen: the F9 key, then a click on the label.
+            context.getInput().pressKey(dev.alan.lookup.client.LookupClient.TOGGLE_CHEAT);
+            context.waitTicks(2);
+            check(context.computeOnClient(mc -> LookupConfig.cheatMode()), "F9 turns cheat mode on inside a screen");
+            context.runOnClient(mc -> mc.gui.toastManager().clear());
+            context.waitTicks(2);
             context.takeScreenshot("10-cheat-mode");
-            context.runOnClient(mc -> LookupConfig.setCheatMode(false));
+            double[] label = context.computeOnClient(mc -> {
+                var w = mc.getWindow();
+                int gui = w.getGuiScaledWidth();
+                int cols = Math.min((gui - 4 - ((gui - 176) / 2 + 176 + 8)) / 18, 12);
+                return new double[] {(gui - 4 - cols * 18 + 6) * w.getGuiScale(), 7 * w.getGuiScale()};
+            });
+            context.getInput().setCursorPos(label[0], label[1]);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            check(!context.computeOnClient(mc -> LookupConfig.cheatMode()), "clicking the label turns cheat mode off");
+            context.runOnClient(mc -> mc.gui.toastManager().clear());
+            context.waitTicks(2);
+            context.takeScreenshot("11-cheat-off");
         }
     }
 

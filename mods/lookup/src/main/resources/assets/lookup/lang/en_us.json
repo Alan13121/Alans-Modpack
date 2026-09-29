@@ -11,7 +11,6 @@
   "lookup.smelting.xp": "%s XP",
   "lookup.smelting.time": "%s s",
   "key.lookup.cheat": "Toggle Cheat Mode",
-  "lookup.cheat": "Cheat",
   "lookup.cheat.on": "Lookup cheat mode: ON",
   "lookup.cheat.off": "Lookup cheat mode: OFF",
   "lookup.loot.mob": "Mob Drops",
@@ -20,7 +19,8 @@
   "lookup.loot.amount": "Amount: %s",
   "lookup.loot.chance": "Chance: %s%%",
   "key.lookup.bookmark": "Bookmark Item",
-  "key.lookup.open": "Open Item List",
-  "lookup.title": "Lookup",
-  "lookup.fill": "Fill ingredients (Shift: as many as possible)"
+  "lookup.fill": "Fill ingredients (Shift: as many as possible)",
+  "lookup.cheat.label_on": "Cheat: ON",
+  "lookup.cheat.label_off": "Cheat: OFF",
+  "lookup.cheat.tip": "Click or press F9 to toggle cheat mode"
 }
