@@ -71,3 +71,11 @@ configure(subprojects.findAll { it.path.startsWith(':mods:') }) {
 
 	test { useJUnitPlatform() }
 }
+
+// 其他模組只在編譯時看得到 lookup 的 API（dev.alan.lookup.api）；執行時由 lookup 自己載入它們的外掛，
+// 所以沒裝 lookup 時這些模組照常運作。放在上面的 configure 之後，才保證 lookup 的 sourceSets 已存在。
+configure(subprojects.findAll { it.path.startsWith(':mods:') && it.path != ':mods:lookup' }) {
+	dependencies {
+		clientCompileOnly rootProject.project(':mods:lookup').sourceSets.client.output
+	}
+}

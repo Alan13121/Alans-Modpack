@@ -1,0 +1,13 @@
+// 共用設定在根目錄 build.gradle；這裡只放本模組額外的設定。
+
+// 自動化遊戲內測試：./gradlew :mods:lookup:runClientGameTest
+// 截圖存到 build/run/clientGameTest/screenshots。
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'lookup-test'
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}

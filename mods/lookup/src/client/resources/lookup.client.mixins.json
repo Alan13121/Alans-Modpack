@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "dev.alan.lookup.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["AbstractContainerScreenAccessor"],
+  "injectors": {"defaultRequire": 1}
+}

@@ -1,0 +1,22 @@
+{
+  "key.lookup.recipes": "Show Recipes",
+  "key.lookup.uses": "Show Uses",
+  "key.category.lookup.main": "Lookup",
+  "lookup.search": "Search",
+  "lookup.recipes_for": "Recipes: %s",
+  "lookup.uses_of": "Uses: %s",
+  "lookup.none": "No recipes found",
+  "lookup.page": "%s / %s",
+  "lookup.back": "Back",
+  "lookup.smelting.xp": "%s XP",
+  "lookup.smelting.time": "%s s",
+  "key.lookup.cheat": "Toggle Cheat Mode",
+  "lookup.cheat": "Cheat",
+  "lookup.cheat.on": "Lookup cheat mode: ON",
+  "lookup.cheat.off": "Lookup cheat mode: OFF",
+  "lookup.loot.mob": "Mob Drops",
+  "lookup.loot.block": "Block Drops",
+  "lookup.loot.table": "Loot Table",
+  "lookup.loot.amount": "Amount: %s",
+  "lookup.loot.chance": "Chance: %s%%"
+}

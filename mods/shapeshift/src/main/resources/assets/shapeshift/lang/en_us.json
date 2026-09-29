@@ -39,5 +39,10 @@
   "shapeshift.weakness.burns_in_daylight": "Burns in daylight (helmet protects)",
   "shapeshift.weakness.water_damage": "Hurt by water and rain",
   "shapeshift.weakness.needs_water": "Dries out on land",
-  "shapeshift.hud.form": "Form: %s"
+  "shapeshift.hud.form": "Form: %s",
+  "shapeshift.lookup.category": "Shapeshift Form",
+  "shapeshift.lookup.form": "Form: %s",
+  "shapeshift.lookup.unlock": "Kill it once to unlock",
+  "shapeshift.lookup.abilities": "%s abilities",
+  "shapeshift.lookup.weaknesses": "%s weaknesses"
 }

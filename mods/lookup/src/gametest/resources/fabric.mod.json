@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "lookup-test",
+  "version": "1.0.0",
+  "name": "Lookup client game tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.lookup.test.LookupClientGameTest"]},
+  "depends": {"lookup": "*"}
+}

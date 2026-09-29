@@ -7,7 +7,7 @@
   "authors": ["Alan"],
   "license": "MIT",
   "environment": "*",
-  "entrypoints": {"main": ["dev.alan.shapeshift.ShapeshiftMod"], "client": ["dev.alan.shapeshift.client.ShapeshiftClient"]},
+  "entrypoints": {"lookup": ["dev.alan.shapeshift.client.ShapeshiftLookupPlugin"], "main": ["dev.alan.shapeshift.ShapeshiftMod"], "client": ["dev.alan.shapeshift.client.ShapeshiftClient"]},
   "mixins": ["shapeshift.mixins.json", {"config": "shapeshift.client.mixins.json", "environment": "client"}],
   "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
 }

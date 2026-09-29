@@ -39,5 +39,10 @@
   "shapeshift.weakness.burns_in_daylight": "白天會著火（戴頭盔可擋）",
   "shapeshift.weakness.water_damage": "碰水、淋雨會受傷",
   "shapeshift.weakness.needs_water": "離開水會窒息",
-  "shapeshift.hud.form": "形態：%s"
+  "shapeshift.hud.form": "形態：%s",
+  "shapeshift.lookup.category": "變身形態",
+  "shapeshift.lookup.form": "形態：%s",
+  "shapeshift.lookup.unlock": "擊殺一次即可解鎖",
+  "shapeshift.lookup.abilities": "%s 項能力",
+  "shapeshift.lookup.weaknesses": "%s 項弱點"
 }

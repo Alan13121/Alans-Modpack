@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "lookup",
+  "version": "${version}",
+  "name": "Lookup / 查詢",
+  "description": "",
+  "authors": ["Alan"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.alan.lookup.LookupMod"], "client": ["dev.alan.lookup.client.LookupClient"]},
+  "mixins": ["lookup.mixins.json", {"config": "lookup.client.mixins.json", "environment": "client"}],
+  "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
+}
