@@ -15,5 +15,8 @@
   "alchemy.hint2": "Deposit to learn an item",
   "alchemy.empty": "Deposit items to learn them",
   "alchemy.redeem_one": "Redeem one",
-  "alchemy.redeem_stack": "Redeem a stack (as affordable)"
+  "alchemy.redeem_stack": "Redeem a stack (as affordable)",
+  "alchemy_backpack.lookup.category": "Alchemy Backpack",
+  "alchemy_backpack.lookup.value": "Energy: %s",
+  "alchemy_backpack.lookup.stack": "x%s = %s"
 }

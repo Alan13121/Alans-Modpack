@@ -15,5 +15,8 @@
   "alchemy.hint2": "首次轉化會學習該物品",
   "alchemy.empty": "放入物品來解鎖列表",
   "alchemy.redeem_one": "兌換 1 個",
-  "alchemy.redeem_stack": "兌換一組（依能量與空間）"
+  "alchemy.redeem_stack": "兌換一組（依能量與空間）",
+  "alchemy_backpack.lookup.category": "煉金背包",
+  "alchemy_backpack.lookup.value": "能量：%s",
+  "alchemy_backpack.lookup.stack": "x%s = %s"
 }

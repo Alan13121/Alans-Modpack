@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "pack-test",
+  "version": "1.0.0",
+  "name": "Modpack integration tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.pack.test.PackClientGameTest"]},
+  "depends": {"lookup": "*", "shapeshift": "*", "alchemy_backpack": "*"}
+}

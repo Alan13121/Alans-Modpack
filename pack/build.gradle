@@ -87,4 +87,16 @@ tasks.register('packMods', Sync) {
 	into layout.buildDirectory.dir('pack-mods')
 }
 
+// 整合測試：所有模組一起載入，檢查跨模組功能（例如 lookup 顯示其他模組的類別）。
+// ./gradlew :pack:runClientGameTest
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'pack-test'
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
 tasks.named('build') { dependsOn 'mrpack' }

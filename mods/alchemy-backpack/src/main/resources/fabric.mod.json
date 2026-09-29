@@ -7,6 +7,6 @@
   "authors": ["Alan"],
   "license": "MIT",
   "environment": "*",
-  "entrypoints": {"main": ["dev.alchemy.AlchemyMod"], "client": ["dev.alchemy.client.AlchemyClient"]},
+  "entrypoints": {"lookup": ["dev.alchemy.client.AlchemyLookupPlugin"], "main": ["dev.alchemy.AlchemyMod"], "client": ["dev.alchemy.client.AlchemyClient"]},
   "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
 }
