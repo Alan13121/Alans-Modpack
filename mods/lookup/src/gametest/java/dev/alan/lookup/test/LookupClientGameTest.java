@@ -120,6 +120,38 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             context.takeScreenshot("18-filled-grid");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
+            // Recipe fill into a real furnace: open one by right-clicking it, then use the "+" of an iron ingot recipe.
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "setblock 0 120 2 minecraft:furnace", "tp @p 0 120 0 0 30",
+                "give @p minecraft:iron_ore 4", "give @p minecraft:deepslate_iron_ore 4", "give @p minecraft:raw_iron 4",
+            }) world.getServer().runCommand(command);
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            context.waitTicks(15);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(net.minecraft.client.gui.screens.inventory.FurnaceScreen.class);
+            context.waitTicks(5);
+            context.runOnClient(mc -> RecipeScreen.show(mc, mc.gui.screen(), Items.IRON_INGOT, false));
+            context.waitTicks(3);
+            double[] furnacePlus = context.computeOnClient(mc -> {
+                var w = mc.getWindow();
+                double left = (w.getGuiScaledWidth() - 176) / 2.0;
+                double top = (w.getGuiScaledHeight() - Math.min(w.getGuiScaledHeight() - 16, 24 + 24 + 8 + 3 * 60 + 28)) / 2.0;
+                return new double[] {(left + 32 + 94 + 9) * w.getGuiScale(), (top + 52 + 7) * w.getGuiScale()};
+            });
+            context.runOnClient(mc -> mc.gui.toastManager().clear());
+            context.takeScreenshot("19-furnace-fill-button");
+            context.getInput().setCursorPos(furnacePlus[0], furnacePlus[1]);
+            context.getInput().pressMouse(0);
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.FurnaceScreen),
+                "fill returns to the furnace screen");
+            check(context.computeOnClient(mc -> !mc.player.containerMenu.getSlot(0).getItem().isEmpty()),
+                "the furnace input slot received the ingredient");
+            context.runOnClient(mc -> mc.gui.toastManager().clear());
+            context.takeScreenshot("20-furnace-filled");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
             // Cheat mode: clicking gives items, but only when the server agrees.
             check(!LookupConfig.cheatMode(), "cheat mode starts off");
             context.runOnClient(mc -> mc.gui.setScreen(new InventoryScreen(mc.player)));
