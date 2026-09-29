@@ -1,0 +1,12 @@
+{
+  "abilities": [
+    "water_breathing",
+    "swim_fast",
+    "no_fall_damage"
+  ],
+  "attributes": {
+    "jump_strength": {
+      "amount": 0.3
+    }
+  }
+}

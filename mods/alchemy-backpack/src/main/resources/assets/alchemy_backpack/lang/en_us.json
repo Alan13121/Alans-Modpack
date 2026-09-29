@@ -1,0 +1,19 @@
+{
+  "item.alchemy_backpack.backpack": "Alchemy Backpack",
+  "alchemy.balance": "Energy: %s EMC",
+  "alchemy.learned": "Learned: %s items",
+  "alchemy.open": "Use in main hand to open",
+  "alchemy.value": "Alchemy energy: %s EMC each",
+  "alchemy.stack_value": "Stack energy: %s EMC",
+  "alchemy.blocked": "Cannot be transmuted",
+  "alchemy.special": "Protected: non-default item data",
+  "alchemy.full": "Inventory is full",
+  "alchemy.insufficient": "Not enough energy",
+  "alchemy.search": "Search name or item ID",
+  "alchemy.deposit": "Deposit to transmute",
+  "alchemy.hint1": "Shift-click to deposit",
+  "alchemy.hint2": "Deposit to learn an item",
+  "alchemy.empty": "Deposit items to learn them",
+  "alchemy.redeem_one": "Redeem one",
+  "alchemy.redeem_stack": "Redeem a stack (as affordable)"
+}

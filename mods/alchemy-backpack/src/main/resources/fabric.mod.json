@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "alchemy_backpack",
+  "version": "${version}",
+  "name": "Alchemy Backpack / 煉金背包",
+  "description": "Turn items into energy, learn them, and transmute them back.",
+  "authors": ["Alan"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.alchemy.AlchemyMod"], "client": ["dev.alchemy.client.AlchemyClient"]},
+  "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
+}

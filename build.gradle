@@ -1,0 +1,73 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+}
+
+// 每個 mods/<name> 子專案共用的建置慣例。
+// 模組自己的 gradle.properties 只需提供 mod_id、mod_version、maven_group。
+configure(subprojects.findAll { it.path.startsWith(':mods:') }) {
+	apply plugin: 'net.fabricmc.fabric-loom'
+	apply plugin: 'maven-publish'
+
+	version = project.mod_version
+	group = project.maven_group
+	base { archivesName = project.name }
+
+	repositories {
+		mavenCentral()
+	}
+
+	loom {
+		splitEnvironmentSourceSets()
+		mods {
+			register(project.mod_id) {
+				sourceSet sourceSets.main
+				sourceSet sourceSets.client
+			}
+		}
+	}
+
+	dependencies {
+		minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+		implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+		implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+
+		testImplementation "org.junit.jupiter:junit-jupiter:5.12.2"
+		testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+	}
+
+	processResources {
+		def props = [
+			version          : project.version,
+			minecraft_version: rootProject.minecraft_version,
+			loader_version   : rootProject.loader_version,
+			java_version     : rootProject.java_version,
+		]
+		inputs.properties props
+		filesMatching('fabric.mod.json') { expand props }
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.release = rootProject.java_version as int
+		it.options.encoding = 'UTF-8'
+		it.options.compilerArgs << '-Xlint:deprecation'
+	}
+
+	java {
+		toolchain { languageVersion = JavaLanguageVersion.of(rootProject.java_version as int) }
+		withSourcesJar()
+	}
+
+	jar {
+		def projectName = project.name
+		inputs.property 'projectName', projectName
+		from('LICENSE') { rename { "${it}_$projectName" } }
+	}
+
+	publishing {
+		publications {
+			create('mavenJava', MavenPublication) { from components.java }
+		}
+	}
+
+	test { useJUnitPlatform() }
+}

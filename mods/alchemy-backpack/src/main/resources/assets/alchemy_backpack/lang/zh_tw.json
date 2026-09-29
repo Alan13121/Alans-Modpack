@@ -1,0 +1,19 @@
+{
+  "item.alchemy_backpack.backpack": "煉金背包",
+  "alchemy.balance": "能量：%s EMC",
+  "alchemy.learned": "已學習：%s 種物品",
+  "alchemy.open": "放在主手，右鍵開啟",
+  "alchemy.value": "煉金能量：%s EMC／個",
+  "alchemy.stack_value": "整組能量：%s EMC",
+  "alchemy.blocked": "此物品不可轉化",
+  "alchemy.special": "特殊資料物品受保護，無法轉化",
+  "alchemy.full": "物品欄已滿",
+  "alchemy.insufficient": "煉金能量不足",
+  "alchemy.search": "搜尋名稱或物品 ID",
+  "alchemy.deposit": "放入即轉化",
+  "alchemy.hint1": "Shift＋點擊可快速存入",
+  "alchemy.hint2": "首次轉化會學習該物品",
+  "alchemy.empty": "放入物品來解鎖列表",
+  "alchemy.redeem_one": "兌換 1 個",
+  "alchemy.redeem_stack": "兌換一組（依能量與空間）"
+}

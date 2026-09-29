@@ -1,0 +1,10 @@
+{
+  "abilities": [
+    "water_breathing",
+    "swim_fast"
+  ],
+  "scares": [
+    "minecraft:villager",
+    "minecraft:wandering_trader"
+  ]
+}

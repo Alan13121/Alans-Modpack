@@ -1,0 +1,17 @@
+{
+  "abilities": [
+    "night_vision"
+  ],
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.4,
+      "operation": "add_multiplied_base"
+    },
+    "jump_strength": {
+      "amount": 0.1
+    }
+  },
+  "hunted_by": [
+    "minecraft:wolf"
+  ]
+}

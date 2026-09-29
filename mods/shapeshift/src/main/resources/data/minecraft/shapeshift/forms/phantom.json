@@ -1,0 +1,8 @@
+{
+  "flying_speed": 0.1,
+  "abilities": [
+    "flight",
+    "night_vision",
+    "no_fall_damage"
+  ]
+}

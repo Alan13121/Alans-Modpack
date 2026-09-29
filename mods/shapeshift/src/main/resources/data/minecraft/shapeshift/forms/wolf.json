@@ -1,0 +1,17 @@
+{
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.5,
+      "operation": "add_multiplied_base"
+    }
+  },
+  "scares": [
+    "#minecraft:skeletons",
+    "minecraft:rabbit",
+    "minecraft:fox"
+  ],
+  "hunted_by": [
+    "minecraft:llama",
+    "minecraft:trader_llama"
+  ]
+}

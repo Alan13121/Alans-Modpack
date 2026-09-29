@@ -1,0 +1,12 @@
+{
+  "max_health": 22,
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.6,
+      "operation": "add_multiplied_base"
+    },
+    "jump_strength": {
+      "amount": 0.15
+    }
+  }
+}

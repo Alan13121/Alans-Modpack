@@ -1,0 +1,11 @@
+{
+  "abilities": [
+    "slow_falling",
+    "no_fall_damage"
+  ],
+  "hunted_by": [
+    "minecraft:fox",
+    "minecraft:ocelot",
+    "minecraft:cat"
+  ]
+}

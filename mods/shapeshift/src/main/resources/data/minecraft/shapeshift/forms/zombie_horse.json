@@ -1,0 +1,11 @@
+{
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.8,
+      "operation": "add_multiplied_base"
+    },
+    "jump_strength": {
+      "amount": 0.2
+    }
+  }
+}

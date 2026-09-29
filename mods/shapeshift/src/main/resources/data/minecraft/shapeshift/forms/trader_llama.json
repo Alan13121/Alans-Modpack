@@ -1,0 +1,12 @@
+{
+  "max_health": 22,
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.3,
+      "operation": "add_multiplied_base"
+    }
+  },
+  "active": {
+    "type": "spit"
+  }
+}

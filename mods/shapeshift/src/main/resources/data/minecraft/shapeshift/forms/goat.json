@@ -1,0 +1,10 @@
+{
+  "attributes": {
+    "jump_strength": {
+      "amount": 0.4
+    },
+    "safe_fall_distance": {
+      "amount": 7
+    }
+  }
+}

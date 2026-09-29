@@ -1,0 +1,10 @@
+{
+  "abilities": [
+    "water_breathing",
+    "swim_fast",
+    "night_vision"
+  ],
+  "weaknesses": [
+    "needs_water"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "attributes": {
+    "movement_speed": {
+      "amount": -0.25,
+      "operation": "add_multiplied_base"
+    },
+    "explosion_knockback_resistance": {
+      "amount": 1
+    }
+  }
+}

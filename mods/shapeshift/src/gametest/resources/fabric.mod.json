@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "shapeshift-test",
+  "version": "1.0.0",
+  "name": "Shapeshift client game tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.shapeshift.test.ShapeshiftClientGameTest"]},
+  "depends": {"shapeshift": "*"}
+}

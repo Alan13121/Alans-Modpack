@@ -1,0 +1,90 @@
+import groovy.json.JsonOutput
+
+apply plugin: 'net.fabricmc.fabric-loom'
+
+// 模組包本身不含程式碼；它負責
+//   1. ./gradlew :pack:runClient —— 同時載入所有模組的開發用遊戲
+//   2. ./gradlew :pack:mrpack    —— 產生可匯入 Modrinth App / Prism Launcher 的 .mrpack
+def modProjects = rootProject.subprojects.findAll { it.path.startsWith(':mods:') }
+modProjects.each { evaluationDependsOn(it.path) }
+
+version = rootProject.pack_version
+
+loom {
+	mods {
+		modProjects.each { p ->
+			register(p.mod_id) {
+				sourceSet('main', p.path)
+				sourceSet('client', p.path)
+			}
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+	modProjects.each { p ->
+		implementation project(p.path)
+		implementation p.sourceSets.client.output
+	}
+}
+
+// 只收 Fabric API 本體 jar，用於放入模組包。
+configurations {
+	packLibraries { transitive = false }
+}
+dependencies {
+	packLibraries "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+}
+
+def stagingDir = layout.buildDirectory.dir('mrpack')
+
+tasks.register('stagePack', Sync) {
+	group = 'modpack'
+	description = '把所有模組 jar、Fabric API 與 overrides 放到 build/mrpack'
+	into stagingDir
+	from('overrides') { into 'overrides' }
+	into('overrides/mods') {
+		from configurations.packLibraries
+		modProjects.each { p -> from(p.tasks.named('jar')) }
+	}
+	doLast {
+		def index = [
+			formatVersion: 1,
+			game         : 'minecraft',
+			versionId    : rootProject.pack_version,
+			name         : rootProject.pack_name,
+			summary      : "Built from ${modProjects.size()} in-house mods",
+			files        : [],
+			dependencies : [
+				minecraft      : rootProject.minecraft_version,
+				'fabric-loader': rootProject.loader_version,
+			],
+		]
+		stagingDir.get().file('modrinth.index.json').asFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(index))
+	}
+}
+
+tasks.register('mrpack', Zip) {
+	group = 'modpack'
+	description = '輸出 build/distributions/<pack_id>-<version>.mrpack'
+	dependsOn 'stagePack'
+	from stagingDir
+	archiveBaseName = rootProject.pack_id
+	archiveVersion = rootProject.pack_version
+	archiveExtension = 'mrpack'
+	destinationDirectory = layout.buildDirectory.dir('distributions')
+}
+
+// 也可以直接丟進任何啟動器的 mods 資料夾：build/pack-mods/
+tasks.register('packMods', Sync) {
+	group = 'modpack'
+	description = '只收集 mods 資料夾需要的 jar 到 build/pack-mods'
+	dependsOn 'stagePack'
+	from stagingDir.map { it.dir('overrides/mods') }
+	into layout.buildDirectory.dir('pack-mods')
+}
+
+tasks.named('build') { dependsOn 'mrpack' }

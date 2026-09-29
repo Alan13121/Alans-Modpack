@@ -1,0 +1,20 @@
+{
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.2,
+      "operation": "add_multiplied_base"
+    },
+    "block_interaction_range": {
+      "amount": 2
+    },
+    "entity_interaction_range": {
+      "amount": 1.5
+    }
+  },
+  "active": {
+    "type": "teleport"
+  },
+  "weaknesses": [
+    "water_damage"
+  ]
+}

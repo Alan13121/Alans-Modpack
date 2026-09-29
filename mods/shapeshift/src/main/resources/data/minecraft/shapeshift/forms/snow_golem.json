@@ -1,0 +1,8 @@
+{
+  "active": {
+    "type": "snowball"
+  },
+  "weaknesses": [
+    "water_damage"
+  ]
+}

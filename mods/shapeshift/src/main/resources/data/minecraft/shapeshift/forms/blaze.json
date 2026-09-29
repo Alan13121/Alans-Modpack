@@ -1,0 +1,13 @@
+{
+  "flying_speed": 0.03,
+  "abilities": [
+    "flight",
+    "no_fall_damage"
+  ],
+  "active": {
+    "type": "small_fireball"
+  },
+  "weaknesses": [
+    "water_damage"
+  ]
+}

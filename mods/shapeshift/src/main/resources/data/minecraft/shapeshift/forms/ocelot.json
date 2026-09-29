@@ -1,0 +1,14 @@
+{
+  "abilities": [
+    "no_fall_damage"
+  ],
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.6,
+      "operation": "add_multiplied_base"
+    }
+  },
+  "scares": [
+    "minecraft:creeper"
+  ]
+}

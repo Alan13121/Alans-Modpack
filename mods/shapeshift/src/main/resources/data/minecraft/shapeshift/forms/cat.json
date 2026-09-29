@@ -1,0 +1,15 @@
+{
+  "abilities": [
+    "night_vision",
+    "no_fall_damage"
+  ],
+  "attributes": {
+    "movement_speed": {
+      "amount": 0.4,
+      "operation": "add_multiplied_base"
+    }
+  },
+  "scares": [
+    "minecraft:creeper"
+  ]
+}

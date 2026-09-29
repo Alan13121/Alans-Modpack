@@ -1,0 +1,12 @@
+{
+  "abilities": [
+    "water_breathing",
+    "swim_fast"
+  ],
+  "attributes": {
+    "movement_speed": {
+      "amount": -0.5,
+      "operation": "add_multiplied_base"
+    }
+  }
+}

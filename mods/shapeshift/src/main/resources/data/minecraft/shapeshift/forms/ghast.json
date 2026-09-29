@@ -1,0 +1,10 @@
+{
+  "flying_speed": 0.04,
+  "abilities": [
+    "flight",
+    "no_fall_damage"
+  ],
+  "active": {
+    "type": "fireball"
+  }
+}

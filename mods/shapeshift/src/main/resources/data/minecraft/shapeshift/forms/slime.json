@@ -1,0 +1,10 @@
+{
+  "abilities": [
+    "no_fall_damage"
+  ],
+  "attributes": {
+    "jump_strength": {
+      "amount": 0.3
+    }
+  }
+}
