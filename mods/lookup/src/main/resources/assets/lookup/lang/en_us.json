@@ -18,5 +18,9 @@
   "lookup.loot.block": "Block Drops",
   "lookup.loot.table": "Loot Table",
   "lookup.loot.amount": "Amount: %s",
-  "lookup.loot.chance": "Chance: %s%%"
+  "lookup.loot.chance": "Chance: %s%%",
+  "key.lookup.bookmark": "Bookmark Item",
+  "key.lookup.open": "Open Item List",
+  "lookup.title": "Lookup",
+  "lookup.fill": "Fill ingredients (Shift: as many as possible)"
 }

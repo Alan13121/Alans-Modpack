@@ -10,6 +10,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.util.Prediction;
+import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.BrewingRecipe;
 import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
@@ -28,6 +29,8 @@ public final class LookupMod implements ModInitializer {
         PayloadTypeRegistry.clientboundPlay().register(BrewingSync.TYPE, BrewingSync.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(LootSync.TYPE, LootSync.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(GiveItem.TYPE, GiveItem.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(FillRecipe.TYPE, FillRecipe.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(FillRecipe.TYPE, (payload, context) -> fill(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(GiveItem.TYPE, (payload, context) -> give(context.player(), payload.stack()));
         // Fires for each player on join and after /reload.
         ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register((player, joined) -> {
@@ -41,6 +44,16 @@ public final class LookupMod implements ModInitializer {
         var server = player.level().getServer();
         return player.isCreative() || server.isSingleplayerOwner(player.nameAndId())
             || player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+    }
+
+    /** Vanilla's placement does the work (tags, stacking, max fill); only the "recipe must be unlocked" check is skipped. */
+    private static void fill(ServerPlayer player, FillRecipe request) {
+        var menu = player.containerMenu;
+        if (player.isSpectator() || menu.containerId != request.containerId() || !menu.stillValid(player)) return;
+        if (!(menu instanceof RecipeBookMenu recipeMenu)) return;
+        var info = player.level().getServer().getRecipeManager().getRecipeFromDisplay(request.display());
+        if (info == null || info.parent().value().placementInfo().isImpossibleToPlace()) return;
+        recipeMenu.handlePlacement(request.max(), player.isCreative(), info.parent(), player.level(), player.getInventory());
     }
 
     private static void give(ServerPlayer player, ItemStack requested) {

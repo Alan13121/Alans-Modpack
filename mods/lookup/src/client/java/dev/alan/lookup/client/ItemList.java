@@ -20,12 +20,15 @@ public final class ItemList {
     private static List<ItemStack> cache = List.of();
     /** Tooltip text per listed stack, built on first {@code $} search. */
     private static final Map<ItemStack, String> tooltips = new IdentityHashMap<>();
+    /** Lower-case names, so typing in the search box does not rebuild 1500 component strings per key. */
+    private static final Map<ItemStack, String> names = new IdentityHashMap<>();
 
     private ItemList() {}
 
     static void clear() {
         cache = List.of();
         tooltips.clear();
+        names.clear();
     }
 
     public static List<ItemStack> all(Level level) {
@@ -71,7 +74,7 @@ public final class ItemList {
         if (terms.length == 1 && terms[0].isEmpty()) return all;
         List<ItemStack> out = new ArrayList<>();
         for (ItemStack stack : all) {
-            String name = stack.getHoverName().getString().toLowerCase(Locale.ROOT);
+            String name = names.computeIfAbsent(stack, st -> st.getHoverName().getString().toLowerCase(Locale.ROOT));
             String namespace = BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace();
             boolean match = true;
             for (String term : terms) {

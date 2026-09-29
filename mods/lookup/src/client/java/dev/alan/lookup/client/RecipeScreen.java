@@ -7,6 +7,8 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import dev.alan.lookup.FillRecipe;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -15,8 +17,12 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.AbstractCraftingMenu;
+import net.minecraft.world.inventory.RecipeBookMenu;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.display.RecipeDisplayId;
 import org.jspecify.annotations.Nullable;
 
 /** Recipes that make an item, or recipes that use it, grouped into one tab per station. */
@@ -56,6 +62,20 @@ public final class RecipeScreen extends Screen {
         }
         mc.gui.setScreen(new RecipeScreen(parent, new Query(item, uses)));
     }
+
+    /** The crafting or furnace menu behind this screen, if any, so a recipe can be moved into it. */
+    private @Nullable RecipeBookMenu fillTarget() {
+        return parent instanceof AbstractContainerScreen<?> container && container.getMenu() instanceof RecipeBookMenu menu ? menu : null;
+    }
+
+    private boolean canFill(RecipeView view) {
+        var menu = fillTarget();
+        if (menu == null || view.displayId() < 0) return false;
+        return !(menu instanceof AbstractCraftingMenu crafting) || view.inputs().size() <= crafting.getGridWidth() * crafting.getGridHeight();
+    }
+
+    private int fillX() { return left + (PANEL_W - RecipeView.WIDTH) / 2 + 94; }
+    private int viewY(int row) { return top + 20 + TAB + PAD + row * ROW; }
 
     @Override protected void init() {
         categories.clear();
@@ -98,7 +118,7 @@ public final class RecipeScreen extends Screen {
         g.fill(left, top, left + PANEL_W, top + panelH, 0xFFC6C6C6);
         g.text(font, font.plainSubstrByWidth(title.getString(), PANEL_W - 2 * PAD), left + PAD, top + 7, 0xFF404040, false);
         RecipePainter.Hover hovered = null;
-        Component hoveredTab = null;
+        Component hoveredTab = null, fillTip = null;
         int tabY = top + 20;
         for (int i = 0; i < keys.size(); i++) {
             int x = left + PAD + i * TAB;
@@ -121,12 +141,21 @@ public final class RecipeScreen extends Screen {
             if (index >= views.size()) break;
             RecipePainter.Hover h = RecipePainter.draw(g, font, views.get(index), x0, y0 + i * ROW, mouseX, mouseY);
             if (h != null) hovered = h;
+            if (canFill(views.get(index))) {
+                int fx = fillX(), fy = y0 + i * ROW;
+                boolean over = mouseX >= fx && mouseX < fx + 18 && mouseY >= fy && mouseY < fy + 14;
+                g.fill(fx, fy, fx + 18, fy + 14, 0xFF000000);
+                g.fill(fx + 1, fy + 1, fx + 17, fy + 13, over ? 0xFF7080B0 : 0xFF555555);
+                g.centeredText(font, "+", fx + 9, fy + 3, 0xFFFFFFFF);
+                if (over) fillTip = Component.translatable("lookup.fill");
+            }
         }
         int pages = Math.max(1, (views.size() + perPage - 1) / perPage);
         Component pageText = Component.translatable("lookup.page", page + 1, pages);
         g.centeredText(font, pageText, left + PANEL_W / 2 + 4, top + panelH - 18, 0xFF404040);
         super.extractRenderState(g, mouseX, mouseY, a);
         if (hovered != null) tooltip(g, hovered, mouseX, mouseY);
+        else if (fillTip != null) g.setTooltipForNextFrame(font, fillTip, mouseX, mouseY);
         else if (hoveredTab != null) g.setTooltipForNextFrame(font, hoveredTab, mouseX, mouseY);
     }
 
@@ -171,6 +200,19 @@ public final class RecipeScreen extends Screen {
                 return true;
             }
         }
+        var views = current();
+        for (int i = 0; i < perPage; i++) {
+            int index = page * perPage + i;
+            if (index >= views.size()) break;
+            RecipeView view = views.get(index);
+            int fx = fillX(), fy = viewY(i);
+            if (event.button() == 0 && canFill(view) && event.x() >= fx && event.x() < fx + 18 && event.y() >= fy && event.y() < fy + 14) {
+                ClientPlayNetworking.send(new FillRecipe(((AbstractContainerScreen<?>) parent).getMenu().containerId,
+                    new RecipeDisplayId(view.displayId()), event.hasShiftDown()));
+                minecraft.gui.setScreen(parent);
+                return true;
+            }
+        }
         ItemStack stack = stackAt((int) event.x(), (int) event.y());
         if (stack != null && (event.button() == 0 || event.button() == 1)) {
             show(minecraft, this, stack.getItem(), event.button() == 1);
@@ -187,10 +229,12 @@ public final class RecipeScreen extends Screen {
 
     @Override public boolean keyPressed(KeyEvent event) {
         boolean recipes = LookupClient.SHOW_RECIPES.matches(event), uses = LookupClient.SHOW_USES.matches(event);
-        if (recipes || uses) {
+        boolean bookmark = LookupClient.BOOKMARK.matches(event);
+        if (recipes || uses || bookmark) {
             ItemStack stack = stackAt(lastMouseX, lastMouseY);
             if (stack != null) {
-                show(minecraft, this, stack.getItem(), uses);
+                if (bookmark) Bookmarks.toggle(stack.getItem());
+                else show(minecraft, this, stack.getItem(), uses);
                 return true;
             }
         }

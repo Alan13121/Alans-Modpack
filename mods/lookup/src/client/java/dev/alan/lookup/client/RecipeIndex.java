@@ -114,6 +114,7 @@ public final class RecipeIndex {
         dirty = false;
         byOutput.clear();
         byInput.clear();
+        long started = System.nanoTime();
         ContextMap context = SlotDisplayContext.fromLevel(level);
         for (RecipeDisplayEntry entry : received) {
             RecipeView view;
@@ -131,6 +132,8 @@ public final class RecipeIndex {
                 // A malformed modded recipe must not hide the rest.
             }
         }
+        LookupMod.LOG.info("Lookup indexed {} recipes and {} brewing recipes in {} ms", received.size(), brewing.size(),
+            (System.nanoTime() - started) / 1_000_000);
     }
 
     private static void index(RecipeView view, Map<Item, List<RecipeView>> outputs, Map<Item, List<RecipeView>> inputs) {
@@ -219,7 +222,7 @@ public final class RecipeIndex {
         String stationId = station.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(station.getItem()).toString();
         Component name = station.isEmpty() ? Component.literal(group) : station.getHoverName();
         return new RecipeView(group + ":" + stationId, name, station.isEmpty() ? results.stream().findFirst().orElse(ItemStack.EMPTY) : station,
-            in, out, arrow, note);
+            in, out, arrow, note, null, entry.id().index());
     }
 
     private static String number(float value) {

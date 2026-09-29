@@ -1,7 +1,9 @@
 package dev.alan.lookup.test;
 
 import dev.alan.lookup.GiveItem;
+import dev.alan.lookup.client.Bookmarks;
 import dev.alan.lookup.client.ItemList;
+import dev.alan.lookup.client.LookupScreen;
 import dev.alan.lookup.client.LookupConfig;
 import dev.alan.lookup.client.RecipeIndex;
 import dev.alan.lookup.client.RecipeScreen;
@@ -76,6 +78,53 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             check(matches(context, "#logs") > 0, "#logs finds log items");
             check(matches(context, "#logs birch") > 0 && matches(context, "#logs birch") < matches(context, "#logs"), "terms combine");
             check(matches(context, "$attack") > 0, "$ searches tooltip text");
+
+            // Bookmarks: pinned items show in the top row of the list and survive in the config file.
+            context.runOnClient(mc -> {
+                Bookmarks.toggle(Items.DIAMOND);
+                Bookmarks.toggle(Items.NETHER_STAR);
+                mc.gui.setScreen(new InventoryScreen(mc.player));
+            });
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> Bookmarks.contains(Items.DIAMOND)), "bookmark added");
+            context.takeScreenshot("15-bookmarks");
+            context.runOnClient(mc -> { Bookmarks.load(); });
+            check(context.computeOnClient(mc -> Bookmarks.items().size()) == 2, "bookmarks reload from the config file");
+            context.runOnClient(mc -> { Bookmarks.toggle(Items.DIAMOND); Bookmarks.toggle(Items.NETHER_STAR); });
+            check(context.computeOnClient(mc -> Bookmarks.items().isEmpty()), "bookmarks removed");
+
+            // The standalone list opens without any container.
+            context.runOnClient(mc -> mc.gui.setScreen(new LookupScreen()));
+            context.waitTicks(5);
+            context.takeScreenshot("16-standalone-list");
+
+            // Recipe fill: click "+" on a stick recipe and the ingredients land in the 2x2 grid.
+            world.getServer().runCommand("give @p minecraft:oak_planks 8");
+            context.waitTicks(10);
+            context.runOnClient(mc -> mc.gui.setScreen(new InventoryScreen(mc.player)));
+            context.waitTicks(3);
+            context.runOnClient(mc -> RecipeScreen.show(mc, mc.gui.screen(), Items.STICK, false));
+            context.waitTicks(3);
+            double[] plus = context.computeOnClient(mc -> {
+                var w = mc.getWindow();
+                double left = (w.getGuiScaledWidth() - 176) / 2.0;
+                double top = (w.getGuiScaledHeight() - Math.min(w.getGuiScaledHeight() - 16, 24 + 24 + 8 + 3 * 60 + 28)) / 2.0;
+                return new double[] {(left + 32 + 94 + 9) * w.getGuiScale(), (top + 52 + 7) * w.getGuiScale()};
+            });
+            context.takeScreenshot("17-fill-button");
+            context.getInput().setCursorPos(plus[0], plus[1]);
+            context.getInput().pressMouse(0);
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof InventoryScreen), "fill returns to the inventory");
+            int filled = context.computeOnClient(mc -> {
+                int n = 0;
+                for (int i = 0; i < mc.player.inventoryMenu.getCraftSlots().getContainerSize(); i++)
+                    if (!mc.player.inventoryMenu.getCraftSlots().getItem(i).isEmpty()) n++;
+                return n;
+            });
+            check(filled == 2, "stick recipe fills two grid slots, got " + filled);
+            context.takeScreenshot("18-filled-grid");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
 
             // Cheat mode: clicking gives items, but only when the server agrees.
             check(!LookupConfig.cheatMode(), "cheat mode starts off");

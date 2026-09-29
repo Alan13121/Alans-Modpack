@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -17,11 +18,14 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
 
-/** The item list on the right edge of an inventory-style screen, with a search box and paging. */
+/**
+ * The item list with its search box, paging and bookmark row. On an inventory-style screen it sits on the
+ * right edge; on the standalone {@link LookupScreen} it is centred.
+ */
 final class ItemListOverlay {
     private static final int CELL = 18;
 
-    private final AbstractContainerScreen<?> screen;
+    private final Screen screen;
     private final Minecraft mc;
     private final Font font;
     private EditBox search;
@@ -29,25 +33,31 @@ final class ItemListOverlay {
     private boolean visible;
     private int left, top, cols, rows, page, width, height;
 
-    ItemListOverlay(Minecraft mc, AbstractContainerScreen<?> screen, int width, int height) {
+    ItemListOverlay(Minecraft mc, Screen screen, int width, int height, boolean standalone) {
         this.mc = mc;
         this.screen = screen;
         this.font = mc.font;
         this.width = width;
         this.height = height;
-        var accessor = (AbstractContainerScreenAccessor) screen;
-        int free = width - 4 - (accessor.lookup$leftPos() + accessor.lookup$imageWidth() + 8);
-        cols = Math.min(free / CELL, 12);
+        if (standalone) {
+            cols = Math.min((width - 16) / CELL, 14);
+            left = (width - cols * CELL) / 2;
+        } else {
+            var accessor = (AbstractContainerScreenAccessor) screen;
+            int free = width - 4 - (accessor.lookup$leftPos() + accessor.lookup$imageWidth() + 8);
+            cols = Math.min(free / CELL, 12);
+            left = width - 4 - cols * CELL;
+        }
         visible = cols >= 3 && mc.level != null;
         RecipeIndex.refreshPlugins();
         if (!visible) return;
-        left = width - 4 - cols * CELL;
         top = 22;
-        rows = Math.max(1, (height - 26 - top) / CELL);
+        rows = Math.max(2, (height - 26 - top) / CELL);
         search = new EditBox(font, left, height - 22, cols * CELL - 2 * CELL - 4, 18, Component.translatable("lookup.search"));
         search.setHint(Component.translatable("lookup.search"));
         search.setMaxLength(60);
         search.setResponder(text -> { page = 0; refilter(); });
+        if (standalone) search.setFocused(true);
         refilter();
     }
 
@@ -56,14 +66,24 @@ final class ItemListOverlay {
         page = Math.max(0, Math.min(page, pages() - 1));
     }
 
-    private int pages() { return Math.max(1, (filtered.size() + cols * rows - 1) / (cols * rows)); }
-    private boolean inList(double x, double y) { return x >= left && x < left + cols * CELL && y >= top && y < top + rows * CELL; }
+    /** One row is given to bookmarks while there are any. */
+    private int bookmarkRows() { return Bookmarks.items().isEmpty() ? 0 : 1; }
+    private int listTop() { return top + bookmarkRows() * CELL; }
+    private int listRows() { return Math.max(1, rows - bookmarkRows()); }
+    private int perPage() { return cols * listRows(); }
+    private int pages() { return Math.max(1, (filtered.size() + perPage() - 1) / perPage()); }
+    private boolean inArea(double x, double y) { return x >= left && x < left + cols * CELL && y >= top && y < top + rows * CELL; }
     private int prevX() { return left + cols * CELL - 2 * CELL; }
     private int nextX() { return left + cols * CELL - CELL; }
 
     private @Nullable ItemStack itemAt(double x, double y) {
-        if (!inList(x, y)) return null;
-        int index = page * cols * rows + (int) ((y - top) / CELL) * cols + (int) ((x - left) / CELL);
+        if (!inArea(x, y)) return null;
+        int col = (int) ((x - left) / CELL);
+        if (y < listTop()) {
+            var pinned = Bookmarks.items();
+            return col < pinned.size() ? new ItemStack(pinned.get(col)) : null;
+        }
+        int index = page * perPage() + (int) ((y - listTop()) / CELL) * cols + col;
         return index < filtered.size() ? filtered.get(index) : null;
     }
 
@@ -72,22 +92,35 @@ final class ItemListOverlay {
         if (!visible) return null;
         ItemStack own = itemAt(x, y);
         if (own != null) return own;
-        Slot slot = ((AbstractContainerScreenAccessor) screen).lookup$hoveredSlot();
-        return slot != null && slot.hasItem() ? slot.getItem() : null;
+        if (screen instanceof AbstractContainerScreen<?> container) {
+            Slot slot = ((AbstractContainerScreenAccessor) container).lookup$hoveredSlot();
+            if (slot != null && slot.hasItem()) return slot.getItem();
+        }
+        return null;
     }
 
     boolean searchFocused() { return visible && search.isFocused(); }
 
     void extract(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         if (!visible) return;
+        page = Math.max(0, Math.min(page, pages() - 1));
         Component pageText = Component.translatable("lookup.page", page + 1, pages());
         g.text(font, pageText, left + (cols * CELL - font.width(pageText)) / 2, 8, 0xFFFFFFFF, true);
         if (LookupConfig.cheatMode()) g.text(font, Component.translatable("lookup.cheat"), left, 8, 0xFFFFAA00, true);
         ItemStack hover = itemAt(mouseX, mouseY);
-        for (int i = 0; i < cols * rows; i++) {
-            int index = page * cols * rows + i;
+        if (bookmarkRows() == 1) {
+            g.fill(left, top, left + cols * CELL, top + CELL, 0x50FFCC00);
+            var pinned = Bookmarks.items();
+            for (int i = 0; i < Math.min(cols, pinned.size()); i++) {
+                int x = left + i * CELL;
+                if (hover != null && hover.getItem() == pinned.get(i) && mouseY < listTop()) g.fill(x, top, x + CELL, top + CELL, 0x80FFFFFF);
+                g.item(new ItemStack(pinned.get(i)), x + 1, top + 1);
+            }
+        }
+        for (int i = 0; i < perPage(); i++) {
+            int index = page * perPage() + i;
             if (index >= filtered.size()) break;
-            int x = left + (i % cols) * CELL, y = top + (i / cols) * CELL;
+            int x = left + (i % cols) * CELL, y = listTop() + (i / cols) * CELL;
             ItemStack stack = filtered.get(index);
             if (stack == hover) g.fill(x, y, x + CELL, y + CELL, 0x80FFFFFF);
             g.item(stack, x + 1, y + 1);
@@ -132,11 +165,11 @@ final class ItemListOverlay {
             RecipeScreen.show(mc, screen, stack.getItem(), event.button() == 1);
             return true;
         }
-        return inList(x, y);
+        return inArea(x, y);
     }
 
     boolean mouseScrolled(double x, double y, double scrollY) {
-        if (!visible || !inList(x, y)) return false;
+        if (!visible || !inArea(x, y)) return false;
         page = Math.max(0, Math.min(page - (int) Math.signum(scrollY), pages() - 1));
         return true;
     }
@@ -145,15 +178,18 @@ final class ItemListOverlay {
     boolean keyPressed(KeyEvent event, double mouseX, double mouseY) {
         if (!visible) return false;
         if (search.isFocused()) {
-            if (event.isEscape()) search.setFocused(false);
+            if (event.isEscape() && !(screen instanceof LookupScreen)) search.setFocused(false);
+            else if (event.isEscape()) return false;
             else search.keyPressed(event);
             return true;
         }
         boolean recipes = LookupClient.SHOW_RECIPES.matches(event), uses = LookupClient.SHOW_USES.matches(event);
-        if (!recipes && !uses) return false;
+        boolean bookmark = LookupClient.BOOKMARK.matches(event);
+        if (!recipes && !uses && !bookmark) return false;
         ItemStack stack = hovered(mouseX, mouseY);
         if (stack == null) return false;
-        RecipeScreen.show(mc, screen, stack.getItem(), uses);
+        if (bookmark) Bookmarks.toggle(stack.getItem());
+        else RecipeScreen.show(mc, screen, stack.getItem(), uses);
         return true;
     }
 
