@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["IEI","IBI","III"],"key":{"I":"minecraft:iron_ingot","E":"minecraft:ender_pearl","B":"minecraft:barrel"},"result":{"id":"logistics:cell","count":1}}

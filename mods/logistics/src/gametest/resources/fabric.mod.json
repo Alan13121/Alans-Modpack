@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "logistics-test",
+  "version": "1.0.0",
+  "name": "Logistics client game tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.logistics.test.LogisticsClientGameTest"]},
+  "depends": {"logistics": "*"}
+}

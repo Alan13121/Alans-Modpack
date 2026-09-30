@@ -1,0 +1,1 @@
+{"type":"minecraft:block","pools":[{"rolls":1,"entries":[{"type":"minecraft:item","name":"logistics:farm_interface"}],"conditions":[{"condition":"minecraft:survives_explosion"}]}],"random_sequence":"logistics:blocks/farm_interface"}
