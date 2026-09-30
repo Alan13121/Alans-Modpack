@@ -18,5 +18,14 @@
   "logistics.output.hint": "Click with an item to set a filter",
   "block.logistics.crafting_terminal": "Crafting Terminal",
   "logistics.crafting.store": "Store grid",
-  "logistics.crafting.grid": "Crafting"
+  "logistics.crafting.grid": "Crafting",
+  "block.logistics.cell_2": "Storage Cell II",
+  "block.logistics.cell_3": "Storage Cell III",
+  "block.logistics.cell_4": "Storage Cell IV",
+  "logistics.cell.capacity": "Up to %s of each item",
+  "logistics.lookup.compress": "Storage Cell compression",
+  "logistics.lookup.compress_note": "Contents are merged",
+  "logistics.upgrade.hint": "Upgrades (redstone / quartz)",
+  "logistics.upgrade.interval": "Every %s ticks",
+  "logistics.upgrade.amount": "%s items each"
 }

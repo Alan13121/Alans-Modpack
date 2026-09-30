@@ -19,32 +19,39 @@ import org.jspecify.annotations.Nullable;
  * outputs of machines touching it (furnace results and the like).
  */
 public final class InputInterfaceBlockEntity extends BlockEntity implements WorldlyContainer {
-    private static final int SIZE = 9, PULSE = 10, PULL_BUDGET = 32;
+    private static final int SIZE = 9;
     private static final int[] ALL_SLOTS = {0, 1, 2, 3, 4, 5, 6, 7, 8};
 
     private final NonNullList<ItemStack> buffer = NonNullList.withSize(SIZE, ItemStack.EMPTY);
+    private final UpgradeSlots upgrades = new UpgradeSlots(this::setChanged);
+
+    public UpgradeSlots upgrades() { return upgrades; }
 
     public InputInterfaceBlockEntity(BlockPos pos, BlockState state) {
         super(LogisticsMod.INPUT_ENTITY, pos, state);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, InputInterfaceBlockEntity self) {
-        if ((level.getGameTime() + pos.hashCode()) % PULSE != 0) return;
+        if ((level.getGameTime() + pos.hashCode()) % self.upgrades.interval() != 0) return;
         self.pulse(level, pos);
     }
 
     private void pulse(Level level, BlockPos pos) {
         Network network = null;
-        for (int i = 0; i < SIZE; i++) {
+        int budget = upgrades.amount();
+        for (int i = 0; i < SIZE && budget > 0; i++) {
             ItemStack stack = buffer.get(i);
             if (stack.isEmpty()) continue;
             if (network == null) network = Network.scan(level, pos);
             if (!network.usable()) return;
-            ItemStack rest = network.insert(stack);
-            buffer.set(i, rest);
+            int offered = Math.min(stack.getCount(), budget);
+            ItemStack rest = network.insert(stack.copyWithCount(offered));
+            int moved = offered - rest.getCount();
+            stack.shrink(moved);
+            if (stack.isEmpty()) buffer.set(i, ItemStack.EMPTY);
+            budget -= moved;
             setChanged();
         }
-        int budget = PULL_BUDGET;
         for (Neighbours.Target t : Neighbours.around(level, pos)) {
             for (int slot : Neighbours.takeableSlots(t)) {
                 ItemStack stack = t.container().getItem(slot);
@@ -66,6 +73,7 @@ public final class InputInterfaceBlockEntity extends BlockEntity implements Worl
     @Override protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         ContainerHelper.saveAllItems(output, buffer, false);
+        upgrades.save(output);
     }
 
     @Override protected void loadAdditional(ValueInput input) {
@@ -73,6 +81,12 @@ public final class InputInterfaceBlockEntity extends BlockEntity implements Worl
         buffer.clear();
         for (int i = 0; i < SIZE; i++) buffer.set(i, ItemStack.EMPTY);
         ContainerHelper.loadAllItems(input, buffer);
+        upgrades.load(input);
+    }
+
+    @Override public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (level != null) net.minecraft.world.Containers.dropContents(level, pos, upgrades);
     }
 
     // WorldlyContainer: hoppers and droppers feed the buffer from any side; nothing can take items back out.

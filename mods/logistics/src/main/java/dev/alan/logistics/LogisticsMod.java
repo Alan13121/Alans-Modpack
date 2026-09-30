@@ -46,7 +46,19 @@ public final class LogisticsMod implements ModInitializer {
     public static final CableBlock CABLE = block("cable", CableBlock::new,
         BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_ORANGE).strength(1.0F, 3.0F).sound(SoundType.COPPER).noOcclusion());
     public static final TerminalBlock TERMINAL = block("terminal", TerminalBlock::new, metal(MapColor.COLOR_GRAY));
-    public static final CellBlock CELL = block("cell", CellBlock::new, metal(MapColor.COLOR_PURPLE));
+    /** Tier 1 is "cell", the others "cell_2" .. "cell_4". */
+    public static final java.util.List<CellBlock> CELLS = cells();
+    public static final CellBlock CELL = CELLS.get(0);
+
+    private static java.util.List<CellBlock> cells() {
+        MapColor[] colors = {MapColor.COLOR_PURPLE, MapColor.COLOR_BLUE, MapColor.GOLD, MapColor.SNOW};
+        java.util.List<CellBlock> list = new java.util.ArrayList<>();
+        for (int tier = 1; tier <= CellBlock.TIERS; tier++) {
+            final int t = tier;
+            list.add(block(tier == 1 ? "cell" : "cell_" + tier, p -> new CellBlock(t, p), metal(colors[tier - 1])));
+        }
+        return list;
+    }
 
     public static final CraftingTerminalBlock CRAFTING_TERMINAL = block("crafting_terminal", CraftingTerminalBlock::new, metal(MapColor.COLOR_BROWN));
     public static final InputInterfaceBlock INPUT_INTERFACE = block("input_interface", InputInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
@@ -57,17 +69,20 @@ public final class LogisticsMod implements ModInitializer {
     public static final BlockEntityType<OutputInterfaceBlockEntity> OUTPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("output_interface"), new BlockEntityType<>(OutputInterfaceBlockEntity::new, Set.of(OUTPUT_INTERFACE)));
     public static final BlockEntityType<CellBlockEntity> CELL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("cell"),
-        new BlockEntityType<>(CellBlockEntity::new, Set.of(CELL)));
+        new BlockEntityType<>(CellBlockEntity::new, new java.util.HashSet<net.minecraft.world.level.block.Block>(CELLS)));
     public static final DataComponentType<CellData> CELL_DATA = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("cell_contents"),
         DataComponentType.<CellData>builder().persistent(CellData.CODEC).networkSynchronized(CellData.STREAM_CODEC).build());
     public static final MenuType<TerminalMenu> TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("terminal"),
         new MenuType<>(TerminalMenu::new, FeatureFlagSet.of()));
     public static final MenuType<CraftingTerminalMenu> CRAFTING_TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("crafting_terminal"),
         new MenuType<>(CraftingTerminalMenu::new, FeatureFlagSet.of()));
-    public static final MenuType<OutputMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
-        new MenuType<>(OutputMenu::new, FeatureFlagSet.of()));
+    public static final MenuType<InterfaceMenu> INPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("input_interface"),
+        new MenuType<>(InterfaceMenu::input, FeatureFlagSet.of()));
+    public static final MenuType<InterfaceMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
+        new MenuType<>(InterfaceMenu::output, FeatureFlagSet.of()));
 
     @Override public void onInitialize() {
+        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_compress"), CellCompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
@@ -80,7 +95,7 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(CABLE);
             entries.accept(TERMINAL);
             entries.accept(CRAFTING_TERMINAL);
-            entries.accept(CELL);
+            for (CellBlock cell : CELLS) entries.accept(cell);
             entries.accept(INPUT_INTERFACE);
             entries.accept(OUTPUT_INTERFACE);
         });

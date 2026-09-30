@@ -73,13 +73,15 @@ def terminal_top():
     frame(px, (30, 34, 40), (110, 220, 250))
     return px
 
-def cell():
-    px = canvas((84, 56, 104), 6)
-    frame(px, (44, 28, 60), (200, 150, 230))
+def cell(base=(84, 56, 104), edge=(44, 28, 60), corner=(200, 150, 230), dark=(40, 24, 56), light=(120, 80, 150), glow=(220, 190, 250), seed=6, dots=0):
+    px = canvas(base, seed)
+    frame(px, edge, corner)
     for y in range(4, 12):
         for x in range(4, 12):
-            put(px, x, y, (40, 24, 56) if (x in (4, 11) or y in (4, 11)) else (120, 80, 150))
-    for x in range(6, 10): put(px, x, 8, (220, 190, 250))
+            put(px, x, y, dark if (x in (4, 11) or y in (4, 11)) else light)
+    for x in range(6, 10): put(px, x, 8, glow)
+    # one extra lit pip per tier above the first, so tiers are easy to tell apart
+    for i in range(dots): put(px, 6 + i * 2, 6, glow); put(px, 6 + i * 2, 10, glow)
     return px
 
 def arrows(base, edge, glow, seed, inward):
@@ -125,6 +127,9 @@ def cable():
 for name, px in [("controller_side", controller_side()), ("controller_top", controller_top()),
                  ("terminal_front", terminal_front()), ("terminal_side", terminal_side()), ("terminal_top", terminal_top()),
                  ("cell", cell()), ("cable", cable()),
+                 ("cell_2", cell((50, 84, 120), (24, 44, 70), (130, 190, 240), (20, 36, 60), (70, 120, 170), (190, 225, 255), 12, 1)),
+                 ("cell_3", cell((150, 120, 44), (84, 64, 20), (255, 220, 110), (70, 52, 14), (190, 155, 60), (255, 240, 170), 13, 2)),
+                 ("cell_4", cell((196, 204, 210), (110, 118, 126), (255, 255, 255), (90, 98, 108), (226, 232, 238), (120, 220, 255), 14, 3)),
                  ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
                  ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:

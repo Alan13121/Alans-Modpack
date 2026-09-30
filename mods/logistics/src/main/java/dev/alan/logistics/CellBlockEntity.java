@@ -11,10 +11,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
-/** Virtual storage: up to {@link #MAX_TYPES} item types, {@link #MAX_PER_TYPE} of each. */
+/** Virtual storage; the limits come from the tier of the block ({@link CellBlock}). */
 public final class CellBlockEntity extends BlockEntity {
-    public static final int MAX_TYPES = 64;
-    public static final int MAX_PER_TYPE = 10_000;
+    public int maxTypes() { return getBlockState().getBlock() instanceof CellBlock cell ? cell.maxTypes() : CellBlock.maxTypes(1); }
+    public int maxPerType() { return getBlockState().getBlock() instanceof CellBlock cell ? cell.maxPerType() : CellBlock.maxPerType(1); }
 
     private static final class Slot {
         final ItemStack template;
@@ -37,8 +37,8 @@ public final class CellBlockEntity extends BlockEntity {
     private void load(CellData data) {
         slots.clear();
         for (CellData.Entry e : data.entries())
-            if (!e.stack().isEmpty() && e.count() > 0 && slots.size() < MAX_TYPES)
-                slots.add(new Slot(e.stack().copyWithCount(1), Math.min(e.count(), MAX_PER_TYPE)));
+            if (!e.stack().isEmpty() && e.count() > 0 && slots.size() < maxTypes())
+                slots.add(new Slot(e.stack().copyWithCount(1), Math.min(e.count(), maxPerType())));
     }
 
     public void forEach(java.util.function.BiConsumer<ItemStack, Integer> consumer) {
@@ -56,12 +56,12 @@ public final class CellBlockEntity extends BlockEntity {
         if (stack.isEmpty()) return;
         for (Slot s : slots) {
             if (!ItemStack.isSameItemSameComponents(s.template, stack)) continue;
-            int moved = Math.min(stack.getCount(), MAX_PER_TYPE - s.count);
+            int moved = Math.min(stack.getCount(), maxPerType() - s.count);
             if (moved > 0) { s.count += moved; stack.shrink(moved); setChanged(); }
             return;
         }
-        if (createNew && slots.size() < MAX_TYPES) {
-            int moved = Math.min(stack.getCount(), MAX_PER_TYPE);
+        if (createNew && slots.size() < maxTypes()) {
+            int moved = Math.min(stack.getCount(), maxPerType());
             slots.add(new Slot(stack.copyWithCount(1), moved));
             stack.shrink(moved);
             setChanged();

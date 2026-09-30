@@ -27,6 +27,23 @@ public record CellData(List<Entry> entries) {
     public static final StreamCodec<RegistryFriendlyByteBuf, CellData> STREAM_CODEC =
         Entry.STREAM_CODEC.apply(ByteBufCodecs.list()).map(CellData::new, CellData::entries);
 
+    /**
+     * Adds up several cells' contents. Returns null if the result would need more than {@code maxTypes} item types
+     * or more than {@code maxPerType} of one item, so a compression never destroys items.
+     */
+    public static CellData merge(List<CellData> parts, int maxTypes, int maxPerType) {
+        java.util.Map<Network.Key, Long> sums = new java.util.LinkedHashMap<>();
+        for (CellData part : parts)
+            for (Entry e : part.entries()) sums.merge(new Network.Key(e.stack()), (long) e.count(), Long::sum);
+        if (sums.size() > maxTypes) return null;
+        List<Entry> out = new java.util.ArrayList<>();
+        for (var e : sums.entrySet()) {
+            if (e.getValue() > maxPerType) return null;
+            out.add(new Entry(e.getKey().stack(), e.getValue().intValue()));
+        }
+        return new CellData(out);
+    }
+
     public long total() {
         long sum = 0;
         for (Entry e : entries) sum += e.count();

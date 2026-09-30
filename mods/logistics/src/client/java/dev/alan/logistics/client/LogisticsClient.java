@@ -12,7 +12,8 @@ public final class LogisticsClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         MenuScreens.register(LogisticsMod.TERMINAL_MENU, TerminalScreen::new);
         MenuScreens.register(LogisticsMod.CRAFTING_TERMINAL_MENU, CraftingTerminalScreen::new);
-        MenuScreens.register(LogisticsMod.OUTPUT_MENU, OutputScreen::new);
+        MenuScreens.register(LogisticsMod.OUTPUT_MENU, InterfaceScreen::new);
+        MenuScreens.register(LogisticsMod.INPUT_MENU, InterfaceScreen::new);
         ClientPlayNetworking.registerGlobalReceiver(TerminalSnapshot.TYPE, (payload, context) ->
             context.client().execute(() -> {
                 var menu = context.client().player == null ? null : context.client().player.containerMenu;
@@ -21,9 +22,11 @@ public final class LogisticsClient implements ClientModInitializer {
             }));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
             var data = stack.get(LogisticsMod.CELL_DATA);
-            if (data == null || !stack.is(LogisticsMod.CELL.asItem())) return;
-            lines.add(Component.translatable("logistics.cell.stored", data.total(), data.entries().size(),
-                dev.alan.logistics.CellBlockEntity.MAX_TYPES).withStyle(ChatFormatting.GRAY));
+            if (data == null || !(stack.getItem() instanceof net.minecraft.world.item.BlockItem item
+                && item.getBlock() instanceof dev.alan.logistics.CellBlock cell)) return;
+            lines.add(Component.translatable("logistics.cell.stored", data.total(), data.entries().size(), cell.maxTypes())
+                .withStyle(ChatFormatting.GRAY));
+            lines.add(Component.translatable("logistics.cell.capacity", cell.maxPerType()).withStyle(ChatFormatting.DARK_GRAY));
         });
     }
 }

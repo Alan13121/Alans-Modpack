@@ -16,7 +16,6 @@ import net.minecraft.world.level.storage.ValueOutput;
  */
 public final class OutputInterfaceBlockEntity extends BlockEntity {
     public static final int FILTER_SLOTS = 9;
-    private static final int PULSE = 10, BUDGET = 32;
 
     private final SimpleContainer filter = new SimpleContainer(FILTER_SLOTS) {
         @Override public void setChanged() {
@@ -29,10 +28,13 @@ public final class OutputInterfaceBlockEntity extends BlockEntity {
         super(LogisticsMod.OUTPUT_ENTITY, pos, state);
     }
 
+    private final UpgradeSlots upgrades = new UpgradeSlots(this::setChanged);
+
     public SimpleContainer filter() { return filter; }
+    public UpgradeSlots upgrades() { return upgrades; }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, OutputInterfaceBlockEntity self) {
-        if ((level.getGameTime() + pos.hashCode()) % PULSE != 0) return;
+        if ((level.getGameTime() + pos.hashCode()) % self.upgrades.interval() != 0) return;
         self.pulse(level, pos);
     }
 
@@ -44,7 +46,7 @@ public final class OutputInterfaceBlockEntity extends BlockEntity {
         if (targets.isEmpty()) return;
         Network network = Network.scan(level, pos);
         if (!network.usable()) return;
-        int budget = BUDGET;
+        int budget = upgrades.amount();
         for (Neighbours.Target target : targets) {
             for (int i = 0; i < FILTER_SLOTS && budget > 0; i++) {
                 ItemStack wanted = filter.getItem(i);
@@ -58,13 +60,19 @@ public final class OutputInterfaceBlockEntity extends BlockEntity {
         }
     }
 
+    @Override public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        if (level != null) net.minecraft.world.Containers.dropContents(level, pos, upgrades);
+    }
+
     @Override protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
+        upgrades.save(output);
         output.store("filter", ItemStack.OPTIONAL_CODEC.listOf(), filter.getItems());
     }
 
     @Override protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
+        upgrades.load(input);
         filter.clearContent();
         List<ItemStack> saved = input.read("filter", ItemStack.OPTIONAL_CODEC.listOf()).orElse(List.of());
         for (int i = 0; i < Math.min(saved.size(), FILTER_SLOTS); i++) filter.setItem(i, saved.get(i));

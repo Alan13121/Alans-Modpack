@@ -51,7 +51,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             world.getServer().runCommand("give @p minecraft:iron_ore 1");
             context.waitTicks(5);
             context.getInput().pressKey(options -> options.keyUse);
-            context.waitForScreen(dev.alan.logistics.client.OutputScreen.class);
+            context.waitForScreen(dev.alan.logistics.client.InterfaceScreen.class);
             context.waitTicks(5);
             int ore = context.computeOnClient(mc -> {
                 for (var s : mc.player.containerMenu.slots) if (s.index >= 9 && s.getItem().is(Items.IRON_ORE)) return s.index;
@@ -74,7 +74,68 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             }), "the ghost slot holds the filter");
             check(furnaceSlot(world, 0) > 0, "iron ore reached the furnace input");
             check(furnaceSlot(world, 1) == 0, "coal is not on the filter, so the fuel slot stays empty");
+
+            // Upgrades: quartz moves more per pulse, redstone pulses more often. A dropper takes 576 items.
+            world.getServer().runCommand("setblock -3 121 0 minecraft:dropper");
+            world.getServer().runOnServer(server -> {
+                var level = server.overworld();
+                var cell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
+                cell.insert(new ItemStack(Items.COBBLESTONE, 500), true);
+                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                for (int i = 0; i < 9; i++) out.filter().setItem(i, ItemStack.EMPTY);
+                out.filter().setItem(0, new ItemStack(Items.COBBLESTONE));
+                // The dropper is next to the output interface's west face.
+            });
+            context.waitTicks(25);
+            int slow = dropperItems(world);
+            check(slow > 0 && slow <= 96, "without upgrades only a few pulses of 32 arrive, got " + slow);
+            check(world.getServer().computeOnServer(server -> {
+                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                return out.upgrades().interval() == 10 && out.upgrades().amount() == 32;
+            }), "no upgrades means 10 ticks and 32 items");
+            world.getServer().runOnServer(server -> {
+                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                out.upgrades().setItem(0, new ItemStack(Items.REDSTONE, 8));
+                out.upgrades().setItem(1, new ItemStack(Items.REDSTONE, 8));
+                out.upgrades().setItem(2, new ItemStack(Items.QUARTZ, 8));
+                out.upgrades().setItem(3, new ItemStack(Items.QUARTZ, 8));
+            });
+            check(world.getServer().computeOnServer(server -> {
+                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                return out.upgrades().interval() == 1 && out.upgrades().amount() == 256;
+            }), "16 redstone and 16 quartz mean every tick and 256 items");
+            context.waitTicks(20);
+            int fast = dropperItems(world);
+            check(fast >= 400, "upgraded interface moved most of the 500 cobblestone in 20 ticks, dropper has " + fast);
+
+            // The input interface has a screen with upgrade slots; shift-click puts quartz there.
+            world.getServer().runCommand("give @p minecraft:quartz 5");
+            world.getServer().runCommand("tp @p 1.5 120 3.5 180 20");
+            context.waitTicks(10);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.InterfaceScreen.class);
+            context.waitTicks(5);
+            int quartz = context.computeOnClient(mc -> {
+                for (var st : mc.player.containerMenu.slots) if (st.getItem().is(Items.QUARTZ)) return st.index;
+                return -1;
+            });
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, quartz, 0, ContainerInput.QUICK_MOVE, mc.player));
+            context.waitTicks(10);
+            context.takeScreenshot("06b-input-upgrades");
+            check(world.getServer().computeOnServer(server -> {
+                var be = (dev.alan.logistics.InputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                return be.upgrades().amount() == 32 + 5 * 14;
+            }), "quartz landed in the input interface's upgrade slots");
         }
+    }
+
+    private static int dropperItems(TestSingleplayerContext world) {
+        return world.getServer().computeOnServer(server -> {
+            var dropper = (net.minecraft.world.Container) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
+            int n = 0;
+            for (int i = 0; i < dropper.getContainerSize(); i++) n += dropper.getItem(i).getCount();
+            return n;
+        });
     }
 
     /** Crafting terminal: ingredients come from the warehouse and the grid refills itself. */
@@ -93,6 +154,8 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.waitForScreen(dev.alan.logistics.client.CraftingTerminalScreen.class);
             context.waitTicks(15);
             check(entry(context, Items.OAK_PLANKS) == 12, "planks are listed, got " + entry(context, Items.OAK_PLANKS));
+
+            compression(context, world);
 
             // Two planks in a column make sticks.
             act(context, TerminalAction.Kind.TAKE_STACK, Items.OAK_PLANKS);
@@ -167,6 +230,50 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(mc -> mc.gui.setScreen(null));
         }
+    }
+
+    /** Storage cell compression: four cells make the next tier and keep everything inside. */
+    private static void compression(ClientGameTestContext context, TestSingleplayerContext world) {
+        String result = world.getServer().computeOnServer(server -> {
+            var level = server.overworld();
+            var manager = server.getRecipeManager();
+            java.util.function.BiFunction<Integer, dev.alan.logistics.CellData, ItemStack> cell = (tier, data) -> {
+                ItemStack st = new ItemStack(dev.alan.logistics.LogisticsMod.CELLS.get(tier - 1));
+                if (data != null) st.set(dev.alan.logistics.LogisticsMod.CELL_DATA, data);
+                return st;
+            };
+            var dirt = new dev.alan.logistics.CellData(java.util.List.of(new dev.alan.logistics.CellData.Entry(new ItemStack(Items.DIRT), 6000)));
+            var more = new dev.alan.logistics.CellData(java.util.List.of(new dev.alan.logistics.CellData.Entry(new ItemStack(Items.DIRT), 4000),
+                new dev.alan.logistics.CellData.Entry(new ItemStack(Items.STONE), 5)));
+            var four = java.util.List.of(cell.apply(1, dirt), cell.apply(1, more), cell.apply(1, null), cell.apply(1, null));
+            var found = manager.getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING,
+                net.minecraft.world.item.crafting.CraftingInput.of(2, 2, four), level);
+            if (found.isEmpty()) return "four tier-1 cells did not match";
+            ItemStack out = found.get().value().assemble(net.minecraft.world.item.crafting.CraftingInput.of(2, 2, four));
+            if (out.getItem() != dev.alan.logistics.LogisticsMod.CELLS.get(1).asItem()) return "wrong result tier: " + out;
+            var data = out.get(dev.alan.logistics.LogisticsMod.CELL_DATA);
+            if (data == null || data.total() != 10005 || data.entries().size() != 2) return "contents not merged: " + data;
+            // Mixed tiers, or three cells, do not match.
+            var mixed = java.util.List.of(cell.apply(1, null), cell.apply(1, null), cell.apply(1, null), cell.apply(2, null));
+            if (manager.getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.CraftingInput.of(2, 2, mixed), level).isPresent())
+                return "mixed tiers matched";
+            // Too many distinct item types for the next tier (4 x 64 > 128): no recipe, nothing is destroyed.
+            var items = new java.util.ArrayList<>(net.minecraft.core.registries.BuiltInRegistries.ITEM.stream().filter(i -> i != Items.AIR).toList());
+            var full = new java.util.ArrayList<ItemStack>();
+            for (int c = 0; c < 4; c++) {
+                var entries = new java.util.ArrayList<dev.alan.logistics.CellData.Entry>();
+                for (int i = 0; i < 64; i++) entries.add(new dev.alan.logistics.CellData.Entry(new ItemStack(items.get(c * 64 + i)), 1));
+                full.add(cell.apply(1, new dev.alan.logistics.CellData(entries)));
+            }
+            if (manager.getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.CraftingInput.of(2, 2, full), level).isPresent())
+                return "overflowing merge matched";
+            // Tier 4 is the top.
+            var top = java.util.List.of(cell.apply(4, null), cell.apply(4, null), cell.apply(4, null), cell.apply(4, null));
+            if (manager.getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.CraftingInput.of(2, 2, top), level).isPresent())
+                return "tier 4 compressed further";
+            return "ok";
+        });
+        check(result.equals("ok"), "cell compression: " + result);
     }
 
     private static int cellCount(TestSingleplayerContext world, Item item) {
