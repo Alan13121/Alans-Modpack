@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Generates the 16x16 block textures for the logistics mod (no image libraries needed)."""
-import os, struct, zlib, random
+"""Generates the 16x16 block textures for the logistics mod (no image libraries needed).
+Only writes files that do not exist yet; use --force to regenerate all of them."""
+import os, struct, sys, zlib, random
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "mods", "logistics", "src", "main", "resources",
                    "assets", "logistics", "textures", "block")
@@ -81,6 +82,19 @@ def cell():
     for x in range(6, 10): put(px, x, 8, (220, 190, 250))
     return px
 
+def arrows(base, edge, glow, seed, inward):
+    px = canvas(base, seed)
+    frame(px, edge, glow)
+    for y in range(4, 12):
+        for x in range(4, 12): put(px, x, y, (22, 30, 38))
+    # a chevron pointing into (inward) or out of the centre
+    for i in range(4):
+        for x, y in ((3 + i, 4 + i), (12 - i, 4 + i)) if inward else ((3 + i, 11 - i), (12 - i, 11 - i)):
+            put(px, x, y, glow)
+    for y in range(6, 10):
+        for x in range(7, 9): put(px, x, y, glow)
+    return px
+
 def cable():
     px = canvas((196, 120, 60), 7, 6)
     for x in range(16):
@@ -90,6 +104,12 @@ def cable():
 
 for name, px in [("controller_side", controller_side()), ("controller_top", controller_top()),
                  ("terminal_front", terminal_front()), ("terminal_side", terminal_side()), ("terminal_top", terminal_top()),
-                 ("cell", cell()), ("cable", cable())]:
-    png(os.path.join(OUT, name + ".png"), px)
+                 ("cell", cell()), ("cable", cable()),
+                 ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
+                 ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:
+    target = os.path.join(OUT, name + ".png")
+    # Never overwrite a texture that already exists (it may have been replaced by hand); pass --force to regenerate.
+    if os.path.exists(target) and "--force" not in sys.argv:
+        continue
+    png(target, px)
 print("textures written to", os.path.abspath(OUT))

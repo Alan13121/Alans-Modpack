@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 public final class LogisticsClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         MenuScreens.register(LogisticsMod.TERMINAL_MENU, TerminalScreen::new);
+        MenuScreens.register(LogisticsMod.OUTPUT_MENU, OutputScreen::new);
         ClientPlayNetworking.registerGlobalReceiver(TerminalSnapshot.TYPE, (payload, context) ->
             context.client().execute(() -> {
                 if (context.client().player != null && context.client().player.containerMenu instanceof TerminalMenu menu

@@ -48,12 +48,21 @@ public final class LogisticsMod implements ModInitializer {
     public static final TerminalBlock TERMINAL = block("terminal", TerminalBlock::new, metal(MapColor.COLOR_GRAY));
     public static final CellBlock CELL = block("cell", CellBlock::new, metal(MapColor.COLOR_PURPLE));
 
+    public static final InputInterfaceBlock INPUT_INTERFACE = block("input_interface", InputInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
+    public static final OutputInterfaceBlock OUTPUT_INTERFACE = block("output_interface", OutputInterfaceBlock::new, metal(MapColor.COLOR_ORANGE));
+
+    public static final BlockEntityType<InputInterfaceBlockEntity> INPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("input_interface"), new BlockEntityType<>(InputInterfaceBlockEntity::new, Set.of(INPUT_INTERFACE)));
+    public static final BlockEntityType<OutputInterfaceBlockEntity> OUTPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("output_interface"), new BlockEntityType<>(OutputInterfaceBlockEntity::new, Set.of(OUTPUT_INTERFACE)));
     public static final BlockEntityType<CellBlockEntity> CELL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("cell"),
         new BlockEntityType<>(CellBlockEntity::new, Set.of(CELL)));
     public static final DataComponentType<CellData> CELL_DATA = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("cell_contents"),
         DataComponentType.<CellData>builder().persistent(CellData.CODEC).networkSynchronized(CellData.STREAM_CODEC).build());
     public static final MenuType<TerminalMenu> TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("terminal"),
         new MenuType<>(TerminalMenu::new, FeatureFlagSet.of()));
+    public static final MenuType<OutputMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
+        new MenuType<>(OutputMenu::new, FeatureFlagSet.of()));
 
     @Override public void onInitialize() {
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
@@ -68,6 +77,8 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(CABLE);
             entries.accept(TERMINAL);
             entries.accept(CELL);
+            entries.accept(INPUT_INTERFACE);
+            entries.accept(OUTPUT_INTERFACE);
         });
         LOG.info("Logistics loaded");
     }

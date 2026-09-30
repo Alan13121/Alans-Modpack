@@ -12,5 +12,8 @@
   "logistics.status.none": "No controller connected",
   "logistics.status.multiple": "Only one controller per network",
   "logistics.controller.ok": "Warehouse online: %s types, %s items",
-  "logistics.cell.stored": "%s items, %s/%s types"
+  "logistics.cell.stored": "%s items, %s/%s types",
+  "block.logistics.input_interface": "Input Interface",
+  "block.logistics.output_interface": "Output Interface",
+  "logistics.output.hint": "Click with an item to set a filter"
 }

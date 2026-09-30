@@ -12,5 +12,8 @@
   "logistics.status.none": "尚未連接控制器",
   "logistics.status.multiple": "同一網路只能有一個控制器",
   "logistics.controller.ok": "倉庫運作中:%s 種,共 %s 個",
-  "logistics.cell.stored": "%s 個物品,%s/%s 種"
+  "logistics.cell.stored": "%s 個物品,%s/%s 種",
+  "block.logistics.input_interface": "輸入介面",
+  "block.logistics.output_interface": "輸出介面",
+  "logistics.output.hint": "拿著物品點格子設定過濾"
 }

@@ -16,6 +16,77 @@ import net.minecraft.world.item.Items;
 /** Builds a small warehouse, opens the terminal and exercises store / take / cell / controller rules. */
 public final class LogisticsClientGameTest implements FabricClientGameTest {
     @Override public void runTest(ClientGameTestContext context) {
+        warehouse(context);
+        interfaces(context);
+    }
+
+    /** Hopper → input interface → cell, and cell → output interface → furnace, plus a furnace result pulled back in. */
+    private void interfaces(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell",
+                "setblock 1 120 0 logistics:input_interface",
+                "setblock -1 120 0 logistics:cable", "setblock -1 121 0 logistics:cable", "setblock -1 120 1 logistics:cable",
+                "setblock -2 121 0 logistics:output_interface", "setblock -2 120 1 logistics:input_interface",
+                "setblock -2 120 0 minecraft:furnace",
+                "setblock 1 121 0 minecraft:hopper[facing=down]",
+                "item replace block 1 121 0 container.0 with minecraft:iron_ingot 20",
+                "item replace block -2 120 0 container.2 with minecraft:gold_ingot 5",
+                "tp @p -1.5 120 3.5 180 5",
+            }) world.getServer().runCommand(command);
+            world.getServer().runOnServer(server -> {
+                var cell = (dev.alan.logistics.CellBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
+                cell.insert(new ItemStack(Items.IRON_ORE, 10), true);
+                cell.insert(new ItemStack(Items.COAL, 10), true);
+            });
+            context.waitTicks(220); // a hopper moves one item per 8 ticks
+            check(cellCount(world, Items.IRON_INGOT) == 20, "hopper items reached the cell, got " + cellCount(world, Items.IRON_INGOT));
+            check(cellCount(world, Items.GOLD_INGOT) == 5, "the furnace result was pulled in, got " + cellCount(world, Items.GOLD_INGOT));
+            check(furnaceSlot(world, 0) == 0, "an empty filter moves nothing");
+
+            // Set the filter through the real menu: pick up iron ore, click a ghost slot.
+            world.getServer().runCommand("give @p minecraft:iron_ore 1");
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.OutputScreen.class);
+            context.waitTicks(5);
+            int ore = context.computeOnClient(mc -> {
+                for (var s : mc.player.containerMenu.slots) if (s.index >= 9 && s.getItem().is(Items.IRON_ORE)) return s.index;
+                return -1;
+            });
+            check(ore >= 9, "found iron ore in the menu");
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleContainerInput(id, ore, 0, ContainerInput.PICKUP, mc.player);
+                mc.gameMode.handleContainerInput(id, 0, 0, ContainerInput.PICKUP, mc.player);
+                mc.gameMode.handleContainerInput(id, ore, 0, ContainerInput.PICKUP, mc.player);
+            });
+            context.waitTicks(10);
+            context.takeScreenshot("06-output-filter");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            context.waitTicks(40);
+            check(world.getServer().computeOnServer(server -> {
+                var be = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                return be.filter().getItem(0).is(Items.IRON_ORE);
+            }), "the ghost slot holds the filter");
+            check(furnaceSlot(world, 0) > 0, "iron ore reached the furnace input");
+            check(furnaceSlot(world, 1) == 0, "coal is not on the filter, so the fuel slot stays empty");
+        }
+    }
+
+    private static int cellCount(TestSingleplayerContext world, Item item) {
+        return world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity)
+            server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(item)));
+    }
+
+    private static int furnaceSlot(TestSingleplayerContext world, int slot) {
+        return world.getServer().computeOnServer(server -> ((net.minecraft.world.Container)
+            server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 120, 0))).getItem(slot).getCount());
+    }
+
+    private void warehouse(ClientGameTestContext context) {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getConnection().waitForChunksRender();
             for (String command : new String[] {
@@ -106,7 +177,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             world.getServer().runCommand("setblock 1 120 -1 minecraft:air destroy");
             context.waitTicks(20);
             world.getServer().runCommand("tp @p 1.5 120 -1.5");
-            context.waitTicks(20);
+            context.waitTicks(40);
             check(context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.DIRT)) == 0, "dirt is not spilled loose");
             check(context.computeOnClient(mc -> {
                 for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
