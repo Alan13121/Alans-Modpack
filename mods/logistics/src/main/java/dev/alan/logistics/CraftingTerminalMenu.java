@@ -143,6 +143,100 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
         });
     }
 
+    // ---- recipe placement (Lookup's "+" and the vanilla recipe book) --------------------------------------
+
+    private record Staged(ItemStack template, int amount, int baseline) {}
+
+    private static int countInInventory(Inventory inventory, ItemStack template) {
+        int n = 0;
+        for (int i = 0; i < 36; i++) {
+            ItemStack s = inventory.getItem(i);
+            if (ItemStack.isSameItemSameComponents(s, template)) n += s.getCount();
+        }
+        return n;
+    }
+
+    /**
+     * Vanilla placement only draws from the player's inventory, so the ingredients the warehouse can supply are moved
+     * into the inventory first and whatever the placement does not use is sent back afterwards.
+     */
+    @Override public PostPlaceAction handlePlacement(boolean useMaxItems, boolean allowDroppingItemsToClear, RecipeHolder<?> recipe,
+                                                     ServerLevel level, Inventory inventory) {
+        Network network = warehouse.network();
+        List<Staged> staged = network != null && network.usable() && recipe.value() instanceof CraftingRecipe crafting
+            ? stage(network, crafting, useMaxItems, inventory) : List.of();
+        try {
+            return super.handlePlacement(useMaxItems, allowDroppingItemsToClear, recipe, level, inventory);
+        } finally {
+            if (!staged.isEmpty()) unstage(network, staged, inventory);
+        }
+    }
+
+    private List<Staged> stage(Network network, CraftingRecipe recipe, boolean useMax, Inventory inventory) {
+        int perIngredient = 1;
+        if (useMax) perIngredient = 64;
+        else for (int i = GRID_START; i < GRID_END; i++) perIngredient = Math.max(perIngredient, slots.get(i).getItem().getCount() + 1);
+        List<java.util.Map.Entry<Network.Key, Long>> available = new java.util.ArrayList<>(network.contents().entrySet());
+        available.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
+        java.util.Map<Network.Key, Integer> demand = new java.util.LinkedHashMap<>();
+        java.util.Map<Network.Key, Long> left = new java.util.HashMap<>();
+        for (var e : available) left.put(e.getKey(), e.getValue());
+        // One craft at a time: every ingredient claims one item, and a round only counts if all of them found one.
+        var ingredients = recipe.placementInfo().ingredients();
+        for (int round = 0; round < perIngredient; round++) {
+            List<Network.Key> claimed = new java.util.ArrayList<>();
+            boolean complete = true;
+            for (var ingredient : ingredients) {
+                Network.Key pick = null;
+                for (var e : available)
+                    if (left.get(e.getKey()) > 0 && ingredient.test(e.getKey().stack())) { pick = e.getKey(); break; }
+                if (pick == null) { complete = false; break; }
+                left.merge(pick, -1L, Long::sum);
+                claimed.add(pick);
+            }
+            if (!complete) {
+                for (Network.Key k : claimed) left.merge(k, 1L, Long::sum);
+                break;
+            }
+            for (Network.Key k : claimed) demand.merge(k, 1, Integer::sum);
+        }
+        List<Staged> result = new java.util.ArrayList<>();
+        for (var e : demand.entrySet()) {
+            ItemStack template = e.getKey().stack();
+            int baseline = countInInventory(inventory, template);
+            ItemStack taken = network.extract(template, e.getValue());
+            if (taken.isEmpty()) continue;
+            int amount = taken.getCount();
+            inventory.add(taken);
+            if (!taken.isEmpty()) {
+                amount -= taken.getCount();
+                ItemStack rest = network.insert(taken);
+                if (!rest.isEmpty()) player.drop(rest, false, Prediction.PREDICTED);
+            }
+            if (amount > 0) result.add(new Staged(template, amount, baseline));
+        }
+        return result;
+    }
+
+    private void unstage(Network network, List<Staged> staged, Inventory inventory) {
+        for (Staged s : staged) {
+            int excess = Math.min(s.amount(), countInInventory(inventory, s.template()) - s.baseline());
+            for (int i = 0; i < 36 && excess > 0; i++) {
+                ItemStack stack = inventory.getItem(i);
+                if (!ItemStack.isSameItemSameComponents(stack, s.template())) continue;
+                int moved = Math.min(excess, stack.getCount());
+                ItemStack back = stack.copyWithCount(moved);
+                stack.shrink(moved);
+                if (stack.isEmpty()) inventory.setItem(i, ItemStack.EMPTY);
+                excess -= moved;
+                ItemStack rest = network.insert(back);
+                if (!rest.isEmpty()) player.drop(rest, false, Prediction.PREDICTED);
+            }
+        }
+        inventory.setChanged();
+        warehouse.markDirty();
+    }
+
     // ---- shift-click ---------------------------------------------------------------------------------------
 
     @Override public ItemStack quickMoveStack(Player player, int index) {

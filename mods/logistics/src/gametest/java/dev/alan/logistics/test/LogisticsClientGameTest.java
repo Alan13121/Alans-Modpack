@@ -137,6 +137,29 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(1).getItem().isEmpty()), "grid emptied");
             check(entry(context, Items.OAK_PLANKS) == 3, "planks are in the warehouse, got " + entry(context, Items.OAK_PLANKS));
 
+            // Recipe placement (what Lookup's "+" triggers) draws from the warehouse, not just the inventory.
+            world.getServer().runCommand("clear @p");
+            world.getServer().runCommand("item replace block 1 120 1 container.1 with minecraft:oak_planks 10");
+            context.waitTicks(15);
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.CraftingTerminalMenu.STORE_GRID));
+            context.waitTicks(10);
+            long before = entry(context, Items.OAK_PLANKS);
+            place(context, world, "minecraft:stick", false);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(0).getItem().is(Items.STICK)), "placement filled a stick recipe from the warehouse");
+            check(context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.OAK_PLANKS)) == 0, "no planks are left loose in the inventory");
+            check(entry(context, Items.OAK_PLANKS) == before - 2, "two planks moved from the warehouse to the grid, got " + entry(context, Items.OAK_PLANKS) + " of " + before);
+            place(context, world, "minecraft:stick", true);
+            // The recipe is centred in the grid, so add up every grid slot; each stick craft uses two planks in a column.
+            int inGrid = context.computeOnClient(mc -> {
+                int n = 0;
+                for (int i = 1; i <= 9; i++) n += mc.player.containerMenu.getSlot(i).getItem().getCount();
+                return n / 2;
+            });
+            check(inGrid > 1, "max placement stacks several crafts, got " + inGrid);
+            check(context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.OAK_PLANKS)) == 0, "unused planks went back to the warehouse");
+            check(entry(context, Items.OAK_PLANKS) + inGrid * 2 == before, "nothing was lost: " + entry(context, Items.OAK_PLANKS) + " + " + inGrid * 2 + " vs " + before);
+            context.takeScreenshot("09-placed-recipe");
+
             // Closing the screen returns whatever is left in the grid to the warehouse too.
             context.runOnClient(mc -> {
                 int id = mc.player.containerMenu.containerId;
@@ -247,7 +270,11 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             world.getServer().runCommand("setblock 1 120 -1 minecraft:air destroy");
             context.waitTicks(20);
             world.getServer().runCommand("tp @p 1.5 120 -1.5");
-            context.waitTicks(40);
+            // The dropped item is picked up once its pickup delay ends; poll instead of guessing a fixed wait.
+            for (int i = 0; i < 20 && context.computeOnClient(mc -> mc.player.getInventory().countItem(dev.alan.logistics.LogisticsMod.CELL.asItem())) == 0; i++) {
+                world.getServer().runCommand("tp @p @n[type=item]");
+                context.waitTicks(10);
+            }
             check(context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.DIRT)) == 0, "dirt is not spilled loose");
             check(context.computeOnClient(mc -> {
                 for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
@@ -276,6 +303,16 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             });
             check(restored == 64, "a placed cell restores its 64 dirt, got " + restored);
         }
+    }
+
+    private static void place(ClientGameTestContext context, TestSingleplayerContext world, String recipeId, boolean max) {
+        world.getServer().runOnServer(server -> {
+            var player = server.getPlayerList().getPlayers().get(0);
+            var key = net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, net.minecraft.resources.Identifier.parse(recipeId));
+            var holder = server.getRecipeManager().byKey(key).orElseThrow();
+            ((net.minecraft.world.inventory.RecipeBookMenu) player.containerMenu).handlePlacement(max, true, holder, player.level(), player.getInventory());
+        });
+        context.waitTicks(10);
     }
 
     private static long entry(ClientGameTestContext context, Item item) {
