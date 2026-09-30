@@ -1,0 +1,7 @@
+{
+  "block.mineworld.world_cauldron": "世界鍋釜",
+  "block.mineworld.return_block": "回程方塊",
+  "mineworld.progress": "礦世界 %1$s/%2$s(還缺:%3$s)",
+  "mineworld.created": "世界鍋釜完成!站在裡面蹲下 4 秒即可進入",
+  "mineworld.entered": "進入礦世界「%1$s」"
+}

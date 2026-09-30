@@ -1,0 +1,61 @@
+{
+  "attributes": {
+    "minecraft:gameplay/natural_mob_spawns": {
+      "argument": {
+        "spawn_costs": {},
+        "spawns_by_category": {
+          "ambient": [],
+          "axolotls": [],
+          "creature": [],
+          "misc": [],
+          "monster": [],
+          "underground_water_creature": [],
+          "water_ambient": [],
+          "water_creature": []
+        }
+      },
+      "modifier": "overlay"
+    },
+    "minecraft:visual/sky_color": "#000000"
+  },
+  "carvers": [],
+  "downfall": 0.0,
+  "effects": {
+    "water_color": "#3f76e4"
+  },
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "mineworld:granite",
+      "mineworld:diorite",
+      "mineworld:andesite",
+      "mineworld:tuff",
+      "mineworld:ore_coal",
+      "mineworld:ore_coal_buried",
+      "mineworld:ore_iron",
+      "mineworld:ore_iron_small",
+      "mineworld:ore_copper",
+      "mineworld:ore_copper_large",
+      "mineworld:ore_gold",
+      "mineworld:ore_redstone",
+      "mineworld:ore_lapis",
+      "mineworld:ore_lapis_buried",
+      "mineworld:ore_diamond",
+      "mineworld:ore_diamond_medium",
+      "mineworld:ore_diamond_buried",
+      "mineworld:ore_diamond_large",
+      "mineworld:ore_emerald"
+    ],
+    [],
+    [],
+    [],
+    []
+  ],
+  "has_precipitation": false,
+  "temperature": 0.5
+}

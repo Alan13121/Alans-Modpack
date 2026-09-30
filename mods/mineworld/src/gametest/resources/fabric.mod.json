@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "mineworld-test",
+  "version": "1.0.0",
+  "name": "Mine World client game tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.mineworld.test.MineWorldClientGameTest"]},
+  "depends": {"mineworld": "*"}
+}
