@@ -1,0 +1,16 @@
+{
+  "block.logistics.controller": "Warehouse Controller",
+  "block.logistics.cable": "Logistics Cable",
+  "block.logistics.terminal": "Warehouse Terminal",
+  "block.logistics.cell": "Storage Cell",
+  "logistics.search": "Search (@mod, #tag)",
+  "logistics.sort.count": "By count",
+  "logistics.sort.name": "By name",
+  "logistics.summary": "%s types, %s items",
+  "logistics.empty": "The warehouse is empty",
+  "logistics.tooltip.count": "In warehouse: %s",
+  "logistics.status.none": "No controller connected",
+  "logistics.status.multiple": "Only one controller per network",
+  "logistics.controller.ok": "Warehouse online: %s types, %s items",
+  "logistics.cell.stored": "%s items, %s/%s types"
+}

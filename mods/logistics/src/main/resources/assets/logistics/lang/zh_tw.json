@@ -1,0 +1,16 @@
+{
+  "block.logistics.controller": "倉庫控制器",
+  "block.logistics.cable": "物流電纜",
+  "block.logistics.terminal": "倉庫終端機",
+  "block.logistics.cell": "儲存單元",
+  "logistics.search": "搜尋 (@模組, #標籤)",
+  "logistics.sort.count": "依數量",
+  "logistics.sort.name": "依名稱",
+  "logistics.summary": "%s 種,共 %s 個",
+  "logistics.empty": "倉庫是空的",
+  "logistics.tooltip.count": "倉庫存量:%s",
+  "logistics.status.none": "尚未連接控制器",
+  "logistics.status.multiple": "同一網路只能有一個控制器",
+  "logistics.controller.ok": "倉庫運作中:%s 種,共 %s 個",
+  "logistics.cell.stored": "%s 個物品,%s/%s 種"
+}
