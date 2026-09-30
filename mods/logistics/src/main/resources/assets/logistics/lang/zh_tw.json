@@ -27,5 +27,7 @@
   "logistics.lookup.compress_note": "內容會合併",
   "logistics.upgrade.hint": "升級（紅石／石英）",
   "logistics.upgrade.interval": "每 %s 刻一次",
-  "logistics.upgrade.amount": "每次 %s 個"
+  "logistics.upgrade.amount": "每次 %s 個",
+  "logistics.lookup.decompress": "儲存單元解壓縮",
+  "logistics.lookup.decompress_note": "內容要放得進一個單元"
 }

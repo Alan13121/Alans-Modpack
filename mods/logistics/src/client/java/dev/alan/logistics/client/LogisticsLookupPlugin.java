@@ -35,6 +35,14 @@ public final class LogisticsLookupPlugin implements LookupPlugin {
                 List.of(new RecipeView.Slot(94, 18, List.of(new ItemStack(LogisticsMod.CELLS.get(tier))))),
                 RecipeView.Decoration.ARROW, Component.translatable("logistics.lookup.compress_note")));
         }
+        var reverse = Component.translatable("logistics.lookup.decompress");
+        for (int tier = 2; tier <= CellBlock.TIERS; tier++) {
+            var lower = new ItemStack(LogisticsMod.CELLS.get(tier - 2));
+            views.add(new RecipeView("logistics:decompress", reverse, icon,
+                List.of(new RecipeView.Slot(0, 18, List.of(new ItemStack(LogisticsMod.CELLS.get(tier - 1))))),
+                List.of(new RecipeView.Slot(52, 9, List.of(lower)), new RecipeView.Slot(52, 27, List.of(lower.copyWithCount(3)))),
+                RecipeView.Decoration.SHORT_ARROW, Component.translatable("logistics.lookup.decompress_note")));
+        }
         return views;
     }
 

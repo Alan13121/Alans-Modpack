@@ -87,6 +87,7 @@ public final class LogisticsMod implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> Network.invalidateChunk(level, chunk.getPos()));
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> Network.invalidateChunk(level, chunk.getPos()));
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_compress"), CellCompressRecipe.SERIALIZER);
+        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_decompress"), CellDecompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {

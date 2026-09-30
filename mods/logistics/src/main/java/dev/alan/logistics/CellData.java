@@ -44,6 +44,13 @@ public record CellData(List<Entry> entries) {
         return new CellData(out);
     }
 
+    /** Whether these contents fit a cell that holds {@code maxTypes} item types and {@code maxPerType} of each. */
+    public boolean fitsIn(int maxTypes, int maxPerType) {
+        if (entries.size() > maxTypes) return false;
+        for (Entry e : entries) if (e.count() > maxPerType) return false;
+        return true;
+    }
+
     public long total() {
         long sum = 0;
         for (Entry e : entries) sum += e.count();

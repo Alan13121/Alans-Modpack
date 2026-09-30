@@ -311,6 +311,34 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             check(entry(context, Items.OAK_PLANKS) + inGrid * 2 == before, "nothing was lost: " + entry(context, Items.OAK_PLANKS) + " + " + inGrid * 2 + " vs " + before);
             context.takeScreenshot("09-placed-recipe");
 
+            // Decompression through the real menu: one tier-2 cell in, one cell to the cursor and three empty ones in the grid.
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.CraftingTerminalMenu.STORE_GRID));
+            world.getServer().runCommand("give @p logistics:cell_2");
+            context.waitTicks(10);
+            int cell2 = context.computeOnClient(mc -> {
+                for (var s2 : mc.player.containerMenu.slots) if (s2.index >= 10 && s2.getItem().is(dev.alan.logistics.LogisticsMod.CELLS.get(1).asItem())) return s2.index;
+                return -1;
+            });
+            check(cell2 >= 10, "found the tier-2 cell in the inventory");
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleContainerInput(id, cell2, 0, ContainerInput.PICKUP, mc.player);
+                mc.gameMode.handleContainerInput(id, 5, 0, ContainerInput.PICKUP, mc.player);
+            });
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(0).getItem().is(dev.alan.logistics.LogisticsMod.CELLS.get(0).asItem())),
+                "the result slot offers a tier-1 cell");
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 0, 0, ContainerInput.PICKUP, mc.player));
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getCarried().is(dev.alan.logistics.LogisticsMod.CELLS.get(0).asItem())
+                && mc.player.containerMenu.getCarried().getCount() == 1), "one tier-1 cell is on the cursor");
+            check(context.computeOnClient(mc -> {
+                var grid = mc.player.containerMenu.getSlot(5).getItem();
+                return grid.is(dev.alan.logistics.LogisticsMod.CELLS.get(0).asItem()) && grid.getCount() == 3;
+            }), "three empty tier-1 cells came back into the grid");
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 5, 0, ContainerInput.PICKUP, mc.player));
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, planks, 0, ContainerInput.PICKUP, mc.player));
+
             // Closing the screen returns whatever is left in the grid to the warehouse too.
             context.runOnClient(mc -> {
                 int id = mc.player.containerMenu.containerId;
@@ -359,6 +387,30 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             var top = java.util.List.of(cell.apply(4, null), cell.apply(4, null), cell.apply(4, null), cell.apply(4, null));
             if (manager.getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, net.minecraft.world.item.crafting.CraftingInput.of(2, 2, top), level).isPresent())
                 return "tier 4 compressed further";
+            // ---- decompression: contents must fit one lower cell; the other three come back empty ----
+            var type = net.minecraft.world.item.crafting.RecipeType.CRAFTING;
+            var one = net.minecraft.world.item.crafting.CraftingInput.of(1, 1, java.util.List.of(cell.apply(3, dirt)));
+            var back = manager.getRecipeFor(type, one, level);
+            if (back.isEmpty()) return "a tier-3 cell with 6000 dirt did not decompress";
+            ItemStack lower = back.get().value().assemble(one);
+            if (lower.getItem() != dev.alan.logistics.LogisticsMod.CELLS.get(1).asItem()) return "decompressed to the wrong tier: " + lower;
+            var lowerData = lower.get(dev.alan.logistics.LogisticsMod.CELL_DATA);
+            if (lowerData == null || lowerData.total() != 6000) return "decompression lost contents: " + lowerData;
+            var extra = back.get().value().getRemainingItems(one);
+            if (extra.size() != 1 || extra.get(0).getCount() != 3 || extra.get(0).getItem() != lower.getItem() || extra.get(0).has(dev.alan.logistics.LogisticsMod.CELL_DATA))
+                return "the other three cells should come back empty: " + extra;
+            var emptyBack = manager.getRecipeFor(type, net.minecraft.world.item.crafting.CraftingInput.of(1, 1, java.util.List.of(cell.apply(2, null))), level);
+            if (emptyBack.isEmpty()) return "an empty tier-2 cell did not decompress";
+            // Tier 1 cannot go lower; contents that do not fit one lower cell block the recipe.
+            if (manager.getRecipeFor(type, net.minecraft.world.item.crafting.CraftingInput.of(1, 1, java.util.List.of(cell.apply(1, null))), level).isPresent())
+                return "tier 1 decompressed";
+            var tooMuch = new dev.alan.logistics.CellData(java.util.List.of(new dev.alan.logistics.CellData.Entry(new ItemStack(Items.DIRT), 12000)));
+            if (manager.getRecipeFor(type, net.minecraft.world.item.crafting.CraftingInput.of(1, 1, java.util.List.of(cell.apply(2, tooMuch))), level).isPresent())
+                return "12000 dirt does not fit a tier-1 cell but decompressed";
+            var manyTypes = new java.util.ArrayList<dev.alan.logistics.CellData.Entry>();
+            for (int i = 0; i < 65; i++) manyTypes.add(new dev.alan.logistics.CellData.Entry(new ItemStack(items.get(i)), 1));
+            if (manager.getRecipeFor(type, net.minecraft.world.item.crafting.CraftingInput.of(1, 1, java.util.List.of(cell.apply(2, new dev.alan.logistics.CellData(manyTypes)))), level).isPresent())
+                return "65 types do not fit a tier-1 cell but decompressed";
             return "ok";
         });
         check(result.equals("ok"), "cell compression: " + result);
