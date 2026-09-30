@@ -12,13 +12,101 @@ import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 
 /** Builds a small warehouse, opens the terminal and exercises store / take / cell / controller rules. */
 public final class LogisticsClientGameTest implements FabricClientGameTest {
     @Override public void runTest(ClientGameTestContext context) {
+        if (System.getenv("LOGISTICS_BENCH") != null) {
+            benchmark(context);
+            return;
+        }
         warehouse(context);
         interfaces(context);
         crafting(context);
+    }
+
+    /**
+     * Timing of the network operations on a large warehouse (about 4000 chests, 2000 cables, 100k stacks).
+     * Only runs with LOGISTICS_BENCH set: {@code LOGISTICS_BENCH=1 ./gradlew :mods:logistics:runClientGameTest}.
+     */
+    private void benchmark(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            world.getServer().runCommand("forceload add 0 -10 120 100");
+            context.waitTicks(100);
+            String report = world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var rnd = new java.util.Random(42);
+                var items = new java.util.ArrayList<>(net.minecraft.core.registries.BuiltInRegistries.ITEM.stream().filter(i -> i != Items.AIR).toList());
+                var pos = new net.minecraft.core.BlockPos.MutableBlockPos();
+                long t0 = System.nanoTime();
+                int chests = 0, cables = 0;
+                for (int x = -2; x <= 101; x++) for (int z = -2; z <= 82; z++) level.setBlock(pos.set(x, 119, z), Blocks.STONE.defaultBlockState(), 2);
+                level.setBlock(new net.minecraft.core.BlockPos(0, 120, 0), dev.alan.logistics.LogisticsMod.CONTROLLER.defaultBlockState(), 2);
+                // A spine of cable along x=-1, and every 4th row a cable line with chests on both sides.
+                for (int z = 0; z <= 80; z++) { level.setBlock(pos.set(-1, 120, z), dev.alan.logistics.LogisticsMod.CABLE.defaultBlockState(), 2); cables++; }
+                for (int z = 0; z <= 80; z += 4) {
+                    for (int x = 0; x < 100; x++) {
+                        if (x != 0 || z != 0) { level.setBlock(pos.set(x, 120, z), dev.alan.logistics.LogisticsMod.CABLE.defaultBlockState(), 2); cables++; }
+                        for (int side : new int[] {-1, 1}) {
+                            var chestPos = new net.minecraft.core.BlockPos(x, 120, z + side);
+                            level.setBlock(chestPos, Blocks.BARREL.defaultBlockState(), 2);
+                            if (level.getBlockEntity(chestPos) instanceof net.minecraft.world.Container c)
+                                for (int i = 0; i < c.getContainerSize(); i++) c.setItem(i, new ItemStack(items.get(rnd.nextInt(items.size())), 1 + rnd.nextInt(16)));
+                            chests++;
+                        }
+                    }
+                }
+                var sb = new StringBuilder();
+                sb.append(String.format("BENCH built %d barrels, %d cables in %d ms%n", chests, cables, (System.nanoTime() - t0) / 1_000_000));
+                var start = new net.minecraft.core.BlockPos(0, 120, 0);
+                for (int run = 0; run < 3; run++) {
+                    long a = System.nanoTime();
+                    var network = dev.alan.logistics.Network.scan(level, start);
+                    long b = System.nanoTime();
+                    var contents = network.contents();
+                    long c2 = System.nanoTime();
+                    var hit = network.extract(new ItemStack(items.get(5)), 64);
+                    long d = System.nanoTime();
+                    network.insert(hit);
+                    long e = System.nanoTime();
+                    network.insert(new ItemStack(Items.BEDROCK, 64));
+                    long f = System.nanoTime();
+                    sb.append(String.format("BENCH run%d scan=%.1fms contents=%.1fms (%d types) extract=%.2fms insert=%.2fms insertMiss=%.2fms status=%s%n",
+                        run, (b - a) / 1e6, (c2 - b) / 1e6, contents.size(), (d - c2) / 1e6, (e - d) / 1e6, (f - e) / 1e6, network.status));
+                }
+                // Steady state: one container changes, then everything is read again; then 200 mixed operations.
+                var network = dev.alan.logistics.Network.scan(level, start);
+                network.contents();
+                var barrel = (net.minecraft.world.Container) level.getBlockEntity(new net.minecraft.core.BlockPos(50, 120, 1));
+                long g = System.nanoTime();
+                barrel.setItem(0, new ItemStack(Items.DIAMOND, 3));
+                long rev = network.revision();
+                long h = System.nanoTime();
+                sb.append(String.format("BENCH one-container-change: revision() = %.3f ms (rev %d)%n", (h - g) / 1e6, rev));
+                long k = System.nanoTime();
+                for (int i = 0; i < 200; i++) {
+                    var taken = network.extract(new ItemStack(items.get(i * 7 % items.size())), 16);
+                    network.insert(taken);
+                    network.insert(new ItemStack(items.get(i * 13 % items.size()), 8));
+                }
+                sb.append(String.format("BENCH 200 x (extract + insert hit + insert new) = %.2f ms total, %.3f ms per op%n",
+                    (System.nanoTime() - k) / 1e6, (System.nanoTime() - k) / 1e6 / 600));
+                long m = System.nanoTime();
+                for (int i = 0; i < 100; i++) dev.alan.logistics.Network.scan(level, start);
+                sb.append(String.format("BENCH 100 cached scans = %.3f ms%n", (System.nanoTime() - m) / 1e6));
+                // Topology change: one more cable at the end of a line, then the next scan rebuilds.
+                level.setBlock(new net.minecraft.core.BlockPos(100, 120, 0), dev.alan.logistics.LogisticsMod.CABLE.defaultBlockState(), 3);
+                long n0 = System.nanoTime();
+                var rebuilt = dev.alan.logistics.Network.scan(level, start);
+                long n1 = System.nanoTime();
+                rebuilt.contents();
+                sb.append(String.format("BENCH after topology change: scan=%.1f ms, first contents=%.1f ms, rebuilt=%b%n", (n1 - n0) / 1e6, (System.nanoTime() - n1) / 1e6, rebuilt != network));
+                return sb.toString();
+            });
+            System.out.println(report);
+        }
     }
 
     /** Hopper → input interface → cell, and cell → output interface → furnace, plus a furnace result pulled back in. */

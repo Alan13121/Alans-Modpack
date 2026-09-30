@@ -64,28 +64,37 @@ final class WarehousePanel {
 
     private Component sortLabel() { return Component.translatable(sortByCount ? "logistics.sort.count" : "logistics.sort.name"); }
 
+    /** Display names are looked up once per entry; entries are replaced whenever their count changes. */
+    private final java.util.Map<TerminalSnapshot.Entry, String> names = new java.util.IdentityHashMap<>();
+
+    private String nameOf(TerminalSnapshot.Entry e) {
+        return names.computeIfAbsent(e, x -> x.stack().getHoverName().getString().toLowerCase(Locale.ROOT));
+    }
+
     void refilter() {
         if (!dirty && shownFrom == link.entries()) return;
         shownFrom = link.entries();
         dirty = false;
+        if (names.size() > 2 * shownFrom.size() + 64) names.clear();
         filtered.clear();
         String query = search == null ? "" : search.getValue().toLowerCase(Locale.ROOT).strip();
-        for (var e : shownFrom) if (matches(e.stack(), query)) filtered.add(e);
-        Comparator<TerminalSnapshot.Entry> byName = Comparator.comparing(e -> e.stack().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER);
+        for (var e : shownFrom) if (matches(e, query)) filtered.add(e);
+        Comparator<TerminalSnapshot.Entry> byName = Comparator.comparing(this::nameOf);
         filtered.sort(sortByCount ? Comparator.<TerminalSnapshot.Entry>comparingLong(e -> -e.count()).thenComparing(byName) : byName);
         scroll = Math.max(0, Math.min(scroll, maxScroll()));
     }
 
     /** Plain text matches the name; {@code @mod} matches the namespace; {@code #tag} matches an item tag. */
-    private static boolean matches(ItemStack stack, String query) {
+    private boolean matches(TerminalSnapshot.Entry entry, String query) {
         if (query.isEmpty()) return true;
+        ItemStack stack = entry.stack();
         var id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (query.startsWith("@")) return id.getNamespace().contains(query.substring(1));
         if (query.startsWith("#")) {
             String t = query.substring(1);
             return stack.tags().anyMatch(tag -> tag.location().toString().contains(t));
         }
-        return stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(query) || id.getPath().contains(query);
+        return nameOf(entry).contains(query) || id.getPath().contains(query);
     }
 
     private int maxScroll() { return Math.max(0, (filtered.size() + COLS - 1) / COLS - rows); }

@@ -1,5 +1,8 @@
 package dev.alan.logistics;
 
+import org.jspecify.annotations.Nullable;
+import net.minecraft.world.level.redstone.Orientation;
+import net.minecraft.world.level.Level;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,6 +60,7 @@ public final class CableBlock extends Block implements NetworkNode {
 
     @Override protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos,
                                                Direction direction, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+        if (level instanceof Level l) Network.invalidate(l, pos);
         return state.setValue(ARMS.get(direction), connectsTo(level, neighbourPos));
     }
 
@@ -65,5 +69,22 @@ public final class CableBlock extends Block implements NetworkNode {
         for (Direction dir : Direction.values())
             if (state.getValue(ARMS.get(dir))) shape = Shapes.or(shape, ARM_SHAPES.get(dir));
         return shape;
+    }
+
+    // A change next to (or in) the network makes the cached layout stale.
+    @Override protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+        super.onPlace(state, level, pos, oldState, movedByPiston);
+        Network.invalidate(level, pos);
+    }
+
+    @Override protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
+                                             @Nullable Orientation orientation, boolean movedByPiston) {
+        super.neighborChanged(state, level, pos, block, orientation, movedByPiston);
+        Network.invalidate(level, pos);
+    }
+
+    @Override protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
+        Network.invalidate(level, pos);
     }
 }

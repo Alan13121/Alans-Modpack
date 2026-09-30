@@ -82,6 +82,10 @@ public final class LogisticsMod implements ModInitializer {
         new MenuType<>(InterfaceMenu::output, FeatureFlagSet.of()));
 
     @Override public void onInitialize() {
+        // Cached networks must not outlive their world, and chunk loads can change what a network touches.
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> Network.clearCaches());
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> Network.invalidateChunk(level, chunk.getPos()));
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> Network.invalidateChunk(level, chunk.getPos()));
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_compress"), CellCompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);

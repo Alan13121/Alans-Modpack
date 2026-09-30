@@ -1,6 +1,7 @@
 package dev.alan.logistics;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -15,15 +16,23 @@ import net.minecraft.world.item.ItemStack;
  * grid clicks; on the client it just holds the last snapshot received.
  */
 public final class WarehouseLink {
-    public static final int MAX_ENTRIES = 8192;
+    /** Most item types one terminal lists. */
+    public static final int MAX_ENTRIES = 16384;
+    /** Entries per packet; keeps every packet far below the size limit even with heavy item components. */
+    public static final int BATCH = 256;
     private static final int REFRESH_TICKS = 10;
 
     private final ContainerLevelAccess access;
     private int tick;
-    private int lastHash = Integer.MIN_VALUE;
     private boolean forceSend = true;
 
-    // Client-side mirror, filled by TerminalSnapshot.
+    // Server side: what this player's client has been told, so only changes are sent.
+    private final Map<Network.Key, Long> sent = new HashMap<>();
+    private Network lastNetwork;
+    private long lastRevision = -1;
+
+    // Client side: the mirror built from the packets.
+    private final Map<Network.Key, TerminalSnapshot.Entry> mirror = new HashMap<>();
     private List<TerminalSnapshot.Entry> entries = List.of();
     private Network.Status status = Network.Status.OK;
 
@@ -33,8 +42,13 @@ public final class WarehouseLink {
     public Network.Status status() { return status; }
 
     public void receive(TerminalSnapshot snapshot) {
-        entries = snapshot.entries();
         status = Network.Status.values()[Math.floorMod(snapshot.status(), Network.Status.values().length)];
+        if (snapshot.reset()) mirror.clear();
+        for (TerminalSnapshot.Entry e : snapshot.entries()) {
+            Network.Key key = new Network.Key(e.stack());
+            if (e.count() <= 0) mirror.remove(key); else mirror.put(key, e);
+        }
+        entries = new ArrayList<>(mirror.values());
     }
 
     /** The network this menu's block belongs to, or null on the client. */
@@ -50,19 +64,41 @@ public final class WarehouseLink {
         if (!forceSend && ++tick % REFRESH_TICKS != 0) return;
         Network network = network();
         if (network == null) return;
-        List<TerminalSnapshot.Entry> out = new ArrayList<>();
-        int hash = network.status.ordinal();
+        boolean reset = network != lastNetwork;
+        long revision = network.usable() ? network.revision() : -1;
+        if (!reset && !forceSend && revision == lastRevision) return;
+        forceSend = false;
+        lastNetwork = network;
+        lastRevision = revision;
+        if (reset) sent.clear();
+        List<TerminalSnapshot.Entry> changes = new ArrayList<>();
         if (network.usable()) {
-            for (Map.Entry<Network.Key, Long> e : network.contents().entrySet()) {
-                if (out.size() >= MAX_ENTRIES) break;
-                out.add(new TerminalSnapshot.Entry(e.getKey().stack(), e.getValue()));
-                hash += e.getKey().hashCode() * 31 + Long.hashCode(e.getValue());
+            java.util.Set<Network.Key> present = new java.util.HashSet<>();
+            network.forEach((key, count) -> {
+                Long before = sent.get(key);
+                if (before == null && sent.size() >= MAX_ENTRIES) return;
+                present.add(key);
+                if (before == null || before != count.longValue()) {
+                    changes.add(new TerminalSnapshot.Entry(key.stack(), count));
+                    sent.put(key, count);
+                }
+            });
+            var gone = sent.keySet().iterator();
+            while (gone.hasNext()) {
+                Network.Key key = gone.next();
+                if (present.contains(key)) continue;
+                changes.add(new TerminalSnapshot.Entry(key.stack(), 0));
+                gone.remove();
             }
         }
-        if (!forceSend && hash == lastHash) return;
-        forceSend = false;
-        lastHash = hash;
-        ServerPlayNetworking.send(player, new TerminalSnapshot(containerId, network.status.ordinal(), out));
+        if (changes.isEmpty() && !reset) return;
+        int status = network.status.ordinal();
+        int from = 0;
+        do {
+            int to = Math.min(changes.size(), from + BATCH);
+            ServerPlayNetworking.send(player, new TerminalSnapshot(containerId, status, reset && from == 0, new ArrayList<>(changes.subList(from, to))));
+            from = to;
+        } while (from < changes.size());
     }
 
     /** Handles a grid click on the server thread. */
