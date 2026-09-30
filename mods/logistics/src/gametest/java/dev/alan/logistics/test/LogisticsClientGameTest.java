@@ -24,6 +24,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         warehouse(context);
         interfaces(context);
         crafting(context);
+        vanillaMachines(context);
     }
 
     /**
@@ -267,6 +268,65 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             for (int i = 0; i < dropper.getContainerSize(); i++) n += dropper.getItem(i).getCount();
             return n;
         });
+    }
+
+    /** Composter (seeds in, bone meal out) and brewing stand (bottles, wart and fuel in, awkward potions out). */
+    private void vanillaMachines(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 12 119 12 minecraft:stone", "fill -8 120 -8 12 126 12 minecraft:air",
+                // composter line
+                "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell",
+                "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:cable", "setblock 2 121 0 logistics:cable",
+                "setblock 3 120 0 minecraft:composter", "setblock 3 121 0 logistics:output_interface",
+                "setblock 4 121 0 logistics:cable", "setblock 4 120 0 logistics:input_interface",
+                // brewing line
+                "setblock 0 120 8 logistics:controller", "setblock 0 121 8 logistics:cell",
+                "setblock 1 120 8 logistics:cable", "setblock 2 120 8 logistics:cable", "setblock 2 121 8 logistics:cable",
+                "setblock 2 120 7 logistics:cable",
+                "setblock 3 120 8 minecraft:brewing_stand", "setblock 3 121 8 logistics:output_interface",
+                "setblock 3 120 7 logistics:output_interface",
+                "setblock 4 121 8 logistics:cable", "setblock 4 120 8 logistics:input_interface",
+            }) world.getServer().runCommand(command);
+            world.getServer().runOnServer(server -> {
+                var level = server.overworld();
+                var seedsCell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
+                seedsCell.insert(new ItemStack(Items.WHEAT_SEEDS, 200), true);
+                var compostOut = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 121, 0));
+                compostOut.filter().setItem(0, new ItemStack(Items.WHEAT_SEEDS));
+                var brewCell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 8));
+                brewCell.insert(net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER).copyWithCount(1), true);
+                brewCell.insert(net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER).copyWithCount(1), true);
+                brewCell.insert(net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER).copyWithCount(1), true);
+                brewCell.insert(new ItemStack(Items.NETHER_WART, 5), true);
+                brewCell.insert(new ItemStack(Items.BLAZE_POWDER, 4), true);
+                var top = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 121, 8));
+                top.filter().setItem(0, new ItemStack(Items.NETHER_WART));
+                top.levels().set(0, 1);
+                var side = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 7));
+                side.filter().setItem(0, net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER));
+                side.filter().setItem(1, new ItemStack(Items.BLAZE_POWDER));
+                side.levels().set(1, 2);
+            });
+            context.waitTicks(200);
+            long bone = world.getServer().computeOnServer(server -> (long) ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(Items.BONE_MEAL)));
+            long seeds = world.getServer().computeOnServer(server -> (long) ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(Items.WHEAT_SEEDS)));
+            check(bone >= 1, "the composter made bone meal and the input interface collected it, got " + bone + " (seeds left " + seeds + ")");
+            check(seeds < 200, "seeds went into the composter");
+
+            // Brewing: 400 ticks of brewing plus feeding time.
+            context.waitTicks(500);
+            var awkward = net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.AWKWARD);
+            var water = net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER);
+            int made = world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 8))).count(awkward));
+            int rawLeft = world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 8))).count(water));
+            check(made == 3, "three awkward potions came back into the warehouse, got " + made + " (water bottles left " + rawLeft + ")");
+        }
     }
 
     /** Crafting terminal: ingredients come from the warehouse and the grid refills itself. */

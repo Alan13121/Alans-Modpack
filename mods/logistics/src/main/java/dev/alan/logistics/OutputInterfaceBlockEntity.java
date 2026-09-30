@@ -68,13 +68,26 @@ public final class OutputInterfaceBlockEntity extends BlockEntity {
                 int want = Math.min(budget, wanted.getMaxStackSize());
                 if (levels[i] > 0) want = Math.min(want, levels[i] - countIn(target.container(), wanted));
                 if (want <= 0) continue;
+                if (!Neighbours.canAccept(target, wanted)) continue;
                 ItemStack taken = network.extract(wanted, want);
                 if (taken.isEmpty()) continue;
-                ItemStack rest = Neighbours.push(target, taken);
+                ItemStack rest = pushInto(level, target, taken);
                 budget -= taken.getCount() - rest.getCount();
                 if (!rest.isEmpty()) network.insert(rest);
             }
         }
+    }
+
+    /** Pushes into the target; temporary containers (composter) take one item at a time, asked for anew each time. */
+    private static ItemStack pushInto(Level level, Neighbours.Target target, ItemStack items) {
+        if (!target.holder()) return Neighbours.push(target, items);
+        ItemStack rest = items.copy();
+        while (!rest.isEmpty()) {
+            ItemStack left = Neighbours.push(Neighbours.refresh(level, target), rest.copyWithCount(1));
+            if (!left.isEmpty()) break;
+            rest.shrink(1);
+        }
+        return rest;
     }
 
     /** How many of the item the target holds in all its slots. */
