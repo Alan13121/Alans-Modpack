@@ -4,7 +4,9 @@ import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
@@ -18,35 +20,43 @@ import org.jspecify.annotations.Nullable;
  */
 public final class InterfaceMenu extends AbstractContainerMenu {
     public static final int FILTER_SLOTS = 9;
+    /** {@link #clickMenuButton} ids from this value up change a filter slot's level: base + slot * 4 + action. */
+    public static final int LEVEL_BUTTON = 1000;
+    public static final int UP_ONE = 0, DOWN_ONE = 1, UP_MANY = 2, DOWN_MANY = 3, MANY = 16;
+
+    public static int levelButton(int slot, int action) { return LEVEL_BUTTON + slot * 4 + action; }
 
     public final boolean hasFilter;
     public final UpgradeSlots upgrades;
     /** Screen-relative layout, shared with the screen. */
     public final int upgradeY, labelY, imageHeight;
     private final @Nullable Container filter;
+    private final @Nullable ContainerData levels;
     private final ContainerLevelAccess access;
     private final Block block;
     private final int filterEnd, upgradeStart, upgradeEnd, inventoryStart, inventoryEnd;
 
     /** Client-side constructor used by the menu types. */
     public static InterfaceMenu input(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.INPUT_MENU, null, new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.INPUT_INTERFACE);
+        return new InterfaceMenu(id, inventory, LogisticsMod.INPUT_MENU, null, null, new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.INPUT_INTERFACE);
     }
 
     public static InterfaceMenu output(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.OUTPUT_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new UpgradeSlots(() -> {}),
-            ContainerLevelAccess.NULL, LogisticsMod.OUTPUT_INTERFACE);
+        return new InterfaceMenu(id, inventory, LogisticsMod.OUTPUT_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new SimpleContainerData(FILTER_SLOTS),
+            new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.OUTPUT_INTERFACE);
     }
 
-    public InterfaceMenu(int id, Inventory inventory, MenuType<InterfaceMenu> type, @Nullable Container filter, UpgradeSlots upgrades,
+    public InterfaceMenu(int id, Inventory inventory, MenuType<InterfaceMenu> type, @Nullable Container filter, @Nullable ContainerData levels, UpgradeSlots upgrades,
                          ContainerLevelAccess access, Block block) {
         super(type, id);
         this.filter = filter;
+        this.levels = levels;
+        if (levels != null) addDataSlots(levels);
         this.hasFilter = filter != null;
         this.upgrades = upgrades;
         this.access = access;
         this.block = block;
-        this.upgradeY = hasFilter ? 68 : 36;
+        this.upgradeY = hasFilter ? 76 : 36;
         this.labelY = upgradeY + 24;
         int inventoryY = labelY + 12;
         this.imageHeight = inventoryY + 76 + 8;
@@ -70,6 +80,18 @@ public final class InterfaceMenu extends AbstractContainerMenu {
         this.inventoryEnd = slots.size();
     }
 
+    /** The keep-in-stock level of a filter slot; 0 means no limit. */
+    public int level(int slot) { return levels == null ? 0 : levels.get(slot); }
+
+    @Override public boolean clickMenuButton(Player player, int id) {
+        if (levels == null || id < LEVEL_BUTTON) return false;
+        int slot = (id - LEVEL_BUTTON) / 4, action = (id - LEVEL_BUTTON) % 4;
+        if (slot < 0 || slot >= FILTER_SLOTS || filter.getItem(slot).isEmpty()) return false;
+        int step = action >= UP_MANY ? MANY : 1;
+        levels.set(slot, levels.get(slot) + (action == UP_ONE || action == UP_MANY ? step : -step));
+        return true;
+    }
+
     @Override public boolean stillValid(Player player) {
         return stillValid(access, player, block) || access == ContainerLevelAccess.NULL;
     }
@@ -79,6 +101,7 @@ public final class InterfaceMenu extends AbstractContainerMenu {
             if (type == ContainerInput.PICKUP) {
                 ItemStack carried = getCarried();
                 filter.setItem(slotId, carried.isEmpty() ? ItemStack.EMPTY : carried.copyWithCount(1));
+                if (levels != null) levels.set(slotId, 0);
             }
             return;
         }
@@ -102,7 +125,10 @@ public final class InterfaceMenu extends AbstractContainerMenu {
                 if (!f.isEmpty() && ItemStack.isSameItemSameComponents(f, stack)) return ItemStack.EMPTY;
                 if (f.isEmpty() && free < 0) free = i;
             }
-            if (free >= 0) filter.setItem(free, stack.copyWithCount(1));
+            if (free >= 0) {
+                filter.setItem(free, stack.copyWithCount(1));
+                if (levels != null) levels.set(free, 0);
+            }
             return ItemStack.EMPTY;
         } else {
             return ItemStack.EMPTY;

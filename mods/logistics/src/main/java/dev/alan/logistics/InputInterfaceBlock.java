@@ -31,7 +31,7 @@ public final class InputInterfaceBlock extends BaseEntityBlock implements Networ
 
     @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide() && level.getBlockEntity(pos) instanceof InputInterfaceBlockEntity be)
-            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new InterfaceMenu(id, inv, LogisticsMod.INPUT_MENU, null, be.upgrades(),
+            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new InterfaceMenu(id, inv, LogisticsMod.INPUT_MENU, null, null, be.upgrades(),
                 ContainerLevelAccess.create(level, pos), LogisticsMod.INPUT_INTERFACE), Component.translatable("block.logistics.input_interface")));
         return InteractionResult.SUCCESS;
     }

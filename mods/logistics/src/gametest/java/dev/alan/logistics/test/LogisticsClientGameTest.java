@@ -196,6 +196,49 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             int fast = dropperItems(world);
             check(fast >= 400, "upgraded interface moved most of the 500 cobblestone in 20 ticks, dropper has " + fast);
 
+            // Keep-in-stock level: the interface tops the dropper up to 100 cobblestone and no further.
+            world.getServer().runOnServer(server -> {
+                var level = server.overworld();
+                var dropper = (net.minecraft.world.Container) level.getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
+                dropper.clearContent();
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).insert(new ItemStack(Items.COBBLESTONE, 500), true);
+                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                out.levels().set(0, 100);
+            });
+            context.waitTicks(30);
+            check(dropperItems(world) == 100, "a level of 100 stops at 100 cobblestone, got " + dropperItems(world));
+            world.getServer().runOnServer(server -> {
+                var dropper = (net.minecraft.world.Container) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
+                int toRemove = 30;
+                for (int i = 0; i < dropper.getContainerSize() && toRemove > 0; i++) {
+                    int n = Math.min(toRemove, dropper.getItem(i).getCount());
+                    dropper.getItem(i).shrink(n);
+                    toRemove -= n;
+                }
+                dropper.setChanged();
+            });
+            check(dropperItems(world) == 70, "30 cobblestone were taken out");
+            context.waitTicks(30);
+            check(dropperItems(world) == 100, "the interface refilled the dropper back to 100, got " + dropperItems(world));
+
+            // Changing the level through the menu, like the scroll wheel does.
+            world.getServer().runCommand("tp @p -1.5 120 3.5 180 5");
+            context.waitTicks(10);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.InterfaceScreen.class);
+            context.waitTicks(5);
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleInventoryButtonClick(id, dev.alan.logistics.InterfaceMenu.levelButton(0, dev.alan.logistics.InterfaceMenu.UP_MANY));
+                mc.gameMode.handleInventoryButtonClick(id, dev.alan.logistics.InterfaceMenu.levelButton(0, dev.alan.logistics.InterfaceMenu.DOWN_ONE));
+            });
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0))).levels().get(0)) == 115, "level 100 +16 -1 = 115");
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.InterfaceMenu) mc.player.containerMenu).level(0)) == 115, "the client menu shows the level");
+            context.takeScreenshot("06a-output-level");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
             // The input interface has a screen with upgrade slots; shift-click puts quartz there.
             world.getServer().runCommand("give @p minecraft:quartz 5");
             world.getServer().runCommand("tp @p 1.5 120 3.5 180 20");

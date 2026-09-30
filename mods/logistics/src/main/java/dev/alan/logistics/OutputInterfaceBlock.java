@@ -32,7 +32,7 @@ public final class OutputInterfaceBlock extends BaseEntityBlock implements Netwo
 
     @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide() && level.getBlockEntity(pos) instanceof OutputInterfaceBlockEntity be)
-            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new InterfaceMenu(id, inv, LogisticsMod.OUTPUT_MENU, be.filter(), be.upgrades(), ContainerLevelAccess.create(level, pos), LogisticsMod.OUTPUT_INTERFACE),
+            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new InterfaceMenu(id, inv, LogisticsMod.OUTPUT_MENU, be.filter(), be.levels(), be.upgrades(), ContainerLevelAccess.create(level, pos), LogisticsMod.OUTPUT_INTERFACE),
                 Component.translatable("block.logistics.output_interface")));
         return InteractionResult.SUCCESS;
     }

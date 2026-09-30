@@ -29,5 +29,6 @@
   "logistics.upgrade.interval": "Every %s ticks",
   "logistics.upgrade.amount": "%s items each",
   "logistics.lookup.decompress": "Storage Cell decompression",
-  "logistics.lookup.decompress_note": "Contents must fit one cell"
+  "logistics.lookup.decompress_note": "Contents must fit one cell",
+  "logistics.output.level_hint": "Scroll a slot: keep in stock"
 }

@@ -29,14 +29,41 @@ public final class InterfaceScreen extends AbstractContainerScreen<InterfaceMenu
         }
     }
 
+    /** Scrolling over a filter slot changes how many of the item are kept in the machine; Shift = 16 at a time. */
+    @Override public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (menu.hasFilter && hoveredSlot != null && hoveredSlot.index < InterfaceMenu.FILTER_SLOTS && hoveredSlot.hasItem() && scrollY != 0) {
+            boolean many = minecraft.hasShiftDown();
+            int action = scrollY > 0 ? (many ? InterfaceMenu.UP_MANY : InterfaceMenu.UP_ONE) : (many ? InterfaceMenu.DOWN_MANY : InterfaceMenu.DOWN_ONE);
+            minecraft.gameMode.handleInventoryButtonClick(menu.containerId, InterfaceMenu.levelButton(hoveredSlot.index, action));
+            return true;
+        }
+        return super.mouseScrolled(x, y, scrollX, scrollY);
+    }
+
     @Override protected void extractLabels(GuiGraphicsExtractor g, int mx, int my) {
         g.text(font, title, 8, 6, accent, false);
-        if (menu.hasFilter) g.text(font, Component.translatable("logistics.output.hint"), 8, 43, 0xFFA5BBB5, false);
+        if (menu.hasFilter) {
+            g.text(font, Component.translatable("logistics.output.hint"), 8, 43, 0xFFA5BBB5, false);
+            g.text(font, Component.translatable("logistics.output.level_hint"), 8, 53, 0xFFA5BBB5, false);
+        }
         int upgradeY = menu.upgradeY;
         int textX = 8 + UpgradeSlots.SLOTS * 18 + 6;
         g.text(font, Component.translatable("logistics.upgrade.interval", menu.upgrades.interval()), textX, upgradeY, 0xFFE8B0A8, false);
         g.text(font, Component.translatable("logistics.upgrade.amount", menu.upgrades.amount()), textX, upgradeY + 10, 0xFFCFE6EA, false);
         g.text(font, Component.translatable("logistics.upgrade.hint"), 8, upgradeY - 11, 0xFFA5BBB5, false);
         g.text(font, playerInventoryTitle, 8, menu.labelY, 0xFFD4E4D8, false);
+    }
+
+    /** The keep-in-stock numbers go on top of the item icons, so they are drawn after the slots. */
+    @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
+        super.extractRenderState(g, mx, my, delta);
+        if (!menu.hasFilter) return;
+        for (int i = 0; i < InterfaceMenu.FILTER_SLOTS; i++) {
+            var slot = menu.slots.get(i);
+            int level = menu.level(i);
+            if (!slot.hasItem() || level <= 0) continue;
+            String text = Integer.toString(level);
+            g.text(font, text, leftPos + slot.x + 17 - font.width(text), topPos + slot.y + 9, 0xFF55FF55, true);
+        }
     }
 }
