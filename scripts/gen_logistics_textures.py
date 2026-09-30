@@ -127,6 +127,17 @@ def farm_interface():
     for i in range(3): put(px, 7 - i, 7 - i, (140, 230, 100)); put(px, 9 + i, 6 - i, (140, 230, 100))
     return px
 
+def autocrafter_front():
+    px = canvas((96, 72, 50), 16)
+    frame(px, (54, 40, 26), (240, 200, 130))
+    for y in range(3, 13):
+        for x in range(3, 13): put(px, x, y, (30, 24, 18))
+    for gy in range(3):
+        for gx in range(3):
+            put(px, 4 + gx * 3, 4 + gy * 3, (240, 200, 130)); put(px, 5 + gx * 3, 4 + gy * 3, (240, 200, 130))
+    for x in range(4, 12): put(px, x, 12, (120, 200, 255))
+    return px
+
 def cable():
     px = canvas((196, 120, 60), 7, 6)
     for x in range(16):
@@ -141,7 +152,7 @@ for name, px in [("controller_side", controller_side()), ("controller_top", cont
                  ("cell_3", cell((150, 120, 44), (84, 64, 20), (255, 220, 110), (70, 52, 14), (190, 155, 60), (255, 240, 170), 13, 2)),
                  ("cell_4", cell((196, 204, 210), (110, 118, 126), (255, 255, 255), (90, 98, 108), (226, 232, 238), (120, 220, 255), 14, 3)),
                  ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
-                 ("farm_interface", farm_interface()),
+                 ("farm_interface", farm_interface()), ("autocrafter", autocrafter_front()),
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
                  ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:
     target = os.path.join(OUT, name + ".png")

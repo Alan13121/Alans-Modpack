@@ -35,5 +35,10 @@
   "logistics.farm.bone_meal_on": "Use bone meal: ON",
   "logistics.farm.bone_meal_off": "Use bone meal: OFF",
   "logistics.farm.area": "Farms 9x9, three layers below",
-  "logistics.farm.amount": "%s plants each"
+  "logistics.farm.amount": "%s plants each",
+  "block.logistics.autocrafter": "Auto Crafter",
+  "logistics.autocrafter.pattern": "Pattern",
+  "logistics.autocrafter.keep": "Keep %s",
+  "logistics.autocrafter.scroll": "(scroll)",
+  "logistics.autocrafter.crafts": "%s per pass"
 }

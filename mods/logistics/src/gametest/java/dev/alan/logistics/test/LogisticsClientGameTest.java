@@ -26,6 +26,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         crafting(context);
         vanillaMachines(context);
         farming(context);
+        autocrafting(context);
     }
 
     /**
@@ -269,6 +270,64 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             for (int i = 0; i < dropper.getContainerSize(); i++) n += dropper.getItem(i).getCount();
             return n;
         });
+    }
+
+    /** Auto crafter: pattern from the API and from a recipe placement, crafts until the keep level is reached. */
+    private void autocrafting(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 12 119 12 minecraft:stone", "fill -8 120 -8 12 126 12 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell", "setblock 1 120 0 logistics:autocrafter",
+                "tp @p 1.5 120 3.5 180 20",
+            }) world.getServer().runCommand(command);
+            var pos = new net.minecraft.core.BlockPos(1, 120, 0);
+            world.getServer().runOnServer(server -> {
+                var cell = (dev.alan.logistics.CellBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
+                cell.insert(new ItemStack(Items.OAK_PLANKS, 100), true);
+                var crafter = (dev.alan.logistics.AutoCrafterBlockEntity) server.overworld().getBlockEntity(pos);
+                crafter.pattern().setItem(1, new ItemStack(Items.OAK_PLANKS));
+                crafter.pattern().setItem(4, new ItemStack(Items.OAK_PLANKS));
+                crafter.keepData().set(0, 20);
+            });
+            context.waitTicks(150);
+            var count = (java.util.function.Function<net.minecraft.world.item.Item, Integer>) item -> world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(item)));
+            check(count.apply(Items.STICK) == 20, "crafted sticks up to the keep level of 20, got " + count.apply(Items.STICK));
+            check(count.apply(Items.OAK_PLANKS) == 90, "five crafts used ten planks, " + count.apply(Items.OAK_PLANKS) + " left");
+            // A higher level makes it continue; a level at or below the stock makes it stop.
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.AutoCrafterBlockEntity) server.overworld().getBlockEntity(pos)).keepData().set(0, 32));
+            context.waitTicks(150);
+            check(count.apply(Items.STICK) == 32, "raising the level to 32 crafted three more times, got " + count.apply(Items.STICK));
+
+            // The menu: Lookup's "+" (handlePlacement) rewrites the pattern for a recipe, using what the warehouse holds most of.
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.AutoCrafterScreen.class);
+            context.waitTicks(5);
+            world.getServer().runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                var key = net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.RECIPE, net.minecraft.resources.Identifier.parse("minecraft:chest"));
+                var holder = server.getRecipeManager().byKey(key).orElseThrow();
+                ((net.minecraft.world.inventory.RecipeBookMenu) player.containerMenu).handlePlacement(false, true, holder, player.level(), player.getInventory());
+            });
+            context.waitTicks(10);
+            int planks = world.getServer().computeOnServer(server -> {
+                var crafter = (dev.alan.logistics.AutoCrafterBlockEntity) server.overworld().getBlockEntity(pos);
+                int n = 0;
+                for (int i = 0; i < 9; i++) if (crafter.pattern().getItem(i).is(Items.OAK_PLANKS)) n++;
+                return n;
+            });
+            check(planks == 8, "a chest recipe puts eight planks in the pattern, got " + planks);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(dev.alan.logistics.AutoCrafterMenu.RESULT).getItem().is(Items.CHEST)), "the preview shows the chest");
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.AutoCrafterMenu.KEEP_BUTTON + dev.alan.logistics.AutoCrafterMenu.UP_MANY));
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.AutoCrafterMenu) mc.player.containerMenu).keep()) == 48, "the keep number changed through the menu");
+            context.takeScreenshot("11-autocrafter");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            context.waitTicks(150);
+            check(count.apply(Items.CHEST) == 10, "the crafter made chests until the planks ran out (84 planks = 10 chests), got " + count.apply(Items.CHEST));
+            check(count.apply(Items.OAK_PLANKS) == 4, "four planks are left over, got " + count.apply(Items.OAK_PLANKS));
+        }
     }
 
     /** Farm interface: harvests and replants wheat, cuts cane, and spends bone meal on request. */

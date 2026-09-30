@@ -274,6 +274,13 @@ public final class Network {
         return revision;
     }
 
+    /** How many of exactly this item (with its components) the warehouse holds. */
+    public long count(ItemStack template) {
+        refresh();
+        Entry entry = entries.get(Key.probe(template));
+        return entry == null ? 0 : entry.total;
+    }
+
     public int typeCount() {
         refresh();
         return entries.size();

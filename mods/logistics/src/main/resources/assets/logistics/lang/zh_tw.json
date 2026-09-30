@@ -35,5 +35,10 @@
   "logistics.farm.bone_meal_on": "使用骨粉：開",
   "logistics.farm.bone_meal_off": "使用骨粉：關",
   "logistics.farm.area": "管理下方 9×9、三層",
-  "logistics.farm.amount": "每次 %s 株"
+  "logistics.farm.amount": "每次 %s 株",
+  "block.logistics.autocrafter": "自動合成器",
+  "logistics.autocrafter.pattern": "配方圖樣",
+  "logistics.autocrafter.keep": "保持 %s",
+  "logistics.autocrafter.scroll": "(滾輪)",
+  "logistics.autocrafter.crafts": "每次 %s 次"
 }

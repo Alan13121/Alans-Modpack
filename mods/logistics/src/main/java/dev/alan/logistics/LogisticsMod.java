@@ -68,6 +68,9 @@ public final class LogisticsMod implements ModInitializer {
 
     public static final BlockEntityType<FarmInterfaceBlockEntity> FARM_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("farm_interface"), new BlockEntityType<>(FarmInterfaceBlockEntity::new, Set.of(FARM_INTERFACE)));
+    public static final AutoCrafterBlock AUTOCRAFTER = block("autocrafter", AutoCrafterBlock::new, metal(MapColor.COLOR_BROWN));
+    public static final BlockEntityType<AutoCrafterBlockEntity> AUTOCRAFTER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("autocrafter"), new BlockEntityType<>(AutoCrafterBlockEntity::new, Set.of(AUTOCRAFTER)));
     public static final BlockEntityType<InputInterfaceBlockEntity> INPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("input_interface"), new BlockEntityType<>(InputInterfaceBlockEntity::new, Set.of(INPUT_INTERFACE)));
     public static final BlockEntityType<OutputInterfaceBlockEntity> OUTPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
@@ -82,6 +85,8 @@ public final class LogisticsMod implements ModInitializer {
         new MenuType<>(CraftingTerminalMenu::new, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> INPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("input_interface"),
         new MenuType<>(InterfaceMenu::input, FeatureFlagSet.of()));
+    public static final MenuType<AutoCrafterMenu> AUTOCRAFTER_MENU = Registry.register(BuiltInRegistries.MENU, id("autocrafter"),
+        new MenuType<>(AutoCrafterMenu::client, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> FARM_MENU = Registry.register(BuiltInRegistries.MENU, id("farm_interface"),
         new MenuType<>(InterfaceMenu::farm, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
@@ -110,6 +115,7 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(INPUT_INTERFACE);
             entries.accept(OUTPUT_INTERFACE);
             entries.accept(FARM_INTERFACE);
+            entries.accept(AUTOCRAFTER);
         });
         LOG.info("Logistics loaded");
     }
