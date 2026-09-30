@@ -95,6 +95,26 @@ def arrows(base, edge, glow, seed, inward):
         for x in range(7, 9): put(px, x, y, glow)
     return px
 
+def crafting_front():
+    px = canvas((70, 56, 44), 10)
+    frame(px, (36, 28, 22))
+    for y in range(2, 11):
+        for x in range(2, 14): put(px, x, y, (24, 20, 16))
+    for gy in range(3):
+        for gx in range(3):
+            for dy in range(2):
+                for dx in range(2): put(px, 3 + gx * 3 + dx, 3 + gy * 3 + dy, (230, 190, 120) if (gx + gy) % 2 == 0 else (150, 110, 70))
+    for x in range(4, 12): put(px, x, 12, (36, 28, 22))
+    put(px, 12, 13, (90, 220, 130))
+    return px
+
+def crafting_top():
+    px = canvas((120, 92, 60), 11)
+    frame(px, (60, 44, 28), (230, 190, 120))
+    for i in range(1, 15):
+        put(px, 5, i, (70, 52, 34)); put(px, 10, i, (70, 52, 34)); put(px, i, 5, (70, 52, 34)); put(px, i, 10, (70, 52, 34))
+    return px
+
 def cable():
     px = canvas((196, 120, 60), 7, 6)
     for x in range(16):
@@ -105,6 +125,7 @@ def cable():
 for name, px in [("controller_side", controller_side()), ("controller_top", controller_top()),
                  ("terminal_front", terminal_front()), ("terminal_side", terminal_side()), ("terminal_top", terminal_top()),
                  ("cell", cell()), ("cable", cable()),
+                 ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
                  ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:
     target = os.path.join(OUT, name + ".png")

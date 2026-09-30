@@ -11,11 +11,13 @@ import net.minecraft.network.chat.Component;
 public final class LogisticsClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         MenuScreens.register(LogisticsMod.TERMINAL_MENU, TerminalScreen::new);
+        MenuScreens.register(LogisticsMod.CRAFTING_TERMINAL_MENU, CraftingTerminalScreen::new);
         MenuScreens.register(LogisticsMod.OUTPUT_MENU, OutputScreen::new);
         ClientPlayNetworking.registerGlobalReceiver(TerminalSnapshot.TYPE, (payload, context) ->
             context.client().execute(() -> {
-                if (context.client().player != null && context.client().player.containerMenu instanceof TerminalMenu menu
-                    && menu.containerId == payload.containerId()) menu.receive(payload);
+                var menu = context.client().player == null ? null : context.client().player.containerMenu;
+                if (menu instanceof WarehouseMenu warehouse && menu.containerId == payload.containerId())
+                    warehouse.warehouse().receive(payload);
             }));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
             var data = stack.get(LogisticsMod.CELL_DATA);

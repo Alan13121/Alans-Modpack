@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 
 /** Opens the warehouse grid. Faces the player when placed; any number can sit on one network. */
-public final class TerminalBlock extends Block implements NetworkNode {
+public class TerminalBlock extends Block implements NetworkNode {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     public TerminalBlock(Properties properties) {
@@ -42,9 +42,12 @@ public final class TerminalBlock extends Block implements NetworkNode {
     }
 
     @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
-        if (!level.isClientSide())
-            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new TerminalMenu(id, inv, ContainerLevelAccess.create(level, pos)),
-                Component.translatable("block.logistics.terminal")));
+        if (!level.isClientSide()) player.openMenu(menuProvider(level, pos));
         return InteractionResult.SUCCESS;
+    }
+
+    protected SimpleMenuProvider menuProvider(Level level, BlockPos pos) {
+        return new SimpleMenuProvider((id, inv, p) -> new TerminalMenu(id, inv, ContainerLevelAccess.create(level, pos)),
+            Component.translatable("block.logistics.terminal"));
     }
 }

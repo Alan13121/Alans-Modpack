@@ -15,5 +15,8 @@
   "logistics.cell.stored": "%s 個物品,%s/%s 種",
   "block.logistics.input_interface": "輸入介面",
   "block.logistics.output_interface": "輸出介面",
-  "logistics.output.hint": "拿著物品點格子設定過濾"
+  "logistics.output.hint": "拿著物品點格子設定過濾",
+  "block.logistics.crafting_terminal": "合成終端機",
+  "logistics.crafting.store": "存回倉庫",
+  "logistics.crafting.grid": "合成"
 }

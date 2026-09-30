@@ -2,18 +2,20 @@ package dev.alan.logistics.client;
 
 import dev.alan.logistics.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-public final class TerminalScreen extends AbstractContainerScreen<TerminalMenu> {
+public final class CraftingTerminalScreen extends AbstractContainerScreen<CraftingTerminalMenu> {
     private WarehousePanel panel;
-    private net.minecraft.client.gui.components.EditBox search;
+    private EditBox search;
 
-    public TerminalScreen(TerminalMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, 180, 234);
+    public CraftingTerminalScreen(CraftingTerminalMenu menu, Inventory inventory, Component title) {
+        super(menu, inventory, title, 296, 234);
     }
 
     @Override protected void init() {
@@ -21,6 +23,9 @@ public final class TerminalScreen extends AbstractContainerScreen<TerminalMenu> 
         panel = new WarehousePanel(font, menu, menu.warehouse(), 8, 34, 5);
         search = addRenderableWidget(panel.searchBox(leftPos, topPos));
         addRenderableWidget(panel.sortButton(leftPos, topPos));
+        addRenderableWidget(Button.builder(Component.translatable("logistics.crafting.store"),
+                b -> minecraft.gameMode.handleInventoryButtonClick(menu.containerId, CraftingTerminalMenu.STORE_GRID))
+            .bounds(leftPos + 194, topPos + 140, 92, 16).build());
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
@@ -42,17 +47,21 @@ public final class TerminalScreen extends AbstractContainerScreen<TerminalMenu> 
         super.extractBackground(g, mx, my, delta);
         int x = leftPos, y = topPos;
         g.fill(x, y, x + imageWidth, y + imageHeight, 0xFF172328);
-        g.outline(x, y, imageWidth, imageHeight, 0xFF6FA3C4);
+        g.outline(x, y, imageWidth, imageHeight, 0xFFC99A5B);
+        g.fill(x + 184, y + 8, x + 185, y + 226, 0xFF405150);
         for (var slot : menu.slots) {
+            boolean result = slot.index == 0;
             g.fill(x + slot.x - 1, y + slot.y - 1, x + slot.x + 17, y + slot.y + 17, 0xFF0E191D);
-            g.outline(x + slot.x - 1, y + slot.y - 1, 18, 18, 0xFF61746C);
+            g.outline(x + slot.x - 1, y + slot.y - 1, 18, 18, result ? 0xFFC99A5B : 0xFF61746C);
         }
         panel.drawBackground(g, x, y);
     }
 
     @Override protected void extractLabels(GuiGraphicsExtractor g, int mx, int my) {
-        g.text(font, title, 8, 6, 0xFF9FD0EC, false);
+        g.text(font, title, 8, 6, 0xFFE3BE86, false);
         g.text(font, playerInventoryTitle, 8, 140, 0xFFD4E4D8, false);
+        g.text(font, Component.translatable("logistics.crafting.grid"), 194, 24, 0xFFD4E4D8, false);
+        g.centeredText(font, Component.literal("↓"), 227, 98, 0xFFE3BE86);
         panel.drawLabels(g, 127);
     }
 

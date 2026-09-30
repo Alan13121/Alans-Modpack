@@ -1,0 +1,1 @@
+{"parent":"minecraft:block/orientable","textures":{"top":"logistics:block/crafting_terminal_top","front":"logistics:block/crafting_terminal_front","side":"logistics:block/terminal_side"}}

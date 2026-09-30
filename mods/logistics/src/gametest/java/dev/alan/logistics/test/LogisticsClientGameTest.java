@@ -18,6 +18,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
     @Override public void runTest(ClientGameTestContext context) {
         warehouse(context);
         interfaces(context);
+        crafting(context);
     }
 
     /** Hopper → input interface → cell, and cell → output interface → furnace, plus a furnace result pulled back in. */
@@ -73,6 +74,75 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             }), "the ghost slot holds the filter");
             check(furnaceSlot(world, 0) > 0, "iron ore reached the furnace input");
             check(furnaceSlot(world, 1) == 0, "coal is not on the filter, so the fuel slot stays empty");
+        }
+    }
+
+    /** Crafting terminal: ingredients come from the warehouse and the grid refills itself. */
+    private void crafting(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 1 120 0 logistics:cable",
+                "setblock 2 120 0 logistics:crafting_terminal[facing=south]", "setblock 1 120 1 minecraft:chest",
+                "item replace block 1 120 1 container.0 with minecraft:oak_planks 12",
+                "tp @p 2.5 120 3.5 180 20",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(20);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.CraftingTerminalScreen.class);
+            context.waitTicks(15);
+            check(entry(context, Items.OAK_PLANKS) == 12, "planks are listed, got " + entry(context, Items.OAK_PLANKS));
+
+            // Two planks in a column make sticks.
+            act(context, TerminalAction.Kind.TAKE_STACK, Items.OAK_PLANKS);
+            context.waitTicks(10);
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleContainerInput(id, 1, 1, ContainerInput.PICKUP, mc.player);
+                mc.gameMode.handleContainerInput(id, 4, 1, ContainerInput.PICKUP, mc.player);
+            });
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(0).getItem().is(Items.STICK)
+                && mc.player.containerMenu.getSlot(0).getItem().getCount() == 4), "the grid shows a stick recipe");
+            context.takeScreenshot("07-crafting-terminal");
+            act(context, TerminalAction.Kind.INSERT_ALL, null);
+            context.waitTicks(10);
+            check(entry(context, Items.OAK_PLANKS) == 10, "the rest of the planks went back, got " + entry(context, Items.OAK_PLANKS));
+
+            // Shift-click the result: crafts until the warehouse is out of planks (12 planks = 6 crafts = 24 sticks).
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, 0, 0, ContainerInput.QUICK_MOVE, mc.player));
+            context.waitTicks(20);
+            int sticks = context.computeOnClient(mc -> mc.player.getInventory().countItem(Items.STICK));
+            check(sticks == 24, "shift-crafting used the whole warehouse stock, got " + sticks + " sticks");
+            check(entry(context, Items.OAK_PLANKS) == 0, "no planks left in the warehouse");
+            context.takeScreenshot("08-after-shift-craft");
+
+            // Store grid: items in the grid go back into the warehouse.
+            world.getServer().runCommand("give @p minecraft:oak_planks 3");
+            context.waitTicks(5);
+            int planks = context.computeOnClient(mc -> {
+                for (var s : mc.player.containerMenu.slots) if (s.index >= 10 && s.getItem().is(Items.OAK_PLANKS)) return s.index;
+                return -1;
+            });
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleContainerInput(id, planks, 0, ContainerInput.PICKUP, mc.player);
+                mc.gameMode.handleContainerInput(id, 1, 0, ContainerInput.PICKUP, mc.player);
+            });
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(1).getItem().getCount()) == 3, "planks are in the grid");
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.CraftingTerminalMenu.STORE_GRID));
+            context.waitTicks(15);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.getSlot(1).getItem().isEmpty()), "grid emptied");
+            check(entry(context, Items.OAK_PLANKS) == 3, "planks are in the warehouse, got " + entry(context, Items.OAK_PLANKS));
+
+            // Closing the screen returns whatever is left in the grid to the warehouse too.
+            context.runOnClient(mc -> {
+                int id = mc.player.containerMenu.containerId;
+                mc.gameMode.handleContainerInput(id, planks, 0, ContainerInput.PICKUP, mc.player);
+            });
+            context.runOnClient(mc -> mc.gui.setScreen(null));
         }
     }
 
@@ -167,7 +237,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.getInput().pressKey(options -> options.keyUse);
             context.waitForScreen(TerminalScreen.class);
             context.waitTicks(15);
-            check(context.computeOnClient(mc -> ((TerminalMenu) mc.player.containerMenu).status()) == Network.Status.MULTIPLE_CONTROLLERS,
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.WarehouseMenu) mc.player.containerMenu).warehouse().status()) == Network.Status.MULTIPLE_CONTROLLERS,
                 "two controllers are reported");
             context.takeScreenshot("05-two-controllers");
             context.runOnClient(mc -> mc.gui.setScreen(null));
@@ -210,7 +280,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
 
     private static long entry(ClientGameTestContext context, Item item) {
         return context.computeOnClient(mc -> {
-            for (var e : ((TerminalMenu) mc.player.containerMenu).entries()) if (e.stack().is(item)) return e.count();
+            for (var e : ((dev.alan.logistics.WarehouseMenu) mc.player.containerMenu).warehouse().entries()) if (e.stack().is(item)) return e.count();
             return 0L;
         });
     }

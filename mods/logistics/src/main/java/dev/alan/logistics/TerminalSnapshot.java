@@ -20,7 +20,7 @@ public record TerminalSnapshot(int containerId, int status, List<Entry> entries)
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalSnapshot> CODEC = StreamCodec.composite(
         ByteBufCodecs.CONTAINER_ID, TerminalSnapshot::containerId,
         ByteBufCodecs.VAR_INT, TerminalSnapshot::status,
-        Entry.CODEC.apply(ByteBufCodecs.list(TerminalMenu.MAX_ENTRIES)), TerminalSnapshot::entries,
+        Entry.CODEC.apply(ByteBufCodecs.list(WarehouseLink.MAX_ENTRIES)), TerminalSnapshot::entries,
         TerminalSnapshot::new);
 
     @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }

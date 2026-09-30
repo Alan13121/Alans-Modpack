@@ -48,6 +48,7 @@ public final class LogisticsMod implements ModInitializer {
     public static final TerminalBlock TERMINAL = block("terminal", TerminalBlock::new, metal(MapColor.COLOR_GRAY));
     public static final CellBlock CELL = block("cell", CellBlock::new, metal(MapColor.COLOR_PURPLE));
 
+    public static final CraftingTerminalBlock CRAFTING_TERMINAL = block("crafting_terminal", CraftingTerminalBlock::new, metal(MapColor.COLOR_BROWN));
     public static final InputInterfaceBlock INPUT_INTERFACE = block("input_interface", InputInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
     public static final OutputInterfaceBlock OUTPUT_INTERFACE = block("output_interface", OutputInterfaceBlock::new, metal(MapColor.COLOR_ORANGE));
 
@@ -61,6 +62,8 @@ public final class LogisticsMod implements ModInitializer {
         DataComponentType.<CellData>builder().persistent(CellData.CODEC).networkSynchronized(CellData.STREAM_CODEC).build());
     public static final MenuType<TerminalMenu> TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("terminal"),
         new MenuType<>(TerminalMenu::new, FeatureFlagSet.of()));
+    public static final MenuType<CraftingTerminalMenu> CRAFTING_TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("crafting_terminal"),
+        new MenuType<>(CraftingTerminalMenu::new, FeatureFlagSet.of()));
     public static final MenuType<OutputMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
         new MenuType<>(OutputMenu::new, FeatureFlagSet.of()));
 
@@ -68,14 +71,15 @@ public final class LogisticsMod implements ModInitializer {
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
-            if (context.player().containerMenu instanceof TerminalMenu menu && menu.containerId == payload.containerId()
-                && menu.stillValid(context.player()))
-                menu.handle(context.player(), payload.kind(), payload.stack());
+            var menu = context.player().containerMenu;
+            if (menu instanceof WarehouseMenu warehouse && menu.containerId == payload.containerId() && menu.stillValid(context.player()))
+                warehouse.warehouse().handle(menu, context.player(), payload.kind(), payload.stack());
         });
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
             entries.accept(CONTROLLER);
             entries.accept(CABLE);
             entries.accept(TERMINAL);
+            entries.accept(CRAFTING_TERMINAL);
             entries.accept(CELL);
             entries.accept(INPUT_INTERFACE);
             entries.accept(OUTPUT_INTERFACE);

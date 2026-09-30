@@ -15,5 +15,8 @@
   "logistics.cell.stored": "%s items, %s/%s types",
   "block.logistics.input_interface": "Input Interface",
   "block.logistics.output_interface": "Output Interface",
-  "logistics.output.hint": "Click with an item to set a filter"
+  "logistics.output.hint": "Click with an item to set a filter",
+  "block.logistics.crafting_terminal": "Crafting Terminal",
+  "logistics.crafting.store": "Store grid",
+  "logistics.crafting.grid": "Crafting"
 }
