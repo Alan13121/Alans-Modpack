@@ -2,6 +2,8 @@ package dev.alan.lookup.api;
 
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
+import net.minecraft.world.item.ItemStack;
 
 /** Handed to every {@link LookupPlugin} once, when the client starts. */
 public interface LookupRegistry {
@@ -11,4 +13,11 @@ public interface LookupRegistry {
      * startup, such as values synced from the server.
      */
     void views(Supplier<List<RecipeView>> provider);
+
+    /**
+     * Adds a source of item counts ("stock") that recipe pages show under each ingredient, e.g. what a storage
+     * network holds. Return the amount of that item you can supply, or -1 when you have no answer right now (for
+     * instance no storage screen is open); then nothing is drawn. Several providers are added together.
+     */
+    void stock(ToLongFunction<ItemStack> provider);
 }

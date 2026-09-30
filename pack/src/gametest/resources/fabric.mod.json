@@ -5,5 +5,5 @@
   "name": "Modpack integration tests",
   "environment": "*",
   "entrypoints": {"fabric-client-gametest": ["dev.alan.pack.test.PackClientGameTest"]},
-  "depends": {"lookup": "*", "shapeshift": "*", "alchemy_backpack": "*"}
+  "depends": {"lookup": "*", "shapeshift": "*", "alchemy_backpack": "*", "logistics": "*"}
 }

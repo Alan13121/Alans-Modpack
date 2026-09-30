@@ -43,6 +43,7 @@ public final class MyLookupPlugin implements LookupPlugin {
 - 版面畫布固定 `RecipeView.WIDTH × HEIGHT`（112 × 54）。同一個 `categoryKey` 的視圖共用一個分頁。
 - 每個視圖會出現在它所有輸入物品的「用途」與所有輸出物品的「配方」。只是資訊卡（沒有輸出）時，輸出留空即可。
 - 需要自訂繪製或額外的提示行時，用 `RecipeView.Painter` 與 `Slot` 的 `extra`。
+- **庫存顯示**：`registry.stock(stack -> 數量)`（沒有答案時回傳 -1）。有提供者回答時，配方頁在每個材料格右下角顯示庫存數量（夠是綠色、不夠是紅色），並在右下角標示「×N」可合成次數。物流模組的 `LogisticsLookupPlugin` 用它顯示倉庫存量（開著終端機時才有）。
 - 範例：`ShapeshiftLookupPlugin`（形態卡片）、`AlchemyLookupPlugin`（能量值）；lookup 自己的戰利品也走同一個介面。
 
 ## 開發
