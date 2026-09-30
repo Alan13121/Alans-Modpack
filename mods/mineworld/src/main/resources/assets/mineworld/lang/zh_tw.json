@@ -3,5 +3,10 @@
   "block.mineworld.return_block": "回程方塊",
   "mineworld.progress": "礦世界 %1$s/%2$s(還缺:%3$s)",
   "mineworld.created": "世界鍋釜完成!站在裡面蹲下 4 秒即可進入",
-  "mineworld.entered": "進入礦世界「%1$s」"
+  "mineworld.entered": "進入礦世界「%1$s」",
+  "mineworld.lookup.create": "創建礦世界",
+  "mineworld.lookup.water": "需裝滿水",
+  "mineworld.lookup.either": "原礦或錠皆可",
+  "mineworld.lookup.note": "丟進水鍋釜,每種消耗 1 個",
+  "mineworld.tooltip.world": "礦世界:%s"
 }

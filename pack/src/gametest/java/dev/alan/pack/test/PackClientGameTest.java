@@ -38,6 +38,23 @@ public final class PackClientGameTest implements FabricClientGameTest {
             context.getInput().pressMouse(0);
             context.waitTicks(3);
             context.takeScreenshot("05-alchemy-diamond-tab");
+
+            // Mine World: the creation card shows up from the cauldron, the world cauldron and the ores.
+            check(hasUse(context, Items.CAULDRON, "mineworld:create"), "mineworld card is a use of the cauldron");
+            check(hasUse(context, Items.RAW_IRON, "mineworld:create") && hasUse(context, Items.IRON_INGOT, "mineworld:create"),
+                "raw iron and iron ingot both open the mineworld card");
+            check(context.computeOnClient(mc -> RecipeIndex.producing(dev.alan.mineworld.MineWorldMod.WORLD_CAULDRON.asItem()).stream()
+                .anyMatch(v -> v.categoryKey().equals("mineworld:create"))), "mineworld card is a recipe of the world cauldron");
+            show(context, Items.CAULDRON, "08-mineworld-cauldron-use");
+            context.runOnClient(mc -> RecipeScreen.show(mc, mc.gui.screen(), dev.alan.mineworld.MineWorldMod.WORLD_CAULDRON.asItem(), false));
+            context.waitTicks(5);
+            context.takeScreenshot("09-mineworld-world-cauldron-recipe");
+            var named = new net.minecraft.world.item.ItemStack(dev.alan.mineworld.MineWorldMod.WORLD_CAULDRON);
+            named.set(dev.alan.mineworld.MineWorldMod.WORLD_ID, "w7");
+            named.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Deep Pit"));
+            String tooltip = context.computeOnClient(mc -> named.getTooltipLines(net.minecraft.world.item.Item.TooltipContext.EMPTY,
+                mc.player, net.minecraft.world.item.TooltipFlag.NORMAL).stream().map(c -> c.getString()).reduce("", (a, b) -> a + "|" + b));
+            check(tooltip.contains("Deep Pit") && (tooltip.contains("礦世界") || tooltip.contains("Mine world")), "tooltip names the world: " + tooltip);
         }
         warehouseStock(context);
     }
