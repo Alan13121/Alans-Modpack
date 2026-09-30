@@ -1,0 +1,7 @@
+{
+  "block.mineworld.world_cauldron": "World Cauldron",
+  "block.mineworld.return_block": "Return Block",
+  "mineworld.progress": "Mine world %1$s/%2$s (missing: %3$s)",
+  "mineworld.created": "World cauldron ready! Stand in it and sneak for 4 seconds",
+  "mineworld.entered": "Entered mine world \"%1$s\""
+}

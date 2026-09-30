@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.alan.mineworld.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "ItemEntityMixin",
+    "MinecraftServerAccessor",
+    "ServerLevelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
