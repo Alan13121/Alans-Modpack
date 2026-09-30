@@ -14,6 +14,7 @@ public final class LogisticsClient implements ClientModInitializer {
         MenuScreens.register(LogisticsMod.CRAFTING_TERMINAL_MENU, CraftingTerminalScreen::new);
         MenuScreens.register(LogisticsMod.OUTPUT_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.INPUT_MENU, InterfaceScreen::new);
+        MenuScreens.register(LogisticsMod.FARM_MENU, InterfaceScreen::new);
         ClientPlayNetworking.registerGlobalReceiver(TerminalSnapshot.TYPE, (payload, context) ->
             context.client().execute(() -> {
                 var menu = context.client().player == null ? null : context.client().player.containerMenu;

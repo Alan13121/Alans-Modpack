@@ -30,5 +30,10 @@
   "logistics.upgrade.amount": "%s items each",
   "logistics.lookup.decompress": "Storage Cell decompression",
   "logistics.lookup.decompress_note": "Contents must fit one cell",
-  "logistics.output.level_hint": "Scroll a slot: keep in stock"
+  "logistics.output.level_hint": "Scroll a slot: keep in stock",
+  "block.logistics.farm_interface": "Farm Interface",
+  "logistics.farm.bone_meal_on": "Use bone meal: ON",
+  "logistics.farm.bone_meal_off": "Use bone meal: OFF",
+  "logistics.farm.area": "Farms 9x9, three layers below",
+  "logistics.farm.amount": "%s plants each"
 }

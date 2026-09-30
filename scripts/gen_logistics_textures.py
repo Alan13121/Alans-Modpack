@@ -117,6 +117,16 @@ def crafting_top():
         put(px, 5, i, (70, 52, 34)); put(px, 10, i, (70, 52, 34)); put(px, i, 5, (70, 52, 34)); put(px, i, 10, (70, 52, 34))
     return px
 
+def farm_interface():
+    px = canvas((60, 96, 56), 15)
+    frame(px, (30, 52, 28), (150, 230, 110))
+    for y in range(4, 12):
+        for x in range(4, 12): put(px, x, y, (24, 40, 22))
+    # a sprout: stem and two leaves
+    for y in range(7, 12): put(px, 8, y, (110, 200, 80))
+    for i in range(3): put(px, 7 - i, 7 - i, (140, 230, 100)); put(px, 9 + i, 6 - i, (140, 230, 100))
+    return px
+
 def cable():
     px = canvas((196, 120, 60), 7, 6)
     for x in range(16):
@@ -131,6 +141,7 @@ for name, px in [("controller_side", controller_side()), ("controller_top", cont
                  ("cell_3", cell((150, 120, 44), (84, 64, 20), (255, 220, 110), (70, 52, 14), (190, 155, 60), (255, 240, 170), 13, 2)),
                  ("cell_4", cell((196, 204, 210), (110, 118, 126), (255, 255, 255), (90, 98, 108), (226, 232, 238), (120, 220, 255), 14, 3)),
                  ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
+                 ("farm_interface", farm_interface()),
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
                  ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:
     target = os.path.join(OUT, name + ".png")

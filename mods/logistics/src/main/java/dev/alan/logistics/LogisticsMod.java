@@ -64,6 +64,10 @@ public final class LogisticsMod implements ModInitializer {
     public static final InputInterfaceBlock INPUT_INTERFACE = block("input_interface", InputInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
     public static final OutputInterfaceBlock OUTPUT_INTERFACE = block("output_interface", OutputInterfaceBlock::new, metal(MapColor.COLOR_ORANGE));
 
+    public static final FarmInterfaceBlock FARM_INTERFACE = block("farm_interface", FarmInterfaceBlock::new, metal(MapColor.PLANT));
+
+    public static final BlockEntityType<FarmInterfaceBlockEntity> FARM_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("farm_interface"), new BlockEntityType<>(FarmInterfaceBlockEntity::new, Set.of(FARM_INTERFACE)));
     public static final BlockEntityType<InputInterfaceBlockEntity> INPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("input_interface"), new BlockEntityType<>(InputInterfaceBlockEntity::new, Set.of(INPUT_INTERFACE)));
     public static final BlockEntityType<OutputInterfaceBlockEntity> OUTPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
@@ -78,6 +82,8 @@ public final class LogisticsMod implements ModInitializer {
         new MenuType<>(CraftingTerminalMenu::new, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> INPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("input_interface"),
         new MenuType<>(InterfaceMenu::input, FeatureFlagSet.of()));
+    public static final MenuType<InterfaceMenu> FARM_MENU = Registry.register(BuiltInRegistries.MENU, id("farm_interface"),
+        new MenuType<>(InterfaceMenu::farm, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
         new MenuType<>(InterfaceMenu::output, FeatureFlagSet.of()));
 
@@ -103,6 +109,7 @@ public final class LogisticsMod implements ModInitializer {
             for (CellBlock cell : CELLS) entries.accept(cell);
             entries.accept(INPUT_INTERFACE);
             entries.accept(OUTPUT_INTERFACE);
+            entries.accept(FARM_INTERFACE);
         });
         LOG.info("Logistics loaded");
     }

@@ -3,6 +3,7 @@ package dev.alan.logistics.client;
 import dev.alan.logistics.InterfaceMenu;
 import dev.alan.logistics.UpgradeSlots;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,7 +14,26 @@ public final class InterfaceScreen extends AbstractContainerScreen<InterfaceMenu
 
     public InterfaceScreen(InterfaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, 176, menu.imageHeight);
-        this.accent = menu.hasFilter ? 0xFFE39B4A : 0xFF5AD2B8;
+        this.accent = menu.hasFilter ? 0xFFE39B4A : menu.hasToggle ? 0xFF8AD65A : 0xFF5AD2B8;
+    }
+
+    private Button toggleButton;
+
+    @Override protected void init() {
+        super.init();
+        if (menu.hasToggle) {
+            toggleButton = addRenderableWidget(Button.builder(toggleLabel(),
+                    b -> minecraft.gameMode.handleInventoryButtonClick(menu.containerId, InterfaceMenu.TOGGLE_BUTTON))
+                .bounds(leftPos + 8, topPos + 22, 160, 16).build());
+        }
+    }
+
+    private Component toggleLabel() {
+        return Component.translatable(menu.toggleOn() ? "logistics.farm.bone_meal_on" : "logistics.farm.bone_meal_off");
+    }
+
+    @Override protected void containerTick() {
+        if (toggleButton != null) toggleButton.setMessage(toggleLabel());
     }
 
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {
@@ -46,10 +66,12 @@ public final class InterfaceScreen extends AbstractContainerScreen<InterfaceMenu
             g.text(font, Component.translatable("logistics.output.hint"), 8, 43, 0xFFA5BBB5, false);
             g.text(font, Component.translatable("logistics.output.level_hint"), 8, 53, 0xFFA5BBB5, false);
         }
+        if (menu.hasToggle) g.text(font, Component.translatable("logistics.farm.area"), 8, 44, 0xFFA5BBB5, false);
         int upgradeY = menu.upgradeY;
         int textX = 8 + UpgradeSlots.SLOTS * 18 + 6;
         g.text(font, Component.translatable("logistics.upgrade.interval", menu.upgrades.interval()), textX, upgradeY, 0xFFE8B0A8, false);
-        g.text(font, Component.translatable("logistics.upgrade.amount", menu.upgrades.amount()), textX, upgradeY + 10, 0xFFCFE6EA, false);
+        g.text(font, menu.hasToggle ? Component.translatable("logistics.farm.amount", Math.max(1, menu.upgrades.amount() / 8))
+            : Component.translatable("logistics.upgrade.amount", menu.upgrades.amount()), textX, upgradeY + 10, 0xFFCFE6EA, false);
         g.text(font, Component.translatable("logistics.upgrade.hint"), 8, upgradeY - 11, 0xFFA5BBB5, false);
         g.text(font, playerInventoryTitle, 8, menu.labelY, 0xFFD4E4D8, false);
     }

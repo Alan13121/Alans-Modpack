@@ -25,6 +25,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         interfaces(context);
         crafting(context);
         vanillaMachines(context);
+        farming(context);
     }
 
     /**
@@ -268,6 +269,64 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             for (int i = 0; i < dropper.getContainerSize(); i++) n += dropper.getItem(i).getCount();
             return n;
         });
+    }
+
+    /** Farm interface: harvests and replants wheat, cuts cane, and spends bone meal on request. */
+    private void farming(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 118 -8 14 128 12 minecraft:air", "fill -8 119 -8 14 119 12 minecraft:stone",
+                // a 9x9 field around x=3,z=0 with mature wheat, and a two-high sugar cane on sand
+                "fill -1 120 -4 7 120 4 minecraft:farmland", "fill -1 121 -4 7 121 4 minecraft:wheat[age=7]",
+                "setblock 6 121 -4 minecraft:air", "setblock 6 120 -4 minecraft:water",
+                "setblock 6 120 -3 minecraft:sand", "setblock 6 121 -3 minecraft:sugar_cane", "setblock 6 122 -3 minecraft:sugar_cane",
+                // network on the layer of the interface
+                "setblock 0 123 0 logistics:controller", "setblock 0 124 0 logistics:cell",
+                "setblock 1 123 0 logistics:cable", "setblock 2 123 0 logistics:cable", "setblock 3 123 0 logistics:farm_interface",
+                "setblock 3 122 3 minecraft:stone", "tp @p 3.5 123 3.5 180 25",
+            }) world.getServer().runCommand(command);
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.CellBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(0, 124, 0))).insert(new ItemStack(Items.WHEAT_SEEDS, 100), true));
+            context.waitTicks(400);
+            var cell = (java.util.function.Function<net.minecraft.world.item.Item, Integer>) item -> world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity)
+                server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 124, 0))).count(new ItemStack(item)));
+            int wheat = cell.apply(Items.WHEAT);
+            check(wheat >= 70, "most of the 81 mature wheat plants were harvested into the warehouse, got " + wheat);
+            int young = world.getServer().computeOnServer(server -> {
+                int n = 0;
+                for (int x = -1; x <= 7; x++) for (int z = -4; z <= 4; z++) {
+                    var st = server.overworld().getBlockState(new net.minecraft.core.BlockPos(x, 121, z));
+                    if (st.is(net.minecraft.world.level.block.Blocks.WHEAT)) n++;
+                }
+                return n;
+            });
+            check(young >= 70, "the harvested plants were replanted, " + young + " wheat blocks stand in the field");
+            check(cell.apply(Items.SUGAR_CANE) >= 1, "the upper sugar cane was cut; column now: " + world.getServer().computeOnServer(server -> {
+                var lv = server.overworld();
+                return lv.getBlockState(new net.minecraft.core.BlockPos(6, 120, -3)) + " / " + lv.getBlockState(new net.minecraft.core.BlockPos(6, 121, -3))
+                    + " / " + lv.getBlockState(new net.minecraft.core.BlockPos(6, 122, -3)) + " / water " + lv.getBlockState(new net.minecraft.core.BlockPos(6, 120, -4));
+            }));
+            check(world.getServer().computeOnServer(server -> server.overworld().getBlockState(new net.minecraft.core.BlockPos(6, 121, -3))
+                .is(net.minecraft.world.level.block.Blocks.SUGAR_CANE) && server.overworld().getBlockState(new net.minecraft.core.BlockPos(6, 122, -3)).isAir()),
+                "the cane base stays, the top block is gone");
+
+            // Bone meal: off by default, on with the toggle.
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.CellBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(0, 124, 0))).insert(new ItemStack(Items.BONE_MEAL, 40), true));
+            context.waitTicks(100);
+            check(cell.apply(Items.BONE_MEAL) == 40, "bone meal is untouched while the option is off");
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.InterfaceScreen.class);
+            context.waitTicks(5);
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.InterfaceMenu.TOGGLE_BUTTON));
+            context.waitTicks(10);
+            context.takeScreenshot("10-farm-interface");
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.InterfaceMenu) mc.player.containerMenu).toggleOn()), "the toggle reached the client");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            context.waitTicks(200);
+            check(cell.apply(Items.BONE_MEAL) < 40, "with the option on, bone meal is spent on the young crops, " + cell.apply(Items.BONE_MEAL) + " left");
+        }
     }
 
     /** Composter (seeds in, bone meal out) and brewing stand (bottles, wart and fuel in, awkward potions out). */

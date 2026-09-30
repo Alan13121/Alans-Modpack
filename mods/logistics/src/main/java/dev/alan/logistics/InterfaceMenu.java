@@ -24,39 +24,51 @@ public final class InterfaceMenu extends AbstractContainerMenu {
     public static final int LEVEL_BUTTON = 1000;
     public static final int UP_ONE = 0, DOWN_ONE = 1, UP_MANY = 2, DOWN_MANY = 3, MANY = 16;
 
+    /** {@link #clickMenuButton} id that flips the interface's on/off option (the farm's bone-meal use). */
+    public static final int TOGGLE_BUTTON = 2000;
+
     public static int levelButton(int slot, int action) { return LEVEL_BUTTON + slot * 4 + action; }
 
-    public final boolean hasFilter;
+    public final boolean hasFilter, hasToggle;
     public final UpgradeSlots upgrades;
     /** Screen-relative layout, shared with the screen. */
     public final int upgradeY, labelY, imageHeight;
     private final @Nullable Container filter;
     private final @Nullable ContainerData levels;
+    private final @Nullable ContainerData toggle;
     private final ContainerLevelAccess access;
     private final Block block;
     private final int filterEnd, upgradeStart, upgradeEnd, inventoryStart, inventoryEnd;
 
     /** Client-side constructor used by the menu types. */
     public static InterfaceMenu input(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.INPUT_MENU, null, null, new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.INPUT_INTERFACE);
+        return new InterfaceMenu(id, inventory, LogisticsMod.INPUT_MENU, null, null, null, new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.INPUT_INTERFACE);
     }
 
     public static InterfaceMenu output(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.OUTPUT_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new SimpleContainerData(FILTER_SLOTS),
+        return new InterfaceMenu(id, inventory, LogisticsMod.OUTPUT_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new SimpleContainerData(FILTER_SLOTS), null,
             new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.OUTPUT_INTERFACE);
     }
 
-    public InterfaceMenu(int id, Inventory inventory, MenuType<InterfaceMenu> type, @Nullable Container filter, @Nullable ContainerData levels, UpgradeSlots upgrades,
+    public static InterfaceMenu farm(int id, Inventory inventory) {
+        return new InterfaceMenu(id, inventory, LogisticsMod.FARM_MENU, null, null, new SimpleContainerData(1), new UpgradeSlots(() -> {}),
+            ContainerLevelAccess.NULL, LogisticsMod.FARM_INTERFACE);
+    }
+
+    public InterfaceMenu(int id, Inventory inventory, MenuType<InterfaceMenu> type, @Nullable Container filter, @Nullable ContainerData levels, @Nullable ContainerData toggle, UpgradeSlots upgrades,
                          ContainerLevelAccess access, Block block) {
         super(type, id);
         this.filter = filter;
         this.levels = levels;
+        this.toggle = toggle;
+        this.hasToggle = toggle != null;
         if (levels != null) addDataSlots(levels);
+        if (toggle != null) addDataSlots(toggle);
         this.hasFilter = filter != null;
         this.upgrades = upgrades;
         this.access = access;
         this.block = block;
-        this.upgradeY = hasFilter ? 76 : 36;
+        this.upgradeY = hasFilter ? 76 : hasToggle ? 70 : 36;
         this.labelY = upgradeY + 24;
         int inventoryY = labelY + 12;
         this.imageHeight = inventoryY + 76 + 8;
@@ -83,8 +95,14 @@ public final class InterfaceMenu extends AbstractContainerMenu {
     /** The keep-in-stock level of a filter slot; 0 means no limit. */
     public int level(int slot) { return levels == null ? 0 : levels.get(slot); }
 
+    public boolean toggleOn() { return toggle != null && toggle.get(0) != 0; }
+
     @Override public boolean clickMenuButton(Player player, int id) {
-        if (levels == null || id < LEVEL_BUTTON) return false;
+        if (id == TOGGLE_BUTTON && toggle != null) {
+            toggle.set(0, toggle.get(0) == 0 ? 1 : 0);
+            return true;
+        }
+        if (levels == null || id < LEVEL_BUTTON || id >= TOGGLE_BUTTON) return false;
         int slot = (id - LEVEL_BUTTON) / 4, action = (id - LEVEL_BUTTON) % 4;
         if (slot < 0 || slot >= FILTER_SLOTS || filter.getItem(slot).isEmpty()) return false;
         int step = action >= UP_MANY ? MANY : 1;

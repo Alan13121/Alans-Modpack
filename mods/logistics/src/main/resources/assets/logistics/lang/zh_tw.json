@@ -30,5 +30,10 @@
   "logistics.upgrade.amount": "每次 %s 個",
   "logistics.lookup.decompress": "儲存單元解壓縮",
   "logistics.lookup.decompress_note": "內容要放得進一個單元",
-  "logistics.output.level_hint": "滾輪調整補貨下限"
+  "logistics.output.level_hint": "滾輪調整補貨下限",
+  "block.logistics.farm_interface": "農場介面",
+  "logistics.farm.bone_meal_on": "使用骨粉：開",
+  "logistics.farm.bone_meal_off": "使用骨粉：關",
+  "logistics.farm.area": "管理下方 9×9、三層",
+  "logistics.farm.amount": "每次 %s 株"
 }
