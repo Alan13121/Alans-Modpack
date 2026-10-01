@@ -142,6 +142,7 @@ public final class AutoCrafterMenu extends RecipeBookMenu {
 
     // ---- RecipeBookMenu: Lookup's "+" sets the pattern ------------------------------------------------------
 
+    @SuppressWarnings("deprecation") // Ingredient.items(): no non-deprecated way to list candidates
     @Override public PostPlaceAction handlePlacement(boolean useMaxItems, boolean allowDroppingItemsToClear, RecipeHolder<?> recipe,
                                                      ServerLevel level, Inventory inventory) {
         if (!(recipe.value() instanceof CraftingRecipe crafting) || crafting.placementInfo().isImpossibleToPlace()) return PostPlaceAction.NOTHING;

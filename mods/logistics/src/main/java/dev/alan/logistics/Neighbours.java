@@ -34,7 +34,7 @@ final class Neighbours {
         List<Target> out = new ArrayList<>();
         for (Direction dir : Direction.values()) {
             BlockPos next = pos.relative(dir);
-            if (!level.hasChunkAt(next) || level.getBlockState(next).getBlock() instanceof NetworkNode) continue;
+            if (!level.hasChunk(next.getX() >> 4, next.getZ() >> 4) || level.getBlockState(next).getBlock() instanceof NetworkNode) continue;
             BlockState state = level.getBlockState(next);
             if (state.getBlock() instanceof WorldlyContainerHolder holder) {
                 out.add(new Target(holder.getContainer(state, level, next), dir.getOpposite(), next, true));

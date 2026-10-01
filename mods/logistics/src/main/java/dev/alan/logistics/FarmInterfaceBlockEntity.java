@@ -91,7 +91,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
             // Top down, so a stack of cane is cut from the upper end.
             for (int dy = -1; dy >= -DEPTH && actions > 0; dy--) {
                 BlockPos pos = origin.offset(dx, dy, dz);
-                if (!level.hasChunkAt(pos)) continue;
+                if (!level.hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) continue;
                 BlockState state = level.getBlockState(pos);
                 if (state.isAir()) continue;
                 Job job = jobFor(level, pos, state);
@@ -129,7 +129,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
 
     /** Plants the crop again with one of its own seeds, from the drops first and from the warehouse otherwise. */
     private static void replant(ServerLevel level, Warehouse network, BlockPos pos, BlockState old, List<ItemStack> drops) {
-        Item seed = Item.byBlock(old.getBlock());
+        Item seed = old.getBlock().asItem();
         if (seed == Items.AIR) return;
         BlockState fresh = old.getBlock().defaultBlockState();
         if (!fresh.canSurvive(level, pos)) return;
