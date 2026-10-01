@@ -149,6 +149,7 @@ public final class RecipeIndex {
     }
 
     /** Potion ingredients match on the potion inside, so list each concrete potion item that passes the test. */
+    @SuppressWarnings("deprecation") // no non-deprecated way to enumerate an ingredient's items
     private static List<ItemStack> expand(PotionIngredient ingredient, Level level) {
         List<ItemStack> out = new ArrayList<>();
         var potions = level.registryAccess().lookupOrThrow(Registries.POTION);
@@ -170,6 +171,7 @@ public final class RecipeIndex {
         if (list.isEmpty() || list.get(list.size() - 1) != view) list.add(view);
     }
 
+    @SuppressWarnings("deprecation") // Ingredient.items(): fallback for unknown display types
     private static RecipeView view(RecipeDisplayEntry entry, ContextMap ctx) {
         var display = entry.display();
         ItemStack station = display.craftingStation().resolveForFirstStack(ctx);

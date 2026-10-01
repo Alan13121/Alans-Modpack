@@ -185,7 +185,7 @@ public final class Network {
             for (Direction dir : Direction.values()) {
                 BlockPos next = pos.relative(dir);
                 chunks.add(ChunkPos.pack(next.getX() >> 4, next.getZ() >> 4));
-                if (!level.hasChunkAt(next)) continue;
+                if (!level.hasChunk(next.getX() >> 4, next.getZ() >> 4)) continue;
                 if (level.getBlockState(next).getBlock() instanceof NetworkNode) {
                     if (seen.add(next)) queue.add(next);
                 } else if (isStorage(level.getBlockEntity(next)) && storagePositions.add(next)) {
