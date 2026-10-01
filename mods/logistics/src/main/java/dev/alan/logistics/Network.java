@@ -34,7 +34,7 @@ import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
  * containers that actually hold the item, not to the size of the warehouse.
  */
 public final class Network {
-    public enum Status { OK, NO_CONTROLLER, MULTIPLE_CONTROLLERS }
+    public enum Status { OK, NO_CONTROLLER, MULTIPLE_CONTROLLERS, MULTIPLE_CHANNELS }
 
     /** Hard cap so a runaway cable line can't stall the server. */
     private static final int MAX_NODES = 32768;
@@ -167,7 +167,7 @@ public final class Network {
         List<BlockEntity> cellEntities = new ArrayList<>();
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         List<BlockPos> nodes = new ArrayList<>();
-        int controllers = 0;
+        int controllers = 0, channelBlocks = 0;
         Set<Integer> channels = new java.util.TreeSet<>();
         seen.add(start);
         queue.add(start);
@@ -177,7 +177,10 @@ public final class Network {
             chunks.add(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4));
             if (level.getBlockState(pos).getBlock() instanceof ControllerBlock) controllers++;
             if (level.getBlockEntity(pos) instanceof CellBlockEntity cell) cellEntities.add(cell);
-            if (level.getBlockEntity(pos) instanceof ChannelBlockEntity channel && ChannelRegistry.isLive(channel.channel())) channels.add(channel.channel());
+            if (level.getBlockEntity(pos) instanceof ChannelBlockEntity channel) {
+                channelBlocks++;
+                if (ChannelRegistry.isLive(channel.channel())) channels.add(channel.channel());
+            }
             for (Direction dir : Direction.values()) {
                 BlockPos next = pos.relative(dir);
                 chunks.add(ChunkPos.pack(next.getX() >> 4, next.getZ() >> 4));
@@ -189,7 +192,8 @@ public final class Network {
                 }
             }
         }
-        Status status = controllers == 0 ? Status.NO_CONTROLLER : controllers > 1 ? Status.MULTIPLE_CONTROLLERS : Status.OK;
+        Status status = controllers == 0 ? Status.NO_CONTROLLER : controllers > 1 ? Status.MULTIPLE_CONTROLLERS
+            : channelBlocks > 1 ? Status.MULTIPLE_CHANNELS : Status.OK;
         Network network = new Network(status, level.getGameTime(), nodes, chunks);
         network.channels.addAll(channels);
         for (BlockEntity be : containerEntities) network.containers.add(new Source(be));

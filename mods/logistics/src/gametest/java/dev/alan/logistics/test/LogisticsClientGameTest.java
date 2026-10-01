@@ -28,6 +28,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         farming(context);
         autocrafting(context);
         transmission(context);
+        twoChannelBlocks(context);
     }
 
     /** Two warehouses on one channel merge; energy, generators, antennas and teleporters work across them. */
@@ -241,6 +242,42 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.waitTicks(30);
             x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
             check(x < 5, "no energy, no teleport, x=" + x);
+        }
+    }
+
+    /** Two channel blocks on one network: same channel, then different channels. */
+    private void twoChannelBlocks(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 80 119 8 minecraft:stone", "fill -8 120 -8 80 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:channel", "setblock 1 121 0 logistics:channel",
+                "setblock 0 121 0 logistics:cell",
+                "setblock 30 120 0 logistics:controller", "setblock 31 120 0 logistics:cable", "setblock 32 120 0 logistics:channel", "setblock 30 121 0 logistics:cell",
+                "setblock 60 120 0 logistics:controller", "setblock 61 120 0 logistics:cable", "setblock 62 120 0 logistics:channel", "setblock 60 121 0 logistics:cell",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(5);
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var a = new net.minecraft.core.BlockPos(0, 120, 0);
+                var c = new net.minecraft.core.BlockPos(60, 120, 0);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(1, 121, 0))).setChannel(6);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(62, 120, 0))).setChannel(6);
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(60, 121, 0))).insert(new ItemStack(Items.GOLD_INGOT, 1), true);
+                var network = dev.alan.logistics.Network.scan(level, a);
+                var warehouse = dev.alan.logistics.Warehouse.at(level, a);
+                return network.status == dev.alan.logistics.Network.Status.MULTIPLE_CHANNELS && !network.usable() && !warehouse.usable()
+                    && dev.alan.logistics.Warehouse.at(level, c).count(new ItemStack(Items.GOLD_INGOT)) == 1
+                    && dev.alan.logistics.Warehouse.at(level, c).typeCount() == 1;
+            }), "two channel blocks in one network make it unusable and do not bridge other networks");
+            world.getServer().runCommand("setblock 1 121 0 minecraft:air");
+            context.waitTicks(5);
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var network = dev.alan.logistics.Network.scan(level, new net.minecraft.core.BlockPos(0, 120, 0));
+                return network.usable() && network.channels().equals(java.util.Set.of(5));
+            }), "removing the second channel block makes the network work again");
         }
     }
 

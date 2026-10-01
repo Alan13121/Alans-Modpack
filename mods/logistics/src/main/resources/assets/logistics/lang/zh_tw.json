@@ -89,5 +89,6 @@
   "logistics.channel.error.duplicate": "你已經有同名的頻道",
   "logistics.channel.error.private": "這是私有頻道",
   "logistics.channel.error.manage": "只有擁有者或管理員能這樣做",
-  "logistics.channel.error.limit": "你建立的頻道已達上限(32 個)"
+  "logistics.channel.error.limit": "你建立的頻道已達上限(32 個)",
+  "logistics.status.channels": "同一網路只能有一個頻道方塊"
 }
