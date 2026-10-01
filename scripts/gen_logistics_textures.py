@@ -145,6 +145,94 @@ def cable():
         if x % 4 < 2: put(px, x, 7, (240, 170, 90)); put(px, x, 8, (240, 170, 90))
     return px
 
+def channel_block():
+    px = canvas((64, 110, 72), 20)
+    frame(px, (30, 56, 36), (150, 240, 150))
+    for y in range(4, 12):
+        for x in range(4, 12): put(px, x, y, (20, 40, 26))
+    for i in range(3, 13):
+        put(px, i, 8, (140, 240, 150)); put(px, 8, i, (140, 240, 150))
+    for a, b in ((5, 5), (10, 5), (5, 10), (10, 10)): put(px, a, b, (210, 255, 200))
+    return px
+
+def antenna():
+    px = canvas((150, 160, 170), 21)
+    frame(px, (80, 88, 96), (240, 250, 255))
+    for y in range(2, 14): put(px, 8, y, (60, 66, 74)); put(px, 7, y, (200, 210, 220))
+    for r in (3, 5):
+        for d in range(-r, r + 1):
+            if abs(d) in (r,): put(px, 8 + d, 4, (120, 220, 255))
+    for x in range(5, 12): put(px, x, 13, (60, 66, 74))
+    put(px, 8, 2, (255, 90, 90))
+    return px
+
+def solar_top():
+    px = canvas((30, 50, 100), 22, 6)
+    frame(px, (150, 160, 175), (230, 240, 255))
+    for y in range(2, 14):
+        for x in range(2, 14):
+            if x % 4 == 1 or y % 4 == 1: put(px, x, y, (110, 130, 170))
+            elif (x + y) % 5 == 0: put(px, x, y, (80, 120, 220))
+    return px
+
+def solar_side():
+    px = canvas((84, 90, 100), 23)
+    frame(px, (44, 48, 56))
+    for x in range(3, 13): put(px, x, 8, (240, 210, 90))
+    return px
+
+def coal_generator():
+    px = canvas((58, 56, 58), 24)
+    frame(px, (28, 28, 30), (230, 150, 70))
+    for y in range(4, 12):
+        for x in range(4, 12): put(px, x, y, (16, 14, 14))
+    for y in range(7, 12):
+        for x in range(5, 11):
+            if (x * 3 + y) % 4 != 0: put(px, x, y, (240, 150, 40) if y > 8 else (255, 210, 90))
+    return px
+
+def teleporter_top():
+    px = canvas((70, 40, 110), 25)
+    frame(px, (36, 20, 60), (210, 160, 255))
+    for y in range(3, 13):
+        for x in range(3, 13):
+            dx, dy = x - 7.5, y - 7.5
+            d = (dx * dx + dy * dy) ** 0.5
+            if 2 < d < 3.2 or 4.6 < d < 5.4: put(px, x, y, (200, 140, 255))
+            elif d <= 2: put(px, x, y, (240, 220, 255))
+    return px
+
+def teleporter_side():
+    px = canvas((62, 36, 98), 26)
+    frame(px, (36, 20, 60))
+    for x in range(3, 13): put(px, x, 3, (190, 130, 250)); put(px, x, 12, (190, 130, 250))
+    return px
+
+def item_card():
+    px = [[[0, 0, 0, 0] for _ in range(16)] for _ in range(16)]
+    for y in range(3, 13):
+        for x in range(2, 14): put(px, x, y, (40, 120, 90))
+    for x in range(2, 14): put(px, x, 3, (150, 240, 190)); put(px, x, 12, (20, 70, 52))
+    for y in range(3, 13): put(px, 2, y, (150, 240, 190)); put(px, 13, y, (20, 70, 52))
+    for y in range(6, 10):
+        for x in range(4, 8): put(px, x, y, (240, 220, 110))
+    for x in range(9, 12): put(px, x, 6, (200, 250, 220)); put(px, x, 8, (200, 250, 220))
+    return px
+
+def item_wireless():
+    px = [[[0, 0, 0, 0] for _ in range(16)] for _ in range(16)]
+    for y in range(4, 15):
+        for x in range(4, 12): put(px, x, y, (70, 78, 90))
+    for y in range(5, 10):
+        for x in range(5, 11): put(px, x, y, (14, 28, 36))
+    for x in range(5, 11): put(px, x, 5, (110, 220, 250))
+    for y in range(11, 14):
+        for x in (5, 7, 9): put(px, x, y, (140, 150, 160))
+    for y in range(0, 4): put(px, 10, y, (200, 210, 220))
+    put(px, 10, 0, (255, 90, 90))
+    for x in (8, 12): put(px, x, 1, (120, 220, 255)); put(px, x - 1 if x == 8 else x + 1, 0, (120, 220, 255))
+    return px
+
 for name, px in [("controller_side", controller_side()), ("controller_top", controller_top()),
                  ("terminal_front", terminal_front()), ("terminal_side", terminal_side()), ("terminal_top", terminal_top()),
                  ("cell", cell()), ("cable", cable()),
@@ -154,7 +242,10 @@ for name, px in [("controller_side", controller_side()), ("controller_top", cont
                  ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
                  ("farm_interface", farm_interface()), ("autocrafter", autocrafter_front()),
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
-                 ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False))]:
+                 ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False)),
+                 ("channel", channel_block()), ("antenna", antenna()), ("solar_top", solar_top()), ("solar_side", solar_side()),
+                 ("coal_generator", coal_generator()), ("teleporter_top", teleporter_top()), ("teleporter_side", teleporter_side()),
+                 ("../item/channel_card", item_card()), ("../item/wireless_terminal", item_wireless())]:
     target = os.path.join(OUT, name + ".png")
     # Never overwrite a texture that already exists (it may have been replaced by hand); pass --force to regenerate.
     if os.path.exists(target) and "--force" not in sys.argv:

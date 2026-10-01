@@ -18,7 +18,7 @@ public final class ControllerBlock extends Block implements NetworkNode {
 
     @Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
         if (!level.isClientSide()) {
-            Network network = Network.scan(level, pos);
+            Warehouse network = Warehouse.at(level, pos);
             long[] items = {0};
             network.forEach((key, count) -> items[0] += count);
             player.sendOverlayMessage(switch (network.status) {

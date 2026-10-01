@@ -27,6 +27,187 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         vanillaMachines(context);
         farming(context);
         autocrafting(context);
+        transmission(context);
+    }
+
+    /** Two warehouses on one channel merge; energy, generators, antennas and teleporters work across them. */
+    private void transmission(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 48 119 8 minecraft:stone", "fill -8 120 -8 48 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell",
+                "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:channel", "setblock 3 120 0 logistics:teleporter",
+                "setblock 1 121 0 logistics:antenna", "setblock 1 120 1 logistics:coal_generator", "setblock 1 120 -1 logistics:terminal",
+                "setblock 30 120 0 logistics:controller", "setblock 30 121 0 logistics:cell",
+                "setblock 31 120 0 logistics:cable", "setblock 32 120 0 logistics:channel", "setblock 33 120 0 logistics:teleporter",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(5);
+            var a = new net.minecraft.core.BlockPos(0, 120, 0);
+            var b = new net.minecraft.core.BlockPos(30, 120, 0);
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(32, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).insert(new ItemStack(Items.DIAMOND, 10), true);
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(30, 121, 0))).insert(new ItemStack(Items.IRON_INGOT, 7), true);
+                var wa = dev.alan.logistics.Warehouse.at(level, a);
+                var wb = dev.alan.logistics.Warehouse.at(level, b);
+                return wa.usable() && wa.count(new ItemStack(Items.IRON_INGOT)) == 7 && wa.count(new ItemStack(Items.DIAMOND)) == 10
+                    && wb.count(new ItemStack(Items.DIAMOND)) == 10 && wa.typeCount() == 2;
+            }), "two networks on channel 5 form one warehouse");
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var wa = dev.alan.logistics.Warehouse.at(level, a);
+                var taken = wa.extract(new ItemStack(Items.IRON_INGOT), 5);
+                var rest = wa.insert(new ItemStack(Items.DIAMOND, 4));
+                return taken.getCount() == 5 && rest.isEmpty() && wa.count(new ItemStack(Items.IRON_INGOT)) == 2 && wa.count(new ItemStack(Items.DIAMOND)) == 14;
+            }), "extract and insert work across the merged networks");
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(32, 120, 0))).setChannel(6);
+                boolean split = dev.alan.logistics.Warehouse.at(level, a).count(new ItemStack(Items.IRON_INGOT)) == 0;
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(32, 120, 0))).setChannel(5);
+                return split && dev.alan.logistics.Warehouse.at(level, a).count(new ItemStack(Items.IRON_INGOT)) == 2;
+            }), "a different channel is a separate warehouse");
+
+            // Energy: one pool per channel, filled by generators.
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                dev.alan.logistics.Energy.add(java.util.Set.of(5), 100);
+                return dev.alan.logistics.Energy.availableAt(level, a) == 100 && dev.alan.logistics.Energy.availableAt(level, b) == 100;
+            }), "both networks see the channel's 100 energy");
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.CoalGeneratorBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 1))).slot().setItem(0, new ItemStack(Items.COAL, 2)));
+            context.waitTicks(100);
+            long afterCoal = world.getServer().computeOnServer(server -> dev.alan.logistics.Energy.availableAt(server.overworld(), a));
+            check(afterCoal >= 115 && afterCoal <= 125, "the coal generator adds 4 EMC a second, energy is " + afterCoal);
+
+            // Screens: channel block, antenna, terminal energy line, teleporter list.
+            world.getServer().runCommand("tp @p 2.5 120 3.5 180 20");
+            context.waitTicks(10);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.DeviceScreen.class);
+            context.waitTicks(5);
+            context.takeScreenshot("12-channel-block");
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_UP));
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 6, "the channel button went 5 -> 6");
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_DOWN));
+            context.waitTicks(5);
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
+            world.getServer().runCommand("tp @p 1.5 120 -3.5 0 20");
+            context.waitTicks(10);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.TerminalScreen.class);
+            context.waitTicks(10);
+            context.takeScreenshot("13-terminal-energy");
+            check(context.computeOnClient(mc -> dev.alan.logistics.EnergyData.read(((dev.alan.logistics.TerminalMenu) mc.player.containerMenu).energy) >= 115),
+                "the terminal menu carries the channel energy");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
+            world.getServer().runCommand("tp @p 3.5 120 3.5 180 20");
+            context.waitTicks(10);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alan.logistics.client.TeleporterScreen.class);
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.TeleporterMenu) mc.player.containerMenu).dests().size()) == 1, "the teleporter list shows the other pad");
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.TeleporterMenu.SELECT));
+            context.waitTicks(5);
+            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.TeleporterMenu.OPEN_ALWAYS));
+            context.waitTicks(25);
+            context.takeScreenshot("14-teleporter-menu");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.TeleporterBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0))).mode() == dev.alan.logistics.TeleporterBlockEntity.ALWAYS), "the pad is open");
+
+            // Wireless range: an antenna reaches 10 blocks, redstone blocks add 5 each.
+            check(world.getServer().computeOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                return dev.alan.logistics.WirelessTerminalItem.inRange(player, 5) && !dev.alan.logistics.WirelessTerminalItem.inRange(player, 6);
+            }), "next to the antenna channel 5 is in range, channel 6 is not");
+            world.getServer().runCommand("tp @p 22.5 120 0.5");
+            check(world.getServer().computeOnServer(server -> !dev.alan.logistics.WirelessTerminalItem.inRange(server.getPlayerList().getPlayers().get(0), 5)),
+                "21 blocks away is out of range");
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.AntennaBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 121, 0))).slot().setItem(0, new ItemStack(Items.REDSTONE_BLOCK, 3)));
+            check(world.getServer().computeOnServer(server -> dev.alan.logistics.WirelessTerminalItem.inRange(server.getPlayerList().getPlayers().get(0), 5)),
+                "three redstone blocks stretch the range to 25");
+
+
+            // Writing a card, binding a wireless terminal by crafting, and opening it from range.
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var channel = (dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0));
+                channel.card().setItem(0, new ItemStack(dev.alan.logistics.LogisticsMod.CHANNEL_CARD, 3));
+                return channel.writeCard() && dev.alan.logistics.ChannelCardItem.channelOf(channel.card().getItem(0)) == 5;
+            }), "the channel block writes channel 5 onto the card");
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var channel = (dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0));
+                var card = channel.card().getItem(0).copyWithCount(1);
+                var input = net.minecraft.world.item.crafting.CraftingInput.of(2, 1, java.util.List.of(card, new ItemStack(dev.alan.logistics.LogisticsMod.WIRELESS_TERMINAL)));
+                var recipe = server.getRecipeManager().getRecipeFor(net.minecraft.world.item.crafting.RecipeType.CRAFTING, input, level,
+                    (net.minecraft.world.item.crafting.RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe>) null);
+                if (recipe.isEmpty()) return false;
+                var result = recipe.get().value().assemble(input);
+                return result.is(dev.alan.logistics.LogisticsMod.WIRELESS_TERMINAL) && dev.alan.logistics.ChannelCardItem.channelOf(result) == 5;
+            }), "crafting a card with a wireless terminal binds its channel");
+            check(world.getServer().computeOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                var terminal = new ItemStack(dev.alan.logistics.LogisticsMod.WIRELESS_TERMINAL);
+                terminal.set(dev.alan.logistics.LogisticsMod.CHANNEL, 5);
+                player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, terminal);
+                terminal.getItem().use(player.level(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+                return player.containerMenu instanceof dev.alan.logistics.TerminalMenu menu && menu.stillValid(player);
+            }), "the bound wireless terminal opens the warehouse from range");
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof dev.alan.logistics.client.TerminalScreen
+                && ((dev.alan.logistics.TerminalMenu) mc.player.containerMenu).warehouse().entries().size() == 2), "the wireless terminal lists the merged warehouse");
+            context.takeScreenshot("16-wireless-terminal");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+
+            // Teleporting: stepping onto the open pad costs 10 and lands on the other pad. The generator is removed so the count is exact.
+            world.getServer().runCommand("setblock 1 120 1 minecraft:air");
+            context.waitTicks(5);
+            long before = world.getServer().computeOnServer(server -> dev.alan.logistics.Energy.availableAt(server.overworld(), a));
+            world.getServer().runCommand("tp @p 3.5 121 0.5");
+            context.waitTicks(30);
+            double x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
+            check(x > 32 && x < 35, "the player arrived on the other pad, x=" + x);
+            long after = world.getServer().computeOnServer(server -> dev.alan.logistics.Energy.availableAt(server.overworld(), a));
+            check(before - after == 10, "one teleport cost exactly 10 energy, before " + before + " after " + after);
+            context.waitTicks(40);
+            x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
+            check(x > 32 && x < 35, "the player is not bounced back, x=" + x);
+            context.takeScreenshot("15-teleporter-beam");
+
+            // Open once: the pad closes after one use.
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.TeleporterBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0))).setMode(dev.alan.logistics.TeleporterBlockEntity.ONCE));
+            world.getServer().runCommand("tp @p 20.5 121 0.5");
+            context.waitTicks(10);
+            world.getServer().runCommand("tp @p 3.5 121 0.5");
+            context.waitTicks(30);
+            x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
+            check(x > 32 && x < 35, "the once-pad also sent the player, x=" + x);
+            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.TeleporterBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0))).mode() == dev.alan.logistics.TeleporterBlockEntity.CLOSED), "the once-pad closed itself");
+
+            // Without energy the pad refuses.
+            world.getServer().runOnServer(server -> {
+                var level = server.overworld();
+                dev.alan.logistics.Energy.spend(level, java.util.Set.of(5), dev.alan.logistics.Energy.availableAt(level, a));
+                ((dev.alan.logistics.TeleporterBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0))).setMode(dev.alan.logistics.TeleporterBlockEntity.ALWAYS);
+            });
+            world.getServer().runCommand("tp @p 20.5 121 0.5");
+            context.waitTicks(10);
+            world.getServer().runCommand("tp @p 3.5 121 0.5");
+            context.waitTicks(30);
+            x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
+            check(x < 5, "no energy, no teleport, x=" + x);
+        }
     }
 
     /**

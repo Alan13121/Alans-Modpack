@@ -10,12 +10,24 @@ import net.minecraft.network.chat.Component;
 
 public final class LogisticsClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
+        if (LogisticsMod.ALCHEMY) BagLabel.register();
         MenuScreens.register(LogisticsMod.TERMINAL_MENU, TerminalScreen::new);
         MenuScreens.register(LogisticsMod.CRAFTING_TERMINAL_MENU, CraftingTerminalScreen::new);
         MenuScreens.register(LogisticsMod.OUTPUT_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.INPUT_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.FARM_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.AUTOCRAFTER_MENU, AutoCrafterScreen::new);
+        MenuScreens.register(LogisticsMod.CHANNEL_MENU, DeviceScreen::new);
+        MenuScreens.register(LogisticsMod.ANTENNA_MENU, DeviceScreen::new);
+        MenuScreens.register(LogisticsMod.COAL_MENU, DeviceScreen::new);
+        MenuScreens.register(LogisticsMod.TELEPORTER_MENU, TeleporterScreen::new);
+        net.minecraft.client.renderer.blockentity.BlockEntityRenderers.register(LogisticsMod.TELEPORTER_ENTITY,
+            context -> new net.minecraft.client.renderer.blockentity.BeaconRenderer<TeleporterBlockEntity>());
+        ClientPlayNetworking.registerGlobalReceiver(TeleporterList.TYPE, (payload, context) ->
+            context.client().execute(() -> {
+                var menu = context.client().player == null ? null : context.client().player.containerMenu;
+                if (menu instanceof TeleporterMenu teleporter && menu.containerId == payload.containerId()) teleporter.receive(payload);
+            }));
         ClientPlayNetworking.registerGlobalReceiver(TerminalSnapshot.TYPE, (payload, context) ->
             context.client().execute(() -> {
                 var menu = context.client().player == null ? null : context.client().player.containerMenu;
@@ -23,6 +35,8 @@ public final class LogisticsClient implements ClientModInitializer {
                     warehouse.warehouse().receive(payload);
             }));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+            int channel = stack.getOrDefault(LogisticsMod.CHANNEL, 0);
+            if (channel > 0) lines.add(Component.translatable("logistics.channel.number", channel).withStyle(ChatFormatting.AQUA));
             var data = stack.get(LogisticsMod.CELL_DATA);
             if (data == null || !(stack.getItem() instanceof net.minecraft.world.item.BlockItem item
                 && item.getBlock() instanceof dev.alan.logistics.CellBlock cell)) return;

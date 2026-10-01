@@ -32,6 +32,7 @@ public final class BagMenu extends AbstractContainerMenu {
         for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++)
             addPlayerSlot(col + row * 9 + 9, 12 + col * 18, 151 + row * 18);
         for (int col = 0; col < 9; col++) addPlayerSlot(col, 12 + col * 18, 209);
+        for (var factory : BagExtras.slots()) addSlot(factory.apply(original));
     }
     private void addPlayerSlot(int index, int x, int y) {
         addSlot(new Slot(inventory, index, x, y) {
@@ -63,14 +64,23 @@ public final class BagMenu extends AbstractContainerMenu {
         if (!slot.hasItem() || !slot.mayPickup(player)) return ItemStack.EMPTY;
         ItemStack stack = slot.getItem();
         ItemStack before = stack.copy();
-        if (index == 0) {
-            if (!moveItemStackTo(stack, 1, slots.size(), true)) return ItemStack.EMPTY;
+        if (index >= BagExtras.FIRST_INDEX) {
+            if (!moveItemStackTo(stack, 1, BagExtras.FIRST_INDEX, true)) return ItemStack.EMPTY;
+        } else if (index == 0) {
+            if (!moveItemStackTo(stack, 1, BagExtras.FIRST_INDEX, true)) return ItemStack.EMPTY;
+        } else if (moveToExtras(stack)) {
+            // An extra slot (such as the channel card) took it.
         } else {
             if (!EnergyValues.canConvert(stack, player.level().isClientSide()) || !moveItemStackTo(stack, 0, 1, false))
                 return ItemStack.EMPTY;
         }
         if (stack.isEmpty()) slot.setByPlayer(ItemStack.EMPTY); else slot.setChanged();
         return before;
+    }
+    private boolean moveToExtras(ItemStack stack) {
+        for (int i = BagExtras.FIRST_INDEX; i < slots.size(); i++)
+            if (slots.get(i).mayPlace(stack) && moveItemStackTo(stack, i, i + 1, false)) return true;
+        return false;
     }
     @Override public void broadcastChanges() {
         if (!inventory.player.level().isClientSide() && stillValid(inventory.player)) absorb();

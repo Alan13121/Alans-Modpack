@@ -37,12 +37,12 @@ public final class InputInterfaceBlockEntity extends BlockEntity implements Worl
     }
 
     private void pulse(Level level, BlockPos pos) {
-        Network network = null;
+        Warehouse network = null;
         int budget = upgrades.amount();
         for (int i = 0; i < SIZE && budget > 0; i++) {
             ItemStack stack = buffer.get(i);
             if (stack.isEmpty()) continue;
-            if (network == null) network = Network.scan(level, pos);
+            if (network == null) network = Warehouse.at(level, pos);
             if (!network.usable()) return;
             int offered = Math.min(stack.getCount(), budget);
             ItemStack rest = network.insert(stack.copyWithCount(offered));
@@ -57,7 +57,7 @@ public final class InputInterfaceBlockEntity extends BlockEntity implements Worl
                 ItemStack stack = t.container().getItem(slot);
                 if (budget <= 0) return;
                 if (stack.isEmpty() || !Neighbours.canTake(t, slot, stack)) continue;
-                if (network == null) network = Network.scan(level, pos);
+                if (network == null) network = Warehouse.at(level, pos);
                 if (!network.usable()) return;
                 int offered = Math.min(stack.getCount(), budget);
                 int moved = offered - network.insert(stack.copyWithCount(offered)).getCount();

@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["IPI","RGR"],"key":{"I":"minecraft:iron_ingot","P":"minecraft:paper","R":"minecraft:redstone","G":"minecraft:gold_nugget"},"result":{"id":"logistics:channel_card","count":4}}

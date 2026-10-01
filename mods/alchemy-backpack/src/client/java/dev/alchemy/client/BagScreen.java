@@ -17,6 +17,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
 public final class BagScreen extends AbstractContainerScreen<BagMenu> {
+    /** Extra labels other mods draw into the backpack screen (relative to its top-left corner). */
+    public static final List<java.util.function.BiConsumer<GuiGraphicsExtractor, net.minecraft.client.gui.Font>> LABELS = new ArrayList<>();
     private static final int ROWS = 6;
     private final Button[] one = new Button[ROWS], stack = new Button[ROWS];
     private final List<Integer> filtered = new ArrayList<>();
@@ -120,6 +122,7 @@ public final class BagScreen extends AbstractContainerScreen<BagMenu> {
             if (mx >= leftPos + 190 && mx < leftPos + 298 && my >= topPos + y && my < topPos + y + 22)
                 g.setTooltipForNextFrame(font, item, mx, my);
         }
+        for (var label : LABELS) label.accept(g, font);
         g.centeredText(font, (page + 1) + " / " + Math.max(1, (filtered.size() + ROWS - 1) / ROWS), 270, 216, 0xFFD4E4D8);
     }
 }

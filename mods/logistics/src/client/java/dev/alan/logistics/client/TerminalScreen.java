@@ -52,6 +52,8 @@ public final class TerminalScreen extends AbstractContainerScreen<TerminalMenu> 
 
     @Override protected void extractLabels(GuiGraphicsExtractor g, int mx, int my) {
         g.text(font, title, 8, 6, 0xFF9FD0EC, false);
+        Component energy = EnergyText.of(menu.energy);
+        g.text(font, energy, imageWidth - 8 - font.width(energy), 140, 0xFFE8D27A, false);
         g.text(font, playerInventoryTitle, 8, 140, 0xFFD4E4D8, false);
         panel.drawLabels(g, 127);
     }

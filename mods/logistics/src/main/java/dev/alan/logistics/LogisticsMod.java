@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 
 public final class LogisticsMod implements ModInitializer {
     public static final String MOD_ID = "logistics";
+    /** True when the alchemy backpack mod is installed: its backpacks can then carry a channel card. */
+    public static final boolean ALCHEMY = net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("alchemy_backpack");
     public static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
     public static Identifier id(String name) { return Identifier.fromNamespaceAndPath(MOD_ID, name); }
 
@@ -92,14 +94,65 @@ public final class LogisticsMod implements ModInitializer {
     public static final MenuType<InterfaceMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
         new MenuType<>(InterfaceMenu::output, FeatureFlagSet.of()));
 
+    // ---- channels, energy, wireless and teleporting ------------------------------------------------------------
+
+    private static Item plainItem(String name, java.util.function.Function<Item.Properties, Item> factory, int stack) {
+        ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id(name));
+        return Registry.register(BuiltInRegistries.ITEM, key, factory.apply(new Item.Properties().setId(key).stacksTo(stack)));
+    }
+
+    /** The channel written on a card or wireless terminal. */
+    public static final DataComponentType<Integer> CHANNEL = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("channel"),
+        DataComponentType.<Integer>builder().persistent(com.mojang.serialization.Codec.intRange(1, ChannelCardItem.MAX_CHANNEL))
+            .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+    /** The channel card inside an alchemy backpack. */
+    public static final DataComponentType<net.minecraft.world.item.ItemStack> BAG_CARD = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bag_card"),
+        DataComponentType.<net.minecraft.world.item.ItemStack>builder().persistent(net.minecraft.world.item.ItemStack.CODEC)
+            .networkSynchronized(net.minecraft.world.item.ItemStack.STREAM_CODEC).build());
+
+    public static final Item CHANNEL_CARD = plainItem("channel_card", ChannelCardItem::new, 64);
+    public static final Item WIRELESS_TERMINAL = plainItem("wireless_terminal", WirelessTerminalItem::new, 1);
+
+    public static final DeviceBlock CHANNEL_BLOCK = block("channel", p -> new DeviceBlock(p, DeviceMenu.Kind.CHANNEL, () -> LogisticsMod.CHANNEL_ENTITY, null), metal(MapColor.COLOR_LIGHT_GREEN));
+    public static final DeviceBlock ANTENNA = block("antenna", p -> new DeviceBlock(p, DeviceMenu.Kind.ANTENNA, () -> LogisticsMod.ANTENNA_ENTITY, null), metal(MapColor.METAL));
+    public static final DeviceBlock SOLAR = block("solar_generator", p -> new DeviceBlock(p, null, () -> LogisticsMod.SOLAR_ENTITY, SolarGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLUE));
+    public static final DeviceBlock COAL_GENERATOR = block("coal_generator", p -> new DeviceBlock(p, DeviceMenu.Kind.COAL, () -> LogisticsMod.COAL_ENTITY, CoalGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLACK));
+    public static final TeleporterBlock TELEPORTER = block("teleporter", TeleporterBlock::new,
+        metal(MapColor.COLOR_PURPLE).lightLevel(state -> state.getValue(TeleporterBlock.OPEN) ? 10 : 0));
+
+    public static final BlockEntityType<ChannelBlockEntity> CHANNEL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("channel"), new BlockEntityType<>(ChannelBlockEntity::new, Set.of(CHANNEL_BLOCK)));
+    public static final BlockEntityType<AntennaBlockEntity> ANTENNA_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("antenna"), new BlockEntityType<>(AntennaBlockEntity::new, Set.of(ANTENNA)));
+    public static final BlockEntityType<SolarGeneratorBlockEntity> SOLAR_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("solar_generator"), new BlockEntityType<>(SolarGeneratorBlockEntity::new, Set.of(SOLAR)));
+    public static final BlockEntityType<CoalGeneratorBlockEntity> COAL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("coal_generator"), new BlockEntityType<>(CoalGeneratorBlockEntity::new, Set.of(COAL_GENERATOR)));
+    public static final BlockEntityType<TeleporterBlockEntity> TELEPORTER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("teleporter"), new BlockEntityType<>(TeleporterBlockEntity::new, Set.of(TELEPORTER)));
+
+    public static final MenuType<DeviceMenu> CHANNEL_MENU = Registry.register(BuiltInRegistries.MENU, id("channel"),
+        new MenuType<>((id, inv) -> DeviceMenu.client(id, inv, DeviceMenu.Kind.CHANNEL), FeatureFlagSet.of()));
+    public static final MenuType<DeviceMenu> ANTENNA_MENU = Registry.register(BuiltInRegistries.MENU, id("antenna"),
+        new MenuType<>((id, inv) -> DeviceMenu.client(id, inv, DeviceMenu.Kind.ANTENNA), FeatureFlagSet.of()));
+    public static final MenuType<DeviceMenu> COAL_MENU = Registry.register(BuiltInRegistries.MENU, id("coal_generator"),
+        new MenuType<>((id, inv) -> DeviceMenu.client(id, inv, DeviceMenu.Kind.COAL), FeatureFlagSet.of()));
+    public static final MenuType<TeleporterMenu> TELEPORTER_MENU = Registry.register(BuiltInRegistries.MENU, id("teleporter"),
+        new MenuType<>(TeleporterMenu::client, FeatureFlagSet.of()));
+
     @Override public void onInitialize() {
+        if (ALCHEMY) dev.alchemy.BagExtras.addSlot(BagCardSlot::new);
         // Cached networks must not outlive their world, and chunk loads can change what a network touches.
-        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> Network.clearCaches());
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            Network.clearCaches();
+            Grid.clear();
+        });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> Network.invalidateChunk(level, chunk.getPos()));
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> Network.invalidateChunk(level, chunk.getPos()));
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_compress"), CellCompressRecipe.SERIALIZER);
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_decompress"), CellDecompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(TeleporterList.TYPE, TeleporterList.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
             var menu = context.player().containerMenu;
@@ -116,6 +169,13 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(OUTPUT_INTERFACE);
             entries.accept(FARM_INTERFACE);
             entries.accept(AUTOCRAFTER);
+            entries.accept(CHANNEL_BLOCK);
+            entries.accept(ANTENNA);
+            entries.accept(SOLAR);
+            entries.accept(COAL_GENERATOR);
+            entries.accept(TELEPORTER);
+            entries.accept(CHANNEL_CARD);
+            entries.accept(WIRELESS_TERMINAL);
         });
         LOG.info("Logistics loaded");
     }

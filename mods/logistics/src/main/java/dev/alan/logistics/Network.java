@@ -148,6 +148,7 @@ public final class Network {
     private final List<Source> containers = new ArrayList<>();
     private final List<Source> cells = new ArrayList<>();
     private final Map<Key, Entry> entries = new HashMap<>();
+    private final Set<Integer> channels = new java.util.TreeSet<>();
     private long revision;
     private int rolling;
 
@@ -167,6 +168,7 @@ public final class Network {
         ArrayDeque<BlockPos> queue = new ArrayDeque<>();
         List<BlockPos> nodes = new ArrayList<>();
         int controllers = 0;
+        Set<Integer> channels = new java.util.TreeSet<>();
         seen.add(start);
         queue.add(start);
         while (!queue.isEmpty() && seen.size() <= MAX_NODES) {
@@ -175,6 +177,7 @@ public final class Network {
             chunks.add(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4));
             if (level.getBlockState(pos).getBlock() instanceof ControllerBlock) controllers++;
             if (level.getBlockEntity(pos) instanceof CellBlockEntity cell) cellEntities.add(cell);
+            if (level.getBlockEntity(pos) instanceof ChannelBlockEntity channel && channel.channel() > 0) channels.add(channel.channel());
             for (Direction dir : Direction.values()) {
                 BlockPos next = pos.relative(dir);
                 chunks.add(ChunkPos.pack(next.getX() >> 4, next.getZ() >> 4));
@@ -188,6 +191,7 @@ public final class Network {
         }
         Status status = controllers == 0 ? Status.NO_CONTROLLER : controllers > 1 ? Status.MULTIPLE_CONTROLLERS : Status.OK;
         Network network = new Network(status, level.getGameTime(), nodes, chunks);
+        network.channels.addAll(channels);
         for (BlockEntity be : containerEntities) network.containers.add(new Source(be));
         for (BlockEntity be : cellEntities) network.cells.add(new Source(be));
         return network;
@@ -199,6 +203,12 @@ public final class Network {
     }
 
     public boolean usable() { return status == Status.OK; }
+
+    /** The channels of the channel blocks in this network (usually none or one). */
+    public Set<Integer> channels() { return java.util.Collections.unmodifiableSet(channels); }
+
+    /** Every node position of this network (a copy). */
+    public List<BlockPos> nodes() { return new ArrayList<>(nodes); }
 
     // ---- keeping the counts up to date ------------------------------------------------------------------------
 

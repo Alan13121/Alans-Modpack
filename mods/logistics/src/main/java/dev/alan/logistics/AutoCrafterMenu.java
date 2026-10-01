@@ -145,7 +145,7 @@ public final class AutoCrafterMenu extends RecipeBookMenu {
     @Override public PostPlaceAction handlePlacement(boolean useMaxItems, boolean allowDroppingItemsToClear, RecipeHolder<?> recipe,
                                                      ServerLevel level, Inventory inventory) {
         if (!(recipe.value() instanceof CraftingRecipe crafting) || crafting.placementInfo().isImpossibleToPlace()) return PostPlaceAction.NOTHING;
-        Network network = access.evaluate((l, pos) -> Network.scan(l, pos), null);
+        Warehouse network = access.evaluate((l, pos) -> Warehouse.at(l, pos), null);
         var info = crafting.placementInfo();
         List<Item> chosen = new ArrayList<>();
         for (var ingredient : info.ingredients()) {
