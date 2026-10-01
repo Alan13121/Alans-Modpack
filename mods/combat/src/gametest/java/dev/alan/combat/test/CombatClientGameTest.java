@@ -281,8 +281,8 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         });
         check(server.computeOnServer(s -> {
             ServerPlayer player = s.getPlayerList().getPlayers().get(0);
-            return Trinkets.total() == 12 && Trinkets.slotCount(player) == 12;
-        }), "twelve trinkets exist and fourteen bags open every slot");
+            return Trinkets.total() == 13 && Trinkets.slotCount(player) == 13;
+        }), "thirteen trinkets exist and fourteen bags open every slot");
 
         // The screen with every trinket worn.
         server.runOnServer(s -> {
@@ -377,6 +377,20 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         check(hunterBeef > plainBeef * 1.2, "hunter charm drops more beef: " + plainBeef + " vs " + hunterBeef);
         wear(server);
         server.runCommand("kill @e[type=!player]");
+
+        // Master's charm: as a chicken (4 health) the wearer keeps their human 20; without it they are frail.
+        server.runCommand("execute as @p run shapeshift into minecraft:chicken");
+        context.waitTicks(5);
+        float frail = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getMaxHealth());
+        wear(server, "master_charm");
+        context.waitTicks(5);
+        float mastered = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getMaxHealth());
+        wear(server);
+        context.waitTicks(5);
+        float frailAgain = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getMaxHealth());
+        check(frail == 4f && mastered == 20f && frailAgain == 4f, "master's charm keeps a chicken at 20 health: " + frail + " / " + mastered + " / " + frailAgain);
+        server.runCommand("execute as @p run shapeshift human");
+        context.waitTicks(5);
         server.runOnServer(s -> {
             ServerPlayer player = s.getPlayerList().getPlayers().get(0);
             player.getInventory().clearContent();

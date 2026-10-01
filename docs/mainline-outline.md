@@ -182,3 +182,6 @@
 
 ### 自製 Boss
 詳細設計見 [boss-design.md](boss-design.md)（形態之王）。
+
+### 實作備註（Boss 與終局護符，已完成）
+形態祭壇、形態之王、形態核心與終局護符都已實作，細節見 [boss-design.md](boss-design.md) 第 11 節。飾品現為 13 種（含終局護符）。

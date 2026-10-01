@@ -151,6 +151,58 @@ def hunter_charm():
     disc(px, 8, 9, 2, (70, 45, 25), (240, 200, 140))
     return px
 
+def form_core():
+    px = blank()
+    for cy in range(2, 14):
+        for cx in range(2, 14):
+            d = abs(cx - 7.5) + abs(cy - 7.5)
+            if d <= 6:
+                put(px, cx, cy, (210, 120, 255) if d > 4 else (255, 215, 255) if d < 2 else (170, 70, 235))
+    return px
+
+def altar_top():
+    px = [[[0, 0, 0, 255] for _ in range(16)] for _ in range(16)]
+    for y in range(16):
+        for x in range(16):
+            base = 40 + ((x * 7 + y * 13) % 9)
+            px[y][x] = [base, 20, base + 30, 255]
+    for i in range(16):
+        for a, b in ((0, i), (15, i), (i, 0), (i, 15)):
+            px[a][b] = [150, 90, 220, 255]
+    for i in range(4, 12):
+        for a, b in ((4, i), (11, i), (i, 4), (i, 11)):
+            px[a][b] = [210, 120, 255, 255]
+    for y in range(7, 9):
+        for x in range(7, 9):
+            px[y][x] = [255, 215, 255, 255]
+    return px
+
+def altar_side():
+    px = [[[0, 0, 0, 255] for _ in range(16)] for _ in range(16)]
+    for y in range(16):
+        for x in range(16):
+            base = 36 + ((x * 5 + y * 11) % 8)
+            px[y][x] = [base, 18, base + 26, 255]
+    for i in range(16):
+        px[0][i] = [150, 90, 220, 255]
+        px[15][i] = [150, 90, 220, 255]
+    for y in range(4, 12):
+        px[y][7] = [190, 100, 240, 255]
+        px[y][8] = [190, 100, 240, 255]
+    for x in range(5, 11):
+        px[7][x] = [190, 100, 240, 255]
+    return px
+
+def master_charm():
+    px = blank(); chain(px, 8)
+    disc(px, 8, 9, 5, (40, 20, 70), (255, 215, 90))
+    for i in range(-3, 4):
+        put(px, 8 + i, 9, (255, 235, 150)); put(px, 8, 9 + i, (255, 235, 150))
+    for i in range(-2, 3):
+        put(px, 8 + i, 9 + i, (230, 150, 255)); put(px, 8 + i, 9 - i, (230, 150, 255))
+    put(px, 8, 9, (255, 255, 255))
+    return px
+
 def bag():
     px = blank()
     for y in range(5, 14):
@@ -180,6 +232,8 @@ ITEMS = {
     "blast_ward": (blast_ward, [" O ", "OGO", " O "], {"O": "minecraft:obsidian", "G": "minecraft:gunpowder"}),
     "thorns_ring": (thorns_ring, [" C ", "CGC", " C "], {"C": "minecraft:cactus", "G": "minecraft:gold_ingot"}),
     "hunter_charm": (hunter_charm, [" B ", "BFB", " B "], {"B": "minecraft:bone", "F": "minecraft:rabbit_foot"}),
+    "form_core": (form_core, None, None),
+    "master_charm": (master_charm, [" E ", "GCG", " E "], {"E": "minecraft:ender_eye", "G": "minecraft:gold_ingot", "C": "combat:form_core"}),
     "trinket_bag": (bag, ["SIS", "L L", "LLL"], {"S": "minecraft:string", "I": "minecraft:iron_ingot", "L": "minecraft:leather"}),
 }
 
@@ -188,10 +242,33 @@ for name, (draw, pattern, key) in ITEMS.items():
           json.dumps({"model": {"type": "minecraft:model", "model": "combat:item/" + name}}) + "\n")
     write(os.path.join(ASSETS, "models", "item", name + ".json"),
           json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": "combat:item/" + name}}) + "\n")
-    write(os.path.join(DATA, "recipe", name + ".json"),
-          json.dumps({"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": pattern, "key": key,
-                      "result": {"id": "combat:" + name, "count": 1}}) + "\n")
+    if pattern is not None:
+        write(os.path.join(DATA, "recipe", name + ".json"),
+              json.dumps({"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": pattern, "key": key,
+                          "result": {"id": "combat:" + name, "count": 1}}) + "\n")
     png(os.path.join(ASSETS, "textures", "item", name + ".png"), draw())
+
+# The Form King's altar block.
+png(os.path.join(ASSETS, "textures", "block", "form_altar_top.png"), altar_top())
+png(os.path.join(ASSETS, "textures", "block", "form_altar_side.png"), altar_side())
+write(os.path.join(ASSETS, "blockstates", "form_altar.json"), json.dumps({"variants": {"": {"model": "combat:block/form_altar"}}}) + "\n")
+write(os.path.join(ASSETS, "models", "block", "form_altar.json"),
+      json.dumps({"parent": "minecraft:block/cube_column", "textures": {"end": "combat:block/form_altar_top", "side": "combat:block/form_altar_side"}}) + "\n")
+write(os.path.join(ASSETS, "items", "form_altar.json"),
+      json.dumps({"model": {"type": "minecraft:model", "model": "combat:block/form_altar"}}) + "\n")
+write(os.path.join(DATA, "loot_table", "blocks", "form_altar.json"),
+      json.dumps({"type": "minecraft:block", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "combat:form_altar"}],
+                  "conditions": [{"condition": "minecraft:survives_explosion"}]}], "random_sequence": "combat:blocks/form_altar"}) + "\n")
+write(os.path.join(DATA, "recipe", "form_altar.json"),
+      json.dumps({"type": "minecraft:crafting_shaped", "category": "misc", "pattern": ["OEO", "ODO", "OOO"],
+                  "key": {"O": "minecraft:obsidian", "E": "minecraft:ender_eye", "D": "minecraft:diamond"},
+                  "result": {"id": "combat:form_altar", "count": 1}}) + "\n")
+write(os.path.join(DATA, "advancement", "form_king.json"),
+      json.dumps({"criteria": {"defeated": {"trigger": "minecraft:impossible"}},
+                  "display": {"icon": {"id": "combat:form_core"}, "title": {"translate": "advancement.combat.form_king.title"},
+                              "description": {"translate": "advancement.combat.form_king.desc"}, "frame": "challenge",
+                              "background": "minecraft:gui/advancements/backgrounds/adventure",
+                              "show_toast": True, "announce_to_chat": True}}) + "\n")
 
 LANG = {
     "en_us": {
@@ -219,6 +296,21 @@ LANG = {
         "item.combat.thorns_ring.desc": "Melee attackers take 30% of the damage back.",
         "item.combat.hunter_charm": "Hunter Charm",
         "item.combat.hunter_charm.desc": "Kills have a 50% chance to drop their loot twice.",
+        "block.combat.form_altar": "Form Altar",
+        "item.combat.form_core": "Form Core",
+        "advancement.combat.form_king.title": "Master of Forms",
+        "advancement.combat.form_king.desc": "Defeat the Form King.",
+        "combat.boss.name": "Form King",
+        "combat.boss.dormant": "The altar is silent. It needs the shapeshift mod.",
+        "combat.boss.busy": "A battle is already under way here.",
+        "combat.boss.cooldown": "The altar is recovering: %s minute(s) left.",
+        "combat.boss.missing_forms": "The altar wants every form: you have unlocked %s of %s.",
+        "combat.boss.need_items": "The altar asks for a nether star and a dragon's breath.",
+        "combat.boss.summoned": "The Form King rises!",
+        "combat.boss.victory": "The Form King is defeated.",
+        "combat.boss.failed": "The Form King fades away. The offering is returned.",
+        "item.combat.master_charm": "Master's Charm",
+        "item.combat.master_charm.desc": "While shapeshifted, your maximum health never drops below your human health.",
         "item.combat.trinket_bag": "Trinket Bag",
         "item.combat.trinket_bag.desc": "Carry it to unlock one more trinket slot.",
         "combat.trinket.hint": "Equip in the trinket screen.",
@@ -260,6 +352,21 @@ LANG = {
         "item.combat.thorns_ring.desc": "被近戰攻擊時反彈 30% 的傷害。",
         "item.combat.hunter_charm": "狩獵護符",
         "item.combat.hunter_charm.desc": "擊殺生物時有 50% 機率多掉一次戰利品。",
+        "block.combat.form_altar": "形態祭壇",
+        "item.combat.form_core": "形態核心",
+        "advancement.combat.form_king.title": "形態大師",
+        "advancement.combat.form_king.desc": "擊敗形態之王。",
+        "combat.boss.name": "形態之王",
+        "combat.boss.dormant": "祭壇毫無反應，需要安裝變身模組。",
+        "combat.boss.busy": "這裡已經有一場戰鬥正在進行。",
+        "combat.boss.cooldown": "祭壇正在恢復：還要 %s 分鐘。",
+        "combat.boss.missing_forms": "祭壇要求集齊所有形態：你已解鎖 %s／%s。",
+        "combat.boss.need_items": "祭壇需要一顆下界之星和一瓶龍息。",
+        "combat.boss.summoned": "形態之王現身了！",
+        "combat.boss.victory": "形態之王被擊敗了。",
+        "combat.boss.failed": "形態之王消散了，祭品已退還。",
+        "item.combat.master_charm": "終局護符",
+        "item.combat.master_charm.desc": "變身時，生命上限不會低於人類原本的生命上限。",
         "item.combat.trinket_bag": "飾品背包",
         "item.combat.trinket_bag.desc": "帶在身上就多開放一格飾品欄。",
         "combat.trinket.hint": "在飾品介面中裝備。",

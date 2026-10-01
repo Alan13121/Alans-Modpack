@@ -1,5 +1,6 @@
 package dev.alan.shapeshift;
 
+import dev.alan.shapeshift.api.SkillHooks;
 import java.util.Map;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,6 +26,7 @@ final class Passives {
 
     static void apply(ServerPlayer player, FormDefinitions.Resolved form) {
         form.modifiers().forEach((id, spec) -> {
+            if (!SkillHooks.keepModifier(player, id, spec.amount(), spec.operation())) return;
             var holder = BuiltInRegistries.ATTRIBUTE.get(Identifier.parse(id));
             var instance = holder.map(player::getAttribute).orElse(null);
             if (instance == null) {

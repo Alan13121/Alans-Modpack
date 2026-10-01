@@ -37,10 +37,16 @@ public final class Trinkets {
     private static final List<Trinket> ALL = new ArrayList<>();
     /** Players we have granted a trinket effect to, so that unequipping can take it away again. */
     private static final Set<UUID> GRANTED = new HashSet<>();
+    /** Players currently wearing the master charm, so a change can re-apply their form. */
+    private static final Set<UUID> MASTERS = new HashSet<>();
+    /** Called with a player whose worn trinkets changed in a way a form has to react to; set when shapeshift is installed. */
+    private static java.util.function.Consumer<ServerPlayer> formRefresh;
     /** Players currently wearing the magnet, pulled every tick. */
     private static final Set<UUID> MAGNETIZED = new HashSet<>();
 
     private Trinkets() {}
+
+    public static void setFormRefresh(java.util.function.Consumer<ServerPlayer> refresh) { formRefresh = refresh; }
 
     /** Registers the trinket's item and remembers it; only call during mod initialisation. */
     static Item register(String name, Trinket.Spec spec) {
@@ -112,15 +118,18 @@ public final class Trinkets {
 
     /** Brings potion effects and attribute boosts in line with what the player wears right now. */
     public static void refresh(ServerPlayer player) {
-        boolean anyEffect = false, magnet = false;
+        boolean anyEffect = false, magnet = false, master = false;
         for (Trinket trinket : ALL) {
             boolean on = worn(player, trinket);
             if (trinket.effect() != null) anyEffect |= refreshEffect(player, trinket, on);
             if (trinket.boost() != null) refreshBoost(player, trinket, on);
             if (on && trinket.perks().contains(Trinket.Perk.MAGNET)) magnet = true;
+            if (on && trinket.perks().contains(Trinket.Perk.FORM_MASTER)) master = true;
         }
         if (anyEffect) GRANTED.add(player.getUUID()); else GRANTED.remove(player.getUUID());
         if (magnet) MAGNETIZED.add(player.getUUID()); else MAGNETIZED.remove(player.getUUID());
+        boolean wasMaster = master ? !MASTERS.add(player.getUUID()) : MASTERS.remove(player.getUUID());
+        if (wasMaster != master && formRefresh != null) formRefresh.accept(player);
     }
 
     private static boolean refreshEffect(ServerPlayer player, Trinket trinket, boolean on) {
@@ -172,5 +181,6 @@ public final class Trinkets {
     public static void forget(ServerPlayer player) {
         GRANTED.remove(player.getUUID());
         MAGNETIZED.remove(player.getUUID());
+        MASTERS.remove(player.getUUID());
     }
 }

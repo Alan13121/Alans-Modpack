@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -28,7 +29,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.inventory.MenuType;
+import dev.alan.combat.boss.FormAltarBlock;
+import dev.alan.combat.boss.FormKingFights;
+import java.util.function.Function;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.item.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +69,8 @@ public final class CombatMod implements ModInitializer {
     public static final Item BLAST_WARD = Trinkets.register("blast_ward", Trinkets.spec().perk(Trinket.Perk.BLAST_WARD));
     public static final Item THORNS_RING = Trinkets.register("thorns_ring", Trinkets.spec().perk(Trinket.Perk.THORNS));
     public static final Item HUNTER_CHARM = Trinkets.register("hunter_charm", Trinkets.spec().perk(Trinket.Perk.HUNTER));
+    /** The endgame trinket: a shapeshifted wearer keeps at least their human maximum health. */
+    public static final Item MASTER_CHARM = Trinkets.register("master_charm", Trinkets.spec().perk(Trinket.Perk.FORM_MASTER));
     public static final Item TRINKET_BAG = Registry.register(BuiltInRegistries.ITEM, id("trinket_bag"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("trinket_bag"))).stacksTo(16)));
 
@@ -73,6 +84,26 @@ public final class CombatMod implements ModInitializer {
     /** The bow upgrades an arrow in flight carries; dropped when they have fired. Not saved. */
     public static final AttachmentType<Upgrades> ARROW_MODS = AttachmentRegistry.create(id("arrow_mods"));
 
+    /** Drops from the Form King, one per fighter; the material for the endgame trinket. */
+    public static final Item FORM_CORE = Registry.register(BuiltInRegistries.ITEM, id("form_core"),
+        new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("form_core"))).rarity(net.minecraft.world.item.Rarity.EPIC)));
+
+    public static final FormAltarBlock FORM_ALTAR = registerBlock("form_altar", FormAltarBlock::new,
+        BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(5.0F, 1200.0F).sound(SoundType.AMETHYST).lightLevel(s -> 7));
+
+    /** Marks the body of a running Form King fight with the key of its altar. Saved, so a leftover body can be found and removed. */
+    public static final AttachmentType<String> BOSS_MARK = AttachmentRegistry.create(id("boss"), b -> b.persistent(com.mojang.serialization.Codec.STRING));
+    /** Marks a projectile the Form King launched; such fireballs never light or break blocks. Not saved. */
+    public static final AttachmentType<Boolean> BOSS_SHOT = AttachmentRegistry.create(id("boss_shot"));
+
+    private static <B extends Block> B registerBlock(String name, Function<BlockBehaviour.Properties, B> factory, BlockBehaviour.Properties properties) {
+        ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, id(name));
+        B block = Registry.register(BuiltInRegistries.BLOCK, key, factory.apply(properties.setId(key)));
+        ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, id(name));
+        Registry.register(BuiltInRegistries.ITEM, itemKey, new BlockItem(block, new Item.Properties().setId(itemKey).useBlockDescriptionPrefix()));
+        return block;
+    }
+
     public static final MenuType<TrinketMenu> MENU = Registry.register(BuiltInRegistries.MENU, id("trinkets"),
         new MenuType<>(TrinketMenu::new, FeatureFlagSet.of()));
 
@@ -80,7 +111,9 @@ public final class CombatMod implements ModInitializer {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT).register(entries -> {
             for (Trinket trinket : Trinkets.all()) entries.accept(trinket.item());
             entries.accept(TRINKET_BAG);
+            entries.accept(FORM_CORE);
         });
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> entries.accept(FORM_ALTAR));
 
         PayloadTypeRegistry.serverboundPlay().register(OpenTrinkets.TYPE, OpenTrinkets.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(OpenTrinkets.TYPE, (payload, context) -> {
@@ -104,6 +137,12 @@ public final class CombatMod implements ModInitializer {
             if (entity instanceof ServerPlayer player) Trinkets.reflect(player, source, damageTaken);
         });
         if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("shapeshift")) ShapeshiftLink.register();
+        ServerTickEvents.END_SERVER_TICK.register(FormKingFights::tick);
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> FormKingFights.shutdown());
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> FormKingFights.onEntityLoad(entity));
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> FormKingFights.allowDamage(entity, source));
+        ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) ->
+            FormKingFights.afterDamage(entity, source, damageTaken));
         LOG.info("Combat loaded");
     }
 }
