@@ -59,7 +59,10 @@ final class Actives {
             return;
         }
         var scale = SkillHooks.scaleFor(player);
-        if (fire(player, active, scale)) readyAt.put(player.getUUID(), now + SkillHooks.scaledCooldown(active.cooldownTicks(), scale));
+        if (fire(player, active, scale)) {
+            readyAt.put(player.getUUID(), now + SkillHooks.scaledCooldown(active.cooldownTicks(), scale));
+            Guide.grant(player, "ch5/first_skill");
+        }
     }
 
     /** Runs every tick for shapeshifted players: counts down a creeper fuse. */

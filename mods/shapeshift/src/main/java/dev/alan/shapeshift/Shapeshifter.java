@@ -70,6 +70,7 @@ public final class Shapeshifter {
         player.refreshDimensions();
         Reactions.onFormChanged(player);
         effects(player);
+        if (target != null) Guide.grant(player, "ch5/first_transform");
         player.sendOverlayMessage(target == null
             ? Component.translatable("shapeshift.reverted")
             : Component.translatable("shapeshift.transformed", target.getDescription()));
@@ -124,6 +125,11 @@ public final class Shapeshifter {
         Unlocks after = before.with(id);
         if (after == before) return false;
         player.setAttached(ShapeshiftMod.UNLOCKS, after);
+        Guide.grant(player, "ch5/first_form");
+        int unlocked = dev.alan.shapeshift.api.FormsApi.unlockedCount(player);
+        if (unlocked >= 10) Guide.grant(player, "ch5/ten_forms");
+        if (unlocked >= 30) Guide.grant(player, "ch5/thirty_forms");
+        if (unlocked >= dev.alan.shapeshift.api.FormsApi.collectable().size()) Guide.grant(player, "ch5/all_forms");
         return true;
     }
 
