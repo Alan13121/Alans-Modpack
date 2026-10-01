@@ -1,1 +1,0 @@
-{"criteria": {"defeated": {"trigger": "minecraft:impossible"}}, "display": {"icon": {"id": "combat:form_core"}, "title": {"translate": "advancement.combat.form_king.title"}, "description": {"translate": "advancement.combat.form_king.desc"}, "frame": "challenge", "background": "minecraft:gui/advancements/backgrounds/adventure", "show_toast": true, "announce_to_chat": true}}

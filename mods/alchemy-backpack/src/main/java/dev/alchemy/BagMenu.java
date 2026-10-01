@@ -99,6 +99,10 @@ public final class BagMenu extends AbstractContainerMenu {
             original.set(AlchemyMod.DATA, next);
             input.setItem(0, ItemStack.EMPTY);
             inventory.setChanged();
+            if (inventory.player instanceof net.minecraft.server.level.ServerPlayer owner) {
+                Guide.grant(owner, "ch2/first_deposit");
+                if (next.learned().size() >= 20) Guide.grant(owner, "ch2/scholar");
+            }
         } catch (ArithmeticException overflow) {
             // Keep the input untouched if the long energy balance would overflow.
         }
@@ -139,6 +143,7 @@ public final class BagMenu extends AbstractContainerMenu {
         else if (inserted > 0) original.set(AlchemyMod.DATA, state.withdraw(value, inserted));
         inventory.setChanged();
         broadcastChanges();
+        if (inserted > 0 && player instanceof net.minecraft.server.level.ServerPlayer owner) Guide.grant(owner, "ch2/redeem");
         return inserted > 0;
     }
     @Override public void removed(Player player) {

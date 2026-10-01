@@ -59,6 +59,10 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
         // Emptying an input slot recomputes the result and resets the field, so read it first.
         int oreCost = combat$oreCost;
         if (oreCost <= 0) return;
+        if (player instanceof net.minecraft.server.level.ServerPlayer owner) {
+            if (taken.has(dev.alan.combat.CombatMod.UPGRADES)) dev.alan.combat.QuestBook.grant(owner, "ch6/armor_upgrade");
+            if (taken.has(dev.alan.combat.CombatMod.BOW_UPGRADES)) dev.alan.combat.QuestBook.grant(owner, "ch6/bow_upgrade");
+        }
         inputSlots.setItem(0, ItemStack.EMPTY);
         ItemStack ore = inputSlots.getItem(1);
         if (ore.getCount() > oreCost) {

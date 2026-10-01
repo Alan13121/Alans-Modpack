@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "guide",
+  "version": "${version}",
+  "name": "Guide / 任務書",
+  "description": "",
+  "authors": ["Alan"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.alan.guide.GuideMod"], "client": ["dev.alan.guide.client.GuideClient"]},
+  "mixins": ["guide.mixins.json", {"config": "guide.client.mixins.json", "environment": "client"}],
+  "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
+}

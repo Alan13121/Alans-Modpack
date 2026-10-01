@@ -65,7 +65,12 @@ public final class CauldronRecipe {
             if (level.getBlockEntity(pos) instanceof WorldCauldronBlockEntity be) be.assignWorld();
             level.playSound(null, pos, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.0F, 1.2F);
             level.sendParticles(ParticleTypes.END_ROD, x, y, z, 60, 0.3, 0.3, 0.3, 0.12);
-            if (entity.getOwner() instanceof ServerPlayer p) p.sendSystemMessage(Component.translatable("mineworld.created"), true);
+            if (entity.getOwner() instanceof ServerPlayer p) {
+                p.sendSystemMessage(Component.translatable("mineworld.created"), true);
+                boolean second = Guide.has(p, "ch3/cauldron");
+                Guide.grant(p, "ch3/cauldron");
+                if (second) Guide.grant(p, "ch3/second_world");
+            }
         } else {
             data.setProgress(key, mask);
             if (entity.getOwner() instanceof ServerPlayer p) {

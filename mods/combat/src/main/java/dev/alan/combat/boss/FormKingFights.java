@@ -139,11 +139,8 @@ public final class FormKingFights {
         if (source.getEntity() instanceof ServerPlayer attacker) fight.onHit(attacker, damageTaken, fight.level.getGameTime());
     }
 
-    /** Called when a player earns the advancement for beating the boss. */
-    static void award(ServerPlayer player) {
-        var holder = player.level().getServer().getAdvancements().get(CombatMod.id("form_king"));
-        if (holder != null) player.getAdvancements().award(holder, "defeated");
-    }
+    /** Called when a player earns the quest book entry for beating the boss. */
+    static void award(ServerPlayer player) { dev.alan.combat.QuestBook.grant(player, "ch6/form_king"); }
 
     public static void shutdown() {
         for (FormKingFight fight : List.copyOf(FIGHTS.values())) fight.abandon();

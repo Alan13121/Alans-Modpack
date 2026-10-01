@@ -170,10 +170,8 @@ public final class BossClientGameTest implements FabricClientGameTest {
             context.waitTicks(5);
             check(server.computeOnServer(s -> {
                 ServerPlayer player = s.getPlayerList().getPlayers().get(0);
-                var holder = s.getAdvancements().get(CombatMod.id("form_king"));
-                boolean advanced = holder != null && player.getAdvancements().getOrStartProgress(holder).isDone();
-                return fight(s) == null && noBosses(s) && player.getInventory().countItem(CombatMod.FORM_CORE) == 1 && advanced;
-            }), "victory: fight over, one form core in the inventory, advancement done");
+                return fight(s) == null && noBosses(s) && player.getInventory().countItem(CombatMod.FORM_CORE) == 1;
+            }), "victory: fight over and one form core in the inventory (the quest book entry is checked in the pack test)");
             giveOffering(server);
             check(!summon(server), "the altar rests for a while after a victory");
             check(server.computeOnServer(s -> FormKingFights.cooldownUntil(s.overworld(), ALTAR) > s.overworld().getGameTime()), "the cooldown is set");

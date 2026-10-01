@@ -25,8 +25,6 @@
   "item.combat.hunter_charm.desc": "擊殺生物時有 50% 機率多掉一次戰利品。",
   "block.combat.form_altar": "形態祭壇",
   "item.combat.form_core": "形態核心",
-  "advancement.combat.form_king.title": "形態大師",
-  "advancement.combat.form_king.desc": "擊敗形態之王。",
   "combat.boss.name": "形態之王",
   "combat.boss.dormant": "祭壇毫無反應，需要安裝變身模組。",
   "combat.boss.busy": "這裡已經有一場戰鬥正在進行。",

@@ -263,12 +263,6 @@ write(os.path.join(DATA, "recipe", "form_altar.json"),
       json.dumps({"type": "minecraft:crafting_shaped", "category": "misc", "pattern": ["OEO", "ODO", "OOO"],
                   "key": {"O": "minecraft:obsidian", "E": "minecraft:ender_eye", "D": "minecraft:diamond"},
                   "result": {"id": "combat:form_altar", "count": 1}}) + "\n")
-write(os.path.join(DATA, "advancement", "form_king.json"),
-      json.dumps({"criteria": {"defeated": {"trigger": "minecraft:impossible"}},
-                  "display": {"icon": {"id": "combat:form_core"}, "title": {"translate": "advancement.combat.form_king.title"},
-                              "description": {"translate": "advancement.combat.form_king.desc"}, "frame": "challenge",
-                              "background": "minecraft:gui/advancements/backgrounds/adventure",
-                              "show_toast": True, "announce_to_chat": True}}) + "\n")
 
 LANG = {
     "en_us": {
@@ -298,8 +292,6 @@ LANG = {
         "item.combat.hunter_charm.desc": "Kills have a 50% chance to drop their loot twice.",
         "block.combat.form_altar": "Form Altar",
         "item.combat.form_core": "Form Core",
-        "advancement.combat.form_king.title": "Master of Forms",
-        "advancement.combat.form_king.desc": "Defeat the Form King.",
         "combat.boss.name": "Form King",
         "combat.boss.dormant": "The altar is silent. It needs the shapeshift mod.",
         "combat.boss.busy": "A battle is already under way here.",
@@ -354,8 +346,6 @@ LANG = {
         "item.combat.hunter_charm.desc": "擊殺生物時有 50% 機率多掉一次戰利品。",
         "block.combat.form_altar": "形態祭壇",
         "item.combat.form_core": "形態核心",
-        "advancement.combat.form_king.title": "形態大師",
-        "advancement.combat.form_king.desc": "擊敗形態之王。",
         "combat.boss.name": "形態之王",
         "combat.boss.dormant": "祭壇毫無反應，需要安裝變身模組。",
         "combat.boss.busy": "這裡已經有一場戰鬥正在進行。",
