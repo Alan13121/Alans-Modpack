@@ -90,11 +90,45 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.waitForScreen(dev.alan.logistics.client.DeviceScreen.class);
             context.waitTicks(5);
             context.takeScreenshot("12-channel-block");
-            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_UP));
+            // Named channels: create a private one, check who can use it, rename, publish, delete, then go back to channel 5.
+            java.util.function.BiConsumer<dev.alan.logistics.ChannelAction.Kind, Object[]> act = (kind, args) -> context.runOnClient(mc ->
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new dev.alan.logistics.ChannelAction(mc.player.containerMenu.containerId,
+                    kind, (Integer) args[0], (String) args[1], (Boolean) args[2])));
+            act.accept(dev.alan.logistics.ChannelAction.Kind.CREATE, new Object[] {0, "Base", false});
             context.waitTicks(10);
-            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 6, "the channel button went 5 -> 6");
-            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_DOWN));
-            context.waitTicks(5);
+            int created = context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0));
+            check(created >= dev.alan.logistics.ChannelRegistry.FIRST_ID, "a new channel gets an id from 10000 up, got " + created);
+            check(context.computeOnClient(mc -> dev.alan.logistics.client.ClientChannels.label(created).startsWith("Base")), "the client knows the new channel's name");
+            check(world.getServer().computeOnServer(server -> {
+                var registry = dev.alan.logistics.ChannelRegistry.get(server);
+                var info = registry.info(created);
+                var stranger = java.util.UUID.randomUUID();
+                var owner = server.getPlayerList().getPlayers().get(0).getUUID();
+                return info != null && info.name().equals("Base") && !info.isPublic() && info.owner().equals(owner)
+                    && !registry.canUse(created, stranger, false) && registry.canUse(created, stranger, true) && registry.canUse(created, owner, false)
+                    && registry.visibleTo(stranger, false, java.util.List.of()).stream().noneMatch(i -> i.id() == created)
+                    && !registry.canManage(created, stranger, false) && registry.canManage(created, owner, false);
+            }), "a private channel is usable only by its owner (and operators)");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.CREATE, new Object[] {0, "base", true});
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == created, "a duplicate name is refused");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.RENAME, new Object[] {0, "Home", false});
+            act.accept(dev.alan.logistics.ChannelAction.Kind.SET_PUBLIC, new Object[] {0, "", true});
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> {
+                var registry = dev.alan.logistics.ChannelRegistry.get(server);
+                var info = registry.info(created);
+                return info.name().equals("Home") && info.isPublic() && registry.canUse(created, java.util.UUID.randomUUID(), false);
+            }), "rename and publish worked");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.DELETE, new Object[] {0, "", false});
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> dev.alan.logistics.ChannelRegistry.get(server).info(created) == null
+                && !dev.alan.logistics.ChannelRegistry.isLive(created)), "a deleted channel is gone");
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 0, "the block lost its deleted channel");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.SELECT, new Object[] {5, "", false});
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 5, "an old numbered channel can still be selected");
+            context.takeScreenshot("12a-channel-selected");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
             world.getServer().runCommand("tp @p 1.5 120 -3.5 0 20");

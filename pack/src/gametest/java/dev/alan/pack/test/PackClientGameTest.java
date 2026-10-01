@@ -137,6 +137,24 @@ public final class PackClientGameTest implements FabricClientGameTest {
                     && server.getPlayerList().getPlayers().get(0).getInventory().getItem(0).get(dev.alchemy.AlchemyMod.DATA).energy() == 70;
                 return seen && spent && !dev.alan.logistics.Energy.spend(level, channels, 500);
             }), "the backpack's energy counts for channel 5 and can be spent");
+            // Picking a channel directly wins over the card; the backpack screen cannot create channels.
+            int pack = world.getServer().computeOnServer(server -> dev.alan.logistics.ChannelRegistry.get(server)
+                .create("Pack", java.util.UUID.randomUUID(), "someone", true).id());
+            context.runOnClient(mc -> {
+                var send = (java.util.function.Consumer<dev.alan.logistics.ChannelAction>) net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking::send;
+                send.accept(new dev.alan.logistics.ChannelAction(mc.player.containerMenu.containerId, dev.alan.logistics.ChannelAction.Kind.CREATE, 0, "Nope", true));
+                send.accept(new dev.alan.logistics.ChannelAction(mc.player.containerMenu.containerId, dev.alan.logistics.ChannelAction.Kind.SELECT, pack, "", false));
+            });
+            context.waitTicks(10);
+            context.takeScreenshot("11-backpack-channel-picker");
+            check(world.getServer().computeOnServer(server -> {
+                var bag = server.getPlayerList().getPlayers().get(0).getInventory().getItem(0);
+                var level = server.overworld();
+                return bag.getOrDefault(dev.alan.logistics.LogisticsMod.BAG_CHANNEL, 0) == pack
+                    && dev.alan.logistics.Energy.available(level, java.util.Set.of(pack)) == 70
+                    && dev.alan.logistics.Energy.available(level, java.util.Set.of(5)) == 0
+                    && dev.alan.logistics.ChannelRegistry.get(server).countOwned(server.getPlayerList().getPlayers().get(0).getUUID()) == 0;
+            }), "selecting a public channel from the backpack works and creating one there does not");
             context.runOnClient(mc -> mc.gui.setScreen(null));
         }
     }

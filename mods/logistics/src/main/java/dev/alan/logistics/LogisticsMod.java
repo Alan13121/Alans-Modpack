@@ -105,6 +105,10 @@ public final class LogisticsMod implements ModInitializer {
     public static final DataComponentType<Integer> CHANNEL = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("channel"),
         DataComponentType.<Integer>builder().persistent(com.mojang.serialization.Codec.intRange(1, ChannelCardItem.MAX_CHANNEL))
             .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+    /** The channel an alchemy backpack was set to directly (a card in its slot is the fallback). */
+    public static final DataComponentType<Integer> BAG_CHANNEL = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bag_channel"),
+        DataComponentType.<Integer>builder().persistent(com.mojang.serialization.Codec.intRange(1, ChannelCardItem.MAX_CHANNEL))
+            .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
     /** The channel card inside an alchemy backpack. */
     public static final DataComponentType<net.minecraft.world.item.ItemStack> BAG_CARD = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bag_card"),
         DataComponentType.<net.minecraft.world.item.ItemStack>builder().persistent(net.minecraft.world.item.ItemStack.CODEC)
@@ -146,6 +150,7 @@ public final class LogisticsMod implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             Network.clearCaches();
             Grid.clear();
+            ChannelRegistry.setCurrent(null);
         });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> Network.invalidateChunk(level, chunk.getPos()));
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> Network.invalidateChunk(level, chunk.getPos()));
@@ -153,6 +158,11 @@ public final class LogisticsMod implements ModInitializer {
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_decompress"), CellDecompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TeleporterList.TYPE, TeleporterList.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ChannelSync.TYPE, ChannelSync.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChannelAction.TYPE, ChannelAction.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ChannelAction.TYPE, (payload, context) -> ChannelActions.handle(context.player(), payload));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ChannelSync.send(handler.getPlayer()));
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(server -> ChannelRegistry.setCurrent(ChannelRegistry.get(server)));
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
             var menu = context.player().containerMenu;

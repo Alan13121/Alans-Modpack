@@ -47,6 +47,14 @@ public final class ChannelBlockEntity extends BlockEntity implements DeviceEntit
         return true;
     }
 
+    /** Takes the channel written on the card in the slot (how a private channel is shared). */
+    public boolean readCard() {
+        int fromCard = ChannelCardItem.channelOf(card.getItem(0));
+        if (fromCard <= 0 || !ChannelRegistry.isLive(fromCard)) return false;
+        setChannel(fromCard);
+        return true;
+    }
+
     public void give(long amount) {
         if (amount <= 0) return;
         long sum = energy + amount;

@@ -177,7 +177,7 @@ public final class Network {
             chunks.add(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4));
             if (level.getBlockState(pos).getBlock() instanceof ControllerBlock) controllers++;
             if (level.getBlockEntity(pos) instanceof CellBlockEntity cell) cellEntities.add(cell);
-            if (level.getBlockEntity(pos) instanceof ChannelBlockEntity channel && channel.channel() > 0) channels.add(channel.channel());
+            if (level.getBlockEntity(pos) instanceof ChannelBlockEntity channel && ChannelRegistry.isLive(channel.channel())) channels.add(channel.channel());
             for (Direction dir : Direction.values()) {
                 BlockPos next = pos.relative(dir);
                 chunks.add(ChunkPos.pack(next.getX() >> 4, next.getZ() >> 4));
