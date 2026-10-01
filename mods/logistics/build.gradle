@@ -11,3 +11,11 @@ fabricApi {
 		eula = true
 	}
 }
+
+// 煉金背包只在編譯時可見；執行時由 LogisticsMod.ALCHEMY 判斷有沒有安裝，沒裝時 AlchemyLink 不會被載入。
+evaluationDependsOn(':mods:alchemy-backpack')
+dependencies {
+	compileOnly rootProject.project(':mods:alchemy-backpack').sourceSets.main.output
+	clientCompileOnly rootProject.project(':mods:alchemy-backpack').sourceSets.main.output
+	clientCompileOnly rootProject.project(':mods:alchemy-backpack').sourceSets.client.output
+}

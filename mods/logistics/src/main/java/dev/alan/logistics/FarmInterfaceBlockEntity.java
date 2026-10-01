@@ -84,7 +84,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
 
     private void pulse(ServerLevel level, BlockPos origin) {
         int actions = Math.max(1, upgrades.amount() / 8);
-        Network network = null;
+        Warehouse network = null;
         for (int k = 0; k < COLUMNS && actions > 0; k++) {
             int column = (cursor + k) % COLUMNS;
             int dx = column % (2 * RADIUS + 1) - RADIUS, dz = column / (2 * RADIUS + 1) - RADIUS;
@@ -97,7 +97,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
                 Job job = jobFor(level, pos, state);
                 if (job == Job.NONE) continue;
                 if (network == null) {
-                    network = Network.scan(level, origin);
+                    network = Warehouse.at(level, origin);
                     if (!network.usable()) return;
                 }
                 if (work(level, network, pos, state, job)) actions--;
@@ -106,7 +106,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
         }
     }
 
-    private boolean work(ServerLevel level, Network network, BlockPos pos, BlockState state, Job job) {
+    private boolean work(ServerLevel level, Warehouse network, BlockPos pos, BlockState state, Job job) {
         if (job == Job.BONE_MEAL) {
             ItemStack meal = network.extract(new ItemStack(Items.BONE_MEAL), 1);
             if (meal.isEmpty()) return false;
@@ -128,7 +128,7 @@ public final class FarmInterfaceBlockEntity extends BlockEntity {
     }
 
     /** Plants the crop again with one of its own seeds, from the drops first and from the warehouse otherwise. */
-    private static void replant(ServerLevel level, Network network, BlockPos pos, BlockState old, List<ItemStack> drops) {
+    private static void replant(ServerLevel level, Warehouse network, BlockPos pos, BlockState old, List<ItemStack> drops) {
         Item seed = Item.byBlock(old.getBlock());
         if (seed == Items.AIR) return;
         BlockState fresh = old.getBlock().defaultBlockState();

@@ -83,14 +83,14 @@ public final class AutoCrafterBlockEntity extends BlockEntity {
         if (layout.stream().allMatch(ItemStack::isEmpty)) return;
         var found = recipeFor(level, layout);
         if (found.isEmpty()) return;
-        Network network = Network.scan(level, pos);
+        Warehouse network = Warehouse.at(level, pos);
         if (!network.usable()) return;
         int crafts = Math.max(1, upgrades.amount() / UpgradeSlots.BASE_AMOUNT);
         for (int c = 0; c < crafts; c++) if (!craftOnce(level, pos, network, found.get(), layout)) break;
     }
 
     /** One craft; false when the warehouse already holds enough or lacks an ingredient. */
-    private boolean craftOnce(ServerLevel level, BlockPos pos, Network network, RecipeHolder<CraftingRecipe> holder, List<ItemStack> layout) {
+    private boolean craftOnce(ServerLevel level, BlockPos pos, Warehouse network, RecipeHolder<CraftingRecipe> holder, List<ItemStack> layout) {
         CraftingInput preview = CraftingInput.ofPositioned(GRID, GRID, layout).input();
         ItemStack sample = holder.value().assemble(preview);
         if (sample.isEmpty() || network.count(sample) >= keep) return false;
@@ -116,7 +116,7 @@ public final class AutoCrafterBlockEntity extends BlockEntity {
         return true;
     }
 
-    private static void store(ServerLevel level, BlockPos pos, Network network, ItemStack stack) {
+    private static void store(ServerLevel level, BlockPos pos, Warehouse network, ItemStack stack) {
         ItemStack rest = network.insert(stack);
         if (!rest.isEmpty()) Block.popResource(level, pos, rest);
     }

@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["OEO","DCD","OEO"],"key":{"O":"minecraft:obsidian","E":"minecraft:ender_pearl","D":"minecraft:diamond","C":"logistics:controller"},"result":{"id":"logistics:teleporter","count":1}}

@@ -57,6 +57,7 @@ public final class PackClientGameTest implements FabricClientGameTest {
             check(tooltip.contains("Deep Pit") && (tooltip.contains("礦世界") || tooltip.contains("Mine world")), "tooltip names the world: " + tooltip);
         }
         warehouseStock(context);
+        backpackCard(context);
     }
 
     /** Lookup with a warehouse terminal open: ingredients show the warehouse's stock. */
@@ -91,6 +92,52 @@ public final class PackClientGameTest implements FabricClientGameTest {
             context.runOnClient(mc -> RecipeScreen.show(mc, mc.gui.screen(), Items.IRON_PICKAXE, false));
             context.waitTicks(5);
             context.takeScreenshot("07-stock-iron-pickaxe");
+        }
+    }
+
+    /** The alchemy backpack gets a channel-card slot from the logistics mod, and its energy joins that channel. */
+    private void backpackCard(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            world.getServer().runOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                var bag = new net.minecraft.world.item.ItemStack(dev.alchemy.AlchemyMod.BACKPACK);
+                bag.set(dev.alchemy.AlchemyMod.DATA, new dev.alchemy.BagData(100, java.util.List.of()));
+                player.getInventory().setItem(0, bag);
+                var card = new net.minecraft.world.item.ItemStack(dev.alan.logistics.LogisticsMod.CHANNEL_CARD);
+                card.set(dev.alan.logistics.LogisticsMod.CHANNEL, 5);
+                player.getInventory().setItem(1, card);
+            });
+            context.waitTicks(5);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitForScreen(dev.alchemy.client.BagScreen.class);
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> mc.player.containerMenu.slots.size()) == 38, "the backpack menu has the extra card slot");
+            int cardSlot = context.computeOnClient(mc -> {
+                for (var st : mc.player.containerMenu.slots)
+                    if (st.index > 0 && st.index < 37 && st.getItem().is(dev.alan.logistics.LogisticsMod.CHANNEL_CARD)) return st.index;
+                return -1;
+            });
+            check(cardSlot > 0, "the card is in the inventory part of the menu");
+            context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, cardSlot, 0,
+                net.minecraft.world.inventory.ContainerInput.QUICK_MOVE, mc.player));
+            context.waitTicks(10);
+            context.takeScreenshot("10-backpack-card-slot");
+            check(world.getServer().computeOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                var bag = player.getInventory().getItem(0);
+                var card = bag.get(dev.alan.logistics.LogisticsMod.BAG_CARD);
+                return card != null && dev.alan.logistics.ChannelCardItem.channelOf(card) == 5;
+            }), "shift-click put the card into the backpack");
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var channels = java.util.Set.of(5);
+                boolean seen = dev.alan.logistics.Energy.available(level, channels) == 100 && dev.alan.logistics.Energy.available(level, java.util.Set.of(6)) == 0;
+                boolean spent = dev.alan.logistics.Energy.spend(level, channels, 30)
+                    && server.getPlayerList().getPlayers().get(0).getInventory().getItem(0).get(dev.alchemy.AlchemyMod.DATA).energy() == 70;
+                return seen && spent && !dev.alan.logistics.Energy.spend(level, channels, 500);
+            }), "the backpack's energy counts for channel 5 and can be spent");
+            context.runOnClient(mc -> mc.gui.setScreen(null));
         }
     }
 

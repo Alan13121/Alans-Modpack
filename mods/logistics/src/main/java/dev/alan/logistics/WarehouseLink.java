@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Prediction;
@@ -22,13 +23,13 @@ public final class WarehouseLink {
     public static final int BATCH = 256;
     private static final int REFRESH_TICKS = 10;
 
-    private final ContainerLevelAccess access;
+    private final Supplier<Warehouse> source;
     private int tick;
     private boolean forceSend = true;
 
     // Server side: what this player's client has been told, so only changes are sent.
     private final Map<Network.Key, Long> sent = new HashMap<>();
-    private Network lastNetwork;
+    private Warehouse lastNetwork;
     private long lastRevision = -1;
 
     // Client side: the mirror built from the packets.
@@ -36,7 +37,12 @@ public final class WarehouseLink {
     private List<TerminalSnapshot.Entry> entries = List.of();
     private Network.Status status = Network.Status.OK;
 
-    public WarehouseLink(ContainerLevelAccess access) { this.access = access; }
+    public WarehouseLink(ContainerLevelAccess access) {
+        this(() -> access.evaluate((level, pos) -> Warehouse.at(level, pos), null));
+    }
+
+    /** A link that finds its warehouse some other way (the wireless terminal). */
+    public WarehouseLink(Supplier<Warehouse> source) { this.source = source; }
 
     public List<TerminalSnapshot.Entry> entries() { return entries; }
     public Network.Status status() { return status; }
@@ -51,10 +57,8 @@ public final class WarehouseLink {
         entries = new ArrayList<>(mirror.values());
     }
 
-    /** The network this menu's block belongs to, or null on the client. */
-    public Network network() {
-        return access.evaluate((level, pos) -> Network.scan(level, pos), null);
-    }
+    /** The warehouse this menu works on, or null on the client. */
+    public Warehouse network() { return source.get(); }
 
     /** Sends a fresh snapshot on the next tick regardless of the refresh timer. */
     public void markDirty() { forceSend = true; }
@@ -62,9 +66,9 @@ public final class WarehouseLink {
     /** Called from the menu's {@code broadcastChanges} on the server. */
     public void tick(ServerPlayer player, int containerId) {
         if (!forceSend && ++tick % REFRESH_TICKS != 0) return;
-        Network network = network();
+        Warehouse network = network();
         if (network == null) return;
-        boolean reset = network != lastNetwork;
+        boolean reset = !network.sameAs(lastNetwork);
         long revision = network.usable() ? network.revision() : -1;
         if (!reset && !forceSend && revision == lastRevision) return;
         forceSend = false;
@@ -103,7 +107,7 @@ public final class WarehouseLink {
 
     /** Handles a grid click on the server thread. */
     public void handle(AbstractContainerMenu menu, ServerPlayer player, TerminalAction.Kind kind, ItemStack requested) {
-        Network network = network();
+        Warehouse network = network();
         if (network == null || !network.usable()) return;
         ItemStack carried = menu.getCarried();
         switch (kind) {
@@ -152,7 +156,7 @@ public final class WarehouseLink {
     /** Shift-click from a slot into the warehouse. Returns a copy of what was there, or EMPTY if nothing moved. */
     public ItemStack quickInsert(net.minecraft.world.inventory.Slot slot) {
         if (!slot.hasItem()) return ItemStack.EMPTY;
-        Network network = network();
+        Warehouse network = network();
         if (network == null || !network.usable()) return ItemStack.EMPTY;
         ItemStack stack = slot.getItem();
         ItemStack before = stack.copy();

@@ -35,6 +35,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
     private final Player player;
     private final WarehouseLink warehouse;
     private boolean placingRecipe;
+    public final EnergyData energy;
 
     public CraftingTerminalMenu(int id, Inventory inventory) { this(id, inventory, ContainerLevelAccess.NULL); }
 
@@ -43,6 +44,9 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
         this.access = access;
         this.player = inventory.player;
         this.warehouse = new WarehouseLink(access);
+        this.energy = inventory.player.level().isClientSide() ? new EnergyData(0)
+            : new EnergyData(() -> access.evaluate((level, pos) -> Energy.availableAt(level, pos), -1L));
+        addDataSlots(energy);
         addResultSlot(player, 218, 112);
         addCraftingGridSlots(200, 40);
         addStandardInventorySlots(inventory, 8, 152);
@@ -98,7 +102,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
     /** Refills every grid slot that the last craft emptied with the same ingredient. */
     private void refill(ItemStack[] before) {
         if (player.level().isClientSide()) return;
-        Network network = warehouse.network();
+        Warehouse network = warehouse.network();
         if (network == null || !network.usable()) return;
         for (int i = 0; i < before.length; i++) {
             if (before[i].isEmpty() || !craftSlots.getItem(i).isEmpty()) continue;
@@ -117,7 +121,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
 
     /** Moves the whole crafting grid into the warehouse; anything that does not fit stays in the grid. */
     private void storeGrid() {
-        Network network = warehouse.network();
+        Warehouse network = warehouse.network();
         if (network == null || !network.usable()) return;
         for (int i = 0; i < craftSlots.getContainerSize(); i++) {
             ItemStack stack = craftSlots.getItem(i);
@@ -162,7 +166,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
      */
     @Override public PostPlaceAction handlePlacement(boolean useMaxItems, boolean allowDroppingItemsToClear, RecipeHolder<?> recipe,
                                                      ServerLevel level, Inventory inventory) {
-        Network network = warehouse.network();
+        Warehouse network = warehouse.network();
         List<Staged> staged = network != null && network.usable() && recipe.value() instanceof CraftingRecipe crafting
             ? stage(network, crafting, useMaxItems, inventory) : List.of();
         try {
@@ -172,7 +176,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
         }
     }
 
-    private List<Staged> stage(Network network, CraftingRecipe recipe, boolean useMax, Inventory inventory) {
+    private List<Staged> stage(Warehouse network, CraftingRecipe recipe, boolean useMax, Inventory inventory) {
         int perIngredient = 1;
         if (useMax) perIngredient = 64;
         else for (int i = GRID_START; i < GRID_END; i++) perIngredient = Math.max(perIngredient, slots.get(i).getItem().getCount() + 1);
@@ -218,7 +222,7 @@ public final class CraftingTerminalMenu extends AbstractCraftingMenu implements 
         return result;
     }
 
-    private void unstage(Network network, List<Staged> staged, Inventory inventory) {
+    private void unstage(Warehouse network, List<Staged> staged, Inventory inventory) {
         for (Staged s : staged) {
             int excess = Math.min(s.amount(), countInInventory(inventory, s.template()) - s.baseline());
             for (int i = 0; i < 36 && excess > 0; i++) {

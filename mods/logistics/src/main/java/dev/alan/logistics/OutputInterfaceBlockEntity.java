@@ -58,7 +58,7 @@ public final class OutputInterfaceBlockEntity extends BlockEntity {
         if (!any) return;
         List<Neighbours.Target> targets = Neighbours.around(level, pos);
         if (targets.isEmpty()) return;
-        Network network = Network.scan(level, pos);
+        Warehouse network = Warehouse.at(level, pos);
         if (!network.usable()) return;
         int budget = upgrades.amount();
         for (Neighbours.Target target : targets) {

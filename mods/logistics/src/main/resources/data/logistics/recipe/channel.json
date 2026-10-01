@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["IEI","GCG","IRI"],"key":{"I":"minecraft:iron_ingot","E":"minecraft:ender_pearl","G":"minecraft:gold_ingot","C":"logistics:controller","R":"minecraft:redstone"},"result":{"id":"logistics:channel","count":1}}

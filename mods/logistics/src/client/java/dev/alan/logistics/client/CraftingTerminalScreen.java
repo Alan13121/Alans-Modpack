@@ -59,6 +59,8 @@ public final class CraftingTerminalScreen extends AbstractContainerScreen<Crafti
 
     @Override protected void extractLabels(GuiGraphicsExtractor g, int mx, int my) {
         g.text(font, title, 8, 6, 0xFFE3BE86, false);
+        Component energy = EnergyText.of(menu.energy);
+        g.text(font, energy, 188 - font.width(energy), 140, 0xFFE8D27A, false);
         g.text(font, playerInventoryTitle, 8, 140, 0xFFD4E4D8, false);
         g.text(font, Component.translatable("logistics.crafting.grid"), 194, 24, 0xFFD4E4D8, false);
         g.centeredText(font, Component.literal("↓"), 227, 98, 0xFFE3BE86);
