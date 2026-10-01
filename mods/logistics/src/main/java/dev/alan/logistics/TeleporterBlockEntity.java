@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -73,19 +74,25 @@ public final class TeleporterBlockEntity extends BlockEntity implements BeaconBe
         return network.usable() && !network.channels().isEmpty() ? network.channels().iterator().next() : 0;
     }
 
-    /** Every other pad on the same channel, nearest first (same dimension before others). */
+    /** Every other pad on the same channel, loaded or not, nearest first (same dimension before others). */
     public List<TeleporterDest> destinations() {
         int channel = channel();
         List<TeleporterDest> out = new ArrayList<>();
-        if (channel == 0) return out;
-        List<TeleporterBlockEntity> pads = new ArrayList<>();
-        for (TeleporterBlockEntity other : Grid.teleporters())
-            if (other != this && !other.isRemoved() && other.getLevel() != null && other.channel() == channel) pads.add(other);
-        pads.sort(Comparator.<TeleporterBlockEntity, Boolean>comparing(p -> p.getLevel() != level)
-            .thenComparingDouble(p -> p.getLevel() == level ? p.worldPosition.distSqr(worldPosition) : 0)
-            .thenComparing(p -> p.dimensionId()).thenComparingLong(p -> p.worldPosition.asLong()));
-        for (TeleporterBlockEntity p : pads) out.add(new TeleporterDest(p.dimensionId(), p.worldPosition));
+        if (channel == 0 || level == null || level.getServer() == null) return out;
+        GlobalPos self = GlobalPos.of(level.dimension(), worldPosition);
+        List<GlobalPos> pads = new ArrayList<>(TransmissionData.get(level.getServer()).padsOn(channel));
+        pads.removeIf(pad -> pad.equals(self));
+        pads.sort(Comparator.<GlobalPos, Boolean>comparing(p -> !p.dimension().equals(level.dimension()))
+            .thenComparingDouble(p -> p.dimension().equals(level.dimension()) ? p.pos().distSqr(worldPosition) : 0)
+            .thenComparing(p -> p.dimension().identifier().toString()).thenComparingLong(p -> p.pos().asLong()));
+        for (GlobalPos p : pads) out.add(new TeleporterDest(p.dimension().identifier().toString(), p.pos()));
         return out;
+    }
+
+    /** Keeps the saved pad list in step with this pad's channel. */
+    private void register() {
+        if (level instanceof ServerLevel serverLevel)
+            TransmissionData.get(serverLevel.getServer()).setPad(GlobalPos.of(level.dimension(), worldPosition), channel());
     }
 
     public int selectedIndex(List<TeleporterDest> dests) {
@@ -96,6 +103,7 @@ public final class TeleporterBlockEntity extends BlockEntity implements BeaconBe
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, TeleporterBlockEntity self) {
+        if ((level.getGameTime() + pos.hashCode()) % 20 == 0) self.register();
         if ((level.getGameTime() + pos.hashCode()) % 4 != 0) return;
         AABB zone = new AABB(pos.getX(), pos.getY() + 1, pos.getZ(), pos.getX() + 1, pos.getY() + 3, pos.getZ() + 1);
         List<ServerPlayer> now = level.getEntitiesOfClass(ServerPlayer.class, zone, p -> !p.isSpectator());
@@ -148,6 +156,11 @@ public final class TeleporterBlockEntity extends BlockEntity implements BeaconBe
     @Override public void setRemoved() {
         super.setRemoved();
         Grid.remove(this);
+    }
+
+    @Override public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (level instanceof ServerLevel serverLevel) TransmissionData.get(serverLevel.getServer()).removePad(GlobalPos.of(level.dimension(), pos));
     }
 
     @Override public List<Section> getBeamSections() {

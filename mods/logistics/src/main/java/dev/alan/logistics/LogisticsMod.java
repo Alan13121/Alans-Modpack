@@ -121,6 +121,7 @@ public final class LogisticsMod implements ModInitializer {
     public static final DeviceBlock ANTENNA = block("antenna", p -> new DeviceBlock(p, DeviceMenu.Kind.ANTENNA, () -> LogisticsMod.ANTENNA_ENTITY, null), metal(MapColor.METAL));
     public static final DeviceBlock SOLAR = block("solar_generator", p -> new DeviceBlock(p, null, () -> LogisticsMod.SOLAR_ENTITY, SolarGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLUE));
     public static final DeviceBlock COAL_GENERATOR = block("coal_generator", p -> new DeviceBlock(p, DeviceMenu.Kind.COAL, () -> LogisticsMod.COAL_ENTITY, CoalGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLACK));
+    public static final ChunkLoaderBlock CHUNK_LOADER = block("chunk_loader", ChunkLoaderBlock::new, metal(MapColor.COLOR_MAGENTA));
     public static final TeleporterBlock TELEPORTER = block("teleporter", TeleporterBlock::new,
         metal(MapColor.COLOR_PURPLE).lightLevel(state -> state.getValue(TeleporterBlock.OPEN) ? 10 : 0));
 
@@ -132,6 +133,8 @@ public final class LogisticsMod implements ModInitializer {
         id("solar_generator"), new BlockEntityType<>(SolarGeneratorBlockEntity::new, Set.of(SOLAR)));
     public static final BlockEntityType<CoalGeneratorBlockEntity> COAL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("coal_generator"), new BlockEntityType<>(CoalGeneratorBlockEntity::new, Set.of(COAL_GENERATOR)));
+    public static final BlockEntityType<ChunkLoaderBlockEntity> LOADER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("chunk_loader"), new BlockEntityType<>(ChunkLoaderBlockEntity::new, Set.of(CHUNK_LOADER)));
     public static final BlockEntityType<TeleporterBlockEntity> TELEPORTER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("teleporter"), new BlockEntityType<>(TeleporterBlockEntity::new, Set.of(TELEPORTER)));
 
@@ -162,6 +165,7 @@ public final class LogisticsMod implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(ChannelAction.TYPE, ChannelAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(ChannelAction.TYPE, (payload, context) -> ChannelActions.handle(context.player(), payload));
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ChannelSync.send(handler.getPlayer()));
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(ChunkLoaders::check);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(server -> ChannelRegistry.setCurrent(ChannelRegistry.get(server)));
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
@@ -184,6 +188,7 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(SOLAR);
             entries.accept(COAL_GENERATOR);
             entries.accept(TELEPORTER);
+            entries.accept(CHUNK_LOADER);
             entries.accept(CHANNEL_CARD);
             entries.accept(WIRELESS_TERMINAL);
         });

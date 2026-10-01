@@ -25,6 +25,7 @@ public final class ControllerBlock extends Block implements NetworkNode {
                 case OK -> Component.translatable("logistics.controller.ok", network.typeCount(), items[0]);
                 case MULTIPLE_CONTROLLERS -> Component.translatable("logistics.status.multiple");
                 case MULTIPLE_CHANNELS -> Component.translatable("logistics.status.channels");
+                case MULTIPLE_LOADERS -> Component.translatable("logistics.status.loaders");
                 case NO_CONTROLLER -> Component.translatable("logistics.status.none");
             });
         }

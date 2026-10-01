@@ -173,6 +173,7 @@ final class WarehousePanel {
             Component msg = Component.translatable(switch (link.status()) {
                 case MULTIPLE_CONTROLLERS -> "logistics.status.multiple";
                 case MULTIPLE_CHANNELS -> "logistics.status.channels";
+                case MULTIPLE_LOADERS -> "logistics.status.loaders";
                 default -> "logistics.status.none";
             });
             var lines = font.split(msg, COLS * CELL - 8);

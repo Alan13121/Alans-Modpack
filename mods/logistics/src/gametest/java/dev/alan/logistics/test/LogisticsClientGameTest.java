@@ -29,6 +29,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         autocrafting(context);
         transmission(context);
         twoChannelBlocks(context);
+        crossDimension(context);
     }
 
     /** Two warehouses on one channel merge; energy, generators, antennas and teleporters work across them. */
@@ -278,6 +279,91 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
                 var network = dev.alan.logistics.Network.scan(level, new net.minecraft.core.BlockPos(0, 120, 0));
                 return network.usable() && network.channels().equals(java.util.Set.of(5));
             }), "removing the second channel block makes the network work again");
+        }
+    }
+
+    /**
+     * A pad in the overworld and one in the nether on the same channel. The nether chunks are then unloaded: the pad is
+     * still listed (saved pad list) and stepping on the overworld pad arrives there. Chunk loaders force their chunks.
+     */
+    private void crossDimension(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:channel", "setblock 3 120 0 logistics:teleporter",
+                "execute in minecraft:the_nether run forceload add -16 -16 16 16",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(60);
+            for (String command : new String[] {
+                "execute in minecraft:the_nether run fill -8 119 -8 8 119 8 minecraft:stone",
+                "execute in minecraft:the_nether run fill -8 120 -8 8 126 8 minecraft:air",
+                "execute in minecraft:the_nether run setblock 0 120 0 logistics:controller",
+                "execute in minecraft:the_nether run setblock 1 120 0 logistics:cable",
+                "execute in minecraft:the_nether run setblock 2 120 0 logistics:channel",
+                "execute in minecraft:the_nether run setblock 3 120 0 logistics:teleporter",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(5);
+            world.getServer().runOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                var overworld = server.overworld();
+                ((dev.alan.logistics.ChannelBlockEntity) overworld.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.ChannelBlockEntity) nether.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                dev.alan.logistics.Energy.add(java.util.Set.of(5), 50);
+            });
+            context.waitTicks(60); // the pads register themselves in the saved pad list
+            world.getServer().runCommand("execute in minecraft:the_nether run forceload remove all");
+            context.waitTicks(200);
+            check(world.getServer().computeOnServer(server -> !server.getLevel(net.minecraft.world.level.Level.NETHER).getChunkSource().hasChunk(0, 0)),
+                "the nether chunks are unloaded now");
+            check(world.getServer().computeOnServer(server -> {
+                var overworld = server.overworld();
+                var pad = (dev.alan.logistics.TeleporterBlockEntity) overworld.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0));
+                var dests = pad.destinations();
+                if (dests.size() != 1 || !dests.get(0).dimension().equals("minecraft:the_nether")) return false;
+                pad.setTarget(dests.get(0));
+                return pad.setMode(dev.alan.logistics.TeleporterBlockEntity.ALWAYS);
+            }), "the unloaded nether pad is still listed as a destination");
+            world.getServer().runCommand("tp @p 3.5 121 0.5");
+            context.waitTicks(60);
+            check(world.getServer().computeOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                return player.level().dimension().equals(net.minecraft.world.level.Level.NETHER) && Math.abs(player.getX() - 3.5) < 1;
+            }), "the player arrived in the nether");
+            check(world.getServer().computeOnServer(server -> dev.alan.logistics.Energy.availableAt(server.overworld(), new net.minecraft.core.BlockPos(0, 120, 0)) == 40),
+                "the trip cost 10 energy");
+
+            // Chunk loader: the 3x3 chunks around it are forced, released when it is broken, and shared chunks stay.
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 logistics:chunk_loader");
+            context.waitTicks(40);
+            check(world.getServer().computeOnServer(server -> {
+                var forced = server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks();
+                for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) if (!forced.contains(net.minecraft.world.level.ChunkPos.pack(x, z))) return false;
+                return forced.size() == 9;
+            }), "a chunk loader forces the 3x3 chunks around it");
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 4 120 0 logistics:cable");
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 4 121 0 logistics:chunk_loader");
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                var network = dev.alan.logistics.Network.scan(nether, new net.minecraft.core.BlockPos(0, 120, 0));
+                return network.status == dev.alan.logistics.Network.Status.MULTIPLE_LOADERS && !network.usable();
+            }), "two chunk loaders in one network stop it");
+            world.getServer().runOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                nether.destroyBlock(new net.minecraft.core.BlockPos(4, 121, 0), false);
+                nether.destroyBlock(new net.minecraft.core.BlockPos(1, 121, 0), false);
+            });
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks().isEmpty()),
+                "breaking the loaders releases their chunks");
+            // A loader removed behind our back (setblock) is caught by the periodic check.
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 logistics:chunk_loader");
+            context.waitTicks(40);
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 minecraft:air");
+            context.waitTicks(250);
+            check(world.getServer().computeOnServer(server -> server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks().isEmpty()),
+                "a loader that vanished is released by the periodic check");
         }
     }
 

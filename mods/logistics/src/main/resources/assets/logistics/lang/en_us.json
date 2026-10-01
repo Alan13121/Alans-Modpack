@@ -90,5 +90,8 @@
   "logistics.channel.error.private": "That channel is private",
   "logistics.channel.error.manage": "Only the owner or an operator can do that",
   "logistics.channel.error.limit": "You reached the channel limit (32)",
-  "logistics.status.channels": "A network can only have one channel block"
+  "logistics.status.channels": "A network can only have one channel block",
+  "block.logistics.chunk_loader": "Chunk Loader",
+  "logistics.loader.active": "Keeping the surrounding 3x3 chunks loaded",
+  "logistics.status.loaders": "A network can only have one chunk loader"
 }
