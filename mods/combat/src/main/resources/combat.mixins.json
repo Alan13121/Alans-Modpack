@@ -2,6 +2,6 @@
   "required": true,
   "package": "dev.alan.combat.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": [],
+  "mixins": ["AnvilMenuMixin"],
   "injectors": {"defaultRequire": 1}
 }

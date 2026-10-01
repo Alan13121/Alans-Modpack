@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.alan.combat.CombatMod;
 import dev.alan.combat.OpenTrinkets;
 import dev.alan.combat.Trinkets;
+import dev.alan.combat.UpgradeRules;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -27,6 +28,9 @@ public final class CombatClient implements ClientModInitializer {
                 if (client.gui.screen() == null && client.player != null) ClientPlayNetworking.send(new OpenTrinkets());
         });
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
+            var upgrades = stack.get(CombatMod.UPGRADES);
+            if (upgrades != null && upgrades.total() > 0)
+                lines.add(Component.translatable("combat.upgrade.total", upgrades.total(), UpgradeRules.MAX_TOTAL).withStyle(ChatFormatting.GOLD));
             if (Trinkets.of(stack) != null) {
                 var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 lines.add(Component.translatable("item." + key.getNamespace() + "." + key.getPath() + ".desc").withStyle(ChatFormatting.GRAY));

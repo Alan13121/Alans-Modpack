@@ -30,4 +30,38 @@ class CombatTest {
         assertEquals(3, slots.ids().size());
         assertEquals("", slots.with(2, "").at(2));
     }
+
+    @Test void upgradePricesRiseAfterSixLevels() {
+        assertEquals(1, UpgradeRules.oreCost(0));
+        assertEquals(1, UpgradeRules.oreCost(5));
+        assertEquals(2, UpgradeRules.oreCost(6));
+        assertEquals(2, UpgradeRules.oreCost(9));
+    }
+
+    @Test void upgradePlanStopsAtOreCap() {
+        assertEquals(new UpgradeRules.Plan(4, 4), UpgradeRules.plan(0, 0, 64));
+        assertEquals(new UpgradeRules.Plan(1, 1), UpgradeRules.plan(3, 3, 64));
+        assertEquals(new UpgradeRules.Plan(0, 0), UpgradeRules.plan(4, 4, 64));
+    }
+
+    @Test void upgradePlanStopsAtPieceCap() {
+        // 8 levels already: two more levels fit under the cap of 10 and cost 2 ores each.
+        assertEquals(new UpgradeRules.Plan(2, 4), UpgradeRules.plan(0, 8, 64));
+        assertEquals(new UpgradeRules.Plan(0, 0), UpgradeRules.plan(0, 10, 64));
+    }
+
+    @Test void upgradePlanLimitedByOresInHand() {
+        assertEquals(new UpgradeRules.Plan(2, 2), UpgradeRules.plan(0, 0, 2));
+        // 5 levels owned; level 6 costs 1, level 7 costs 2, only 2 ores in hand.
+        assertEquals(new UpgradeRules.Plan(1, 1), UpgradeRules.plan(0, 5, 2));
+        assertEquals(new UpgradeRules.Plan(0, 0), UpgradeRules.plan(0, 6, 1));
+    }
+
+    @Test void upgradesTrackLevelsPerOre() {
+        Upgrades upgrades = Upgrades.EMPTY.with("iron", 2).with("gold", 3);
+        assertEquals(2, upgrades.level("iron"));
+        assertEquals(0, upgrades.level("coal"));
+        assertEquals(5, upgrades.total());
+        assertEquals(4, upgrades.with("iron", 1).total());
+    }
 }

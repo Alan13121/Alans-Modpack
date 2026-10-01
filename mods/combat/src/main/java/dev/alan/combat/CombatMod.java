@@ -11,6 +11,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -45,6 +46,10 @@ public final class CombatMod implements ModInitializer {
     public static final Item GILLS_CHARM = Trinkets.register("gills_charm", MobEffects.WATER_BREATHING, false);
     public static final Item TRINKET_BAG = Registry.register(BuiltInRegistries.ITEM, id("trinket_bag"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("trinket_bag"))).stacksTo(16)));
+
+    /** Ore levels an armor piece has received at the anvil. */
+    public static final DataComponentType<Upgrades> UPGRADES = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("upgrades"),
+        DataComponentType.<Upgrades>builder().persistent(Upgrades.CODEC).networkSynchronized(Upgrades.STREAM_CODEC).build());
 
     public static final MenuType<TrinketMenu> MENU = Registry.register(BuiltInRegistries.MENU, id("trinkets"),
         new MenuType<>(TrinketMenu::new, FeatureFlagSet.of()));

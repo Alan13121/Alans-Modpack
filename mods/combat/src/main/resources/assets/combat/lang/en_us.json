@@ -11,6 +11,7 @@
   "container.combat.trinkets": "Trinkets",
   "combat.trinkets.slots": "%s / %s slots",
   "combat.trinkets.hint": "Trinket bags carried: %s",
+  "combat.upgrade.total": "Ore upgrades: %s / %s",
   "key.combat.trinkets": "Open trinkets",
   "key.category.combat.main": "Combat"
 }
