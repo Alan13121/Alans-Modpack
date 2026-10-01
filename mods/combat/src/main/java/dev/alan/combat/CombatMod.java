@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -22,6 +23,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -51,6 +53,12 @@ public final class CombatMod implements ModInitializer {
     public static final DataComponentType<Upgrades> UPGRADES = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("upgrades"),
         DataComponentType.<Upgrades>builder().persistent(Upgrades.CODEC).networkSynchronized(Upgrades.STREAM_CODEC).build());
 
+    /** Upgrades of a bow, set at the anvil. */
+    public static final DataComponentType<Upgrades> BOW_UPGRADES = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bow_upgrades"),
+        DataComponentType.<Upgrades>builder().persistent(Upgrades.CODEC).networkSynchronized(Upgrades.STREAM_CODEC).build());
+    /** The bow upgrades an arrow in flight carries; dropped when they have fired. Not saved. */
+    public static final AttachmentType<Upgrades> ARROW_MODS = AttachmentRegistry.create(id("arrow_mods"));
+
     public static final MenuType<TrinketMenu> MENU = Registry.register(BuiltInRegistries.MENU, id("trinkets"),
         new MenuType<>(TrinketMenu::new, FeatureFlagSet.of()));
 
@@ -74,6 +82,12 @@ public final class CombatMod implements ModInitializer {
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
             !(entity instanceof Player player && source.is(DamageTypeTags.IS_FALL) && Trinkets.wornFallImmune(player)));
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (entity instanceof AbstractArrow arrow) BowEffects.onArrowLoaded(arrow);
+        });
+        ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
+            if (source.getDirectEntity() instanceof AbstractArrow arrow) BowEffects.onDamaged(entity, arrow, damageTaken);
+        });
         LOG.info("Combat loaded");
     }
 }

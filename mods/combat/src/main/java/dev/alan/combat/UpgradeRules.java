@@ -29,4 +29,10 @@ public final class UpgradeRules {
         }
         return new Plan(gained, used);
     }
+
+    /** Like {@link #plan} for upgrades that always cost one item per level, with their own caps. */
+    public static Plan flatPlan(int currentForMod, int currentTotal, int maxForMod, int maxTotal, int available) {
+        int gained = Math.max(0, Math.min(Math.min(maxForMod - currentForMod, maxTotal - currentTotal), available));
+        return new Plan(gained, gained);
+    }
 }

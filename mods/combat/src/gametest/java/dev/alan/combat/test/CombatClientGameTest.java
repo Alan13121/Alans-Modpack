@@ -131,6 +131,66 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         check(server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0)
             .getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH) == 20.0), "and it is gone again when taken off");
 
+        // 4c. Bow upgrades at the anvil: one item per level, capped per upgrade.
+        check(server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var pos = new net.minecraft.core.BlockPos(0, 120, 0).east(3);
+            var menu = new net.minecraft.world.inventory.AnvilMenu(78, player.getInventory(),
+                net.minecraft.world.inventory.ContainerLevelAccess.create(s.overworld(), pos));
+            menu.getSlot(0).set(new ItemStack(net.minecraft.world.item.Items.BOW));
+            menu.getSlot(1).set(new ItemStack(net.minecraft.world.item.Items.BLAZE_POWDER, 9));
+            var result = menu.getSlot(2).getItem();
+            boolean ok = result.getOrDefault(CombatMod.BOW_UPGRADES, dev.alan.combat.Upgrades.EMPTY).level("burn") == 3;
+            menu.clicked(2, 0, net.minecraft.world.inventory.ContainerInput.PICKUP, player);
+            ok &= menu.getSlot(1).getItem().getCount() == 6;
+            // Armor and bow do not mix: ender pearl on armor is nothing, redstone on a bow is draw speed.
+            menu.setCarried(ItemStack.EMPTY);
+            menu.getSlot(1).set(ItemStack.EMPTY);
+            menu.getSlot(0).set(new ItemStack(net.minecraft.world.item.Items.IRON_CHESTPLATE));
+            menu.getSlot(1).set(new ItemStack(net.minecraft.world.item.Items.ENDER_PEARL, 4));
+            ok &= menu.getSlot(2).getItem().isEmpty();
+            return ok;
+        }), "bow anvil upgrade: 3 blaze powder used out of 9, ender pearl does nothing to armor");
+
+        // 4d. An upgraded bow: draws faster, arrows fly straight and on fire, and the hit slows, burns and explodes.
+        server.runCommand("tp @p 0 120 0 0 10");
+        server.runCommand("summon iron_golem 0 120 8 {NoAI:1b}");
+        server.runCommand("summon cow 1 120 8 {NoAI:1b}");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            ItemStack bow = new ItemStack(net.minecraft.world.item.Items.BOW);
+            bow.set(CombatMod.BOW_UPGRADES, new dev.alan.combat.Upgrades(java.util.Map.of(
+                "draw", 3, "no_drop", 1, "burn", 1, "slow", 2, "explode", 1)));
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, bow);
+            player.getInventory().add(new ItemStack(net.minecraft.world.item.Items.ARROW, 16));
+        });
+        context.waitTicks(5);
+        context.getInput().holdKey(options -> options.keyUse);
+        context.waitTicks(20);
+        check(server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getTicksUsingItem() >= 30),
+            "draw speed 3 gets at least 30 ticks of charge in 20 ticks");
+        context.getInput().releaseKey(options -> options.keyUse);
+        context.waitTicks(2);
+        check(server.computeOnServer(s -> {
+            for (var arrow : s.overworld().getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.AbstractArrow.class,
+                new net.minecraft.world.phys.AABB(-3, 118, -3, 3, 124, 14)))
+                if (arrow.isNoGravity() && arrow.isOnFire() && arrow.hasAttached(CombatMod.ARROW_MODS)) return true;
+            return false;
+        }), "fired arrow is gravity-free, burning and carries the upgrades");
+        context.waitTicks(40);
+        check(server.computeOnServer(s -> {
+            var golem = s.overworld().getEntitiesOfClass(net.minecraft.world.entity.animal.golem.IronGolem.class,
+                new net.minecraft.world.phys.AABB(-3, 118, 5, 3, 124, 11));
+            var cows = s.overworld().getEntitiesOfClass(net.minecraft.world.entity.animal.cow.Cow.class,
+                new net.minecraft.world.phys.AABB(-1, 118, 5, 5, 124, 11));
+            boolean slowed = !golem.isEmpty() && golem.get(0).hasEffect(net.minecraft.world.effect.MobEffects.SLOWNESS);
+            boolean burning = !golem.isEmpty() && golem.get(0).isOnFire();
+            boolean blast = cows.isEmpty() || cows.get(0).getHealth() < cows.get(0).getMaxHealth();
+            System.out.println("[combat-test] hit: slowed=" + slowed + " burning=" + burning + " blast=" + blast);
+            return slowed && burning && blast;
+        }), "hit slows, burns and the explosion hurts the cow beside the target");
+        server.runCommand("kill @e[type=!player]");
+
         // 5. Trinkets survive death.
         server.runCommand("kill @p");
         context.waitTicks(10);

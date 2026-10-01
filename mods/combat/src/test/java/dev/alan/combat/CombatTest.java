@@ -64,4 +64,12 @@ class CombatTest {
         assertEquals(5, upgrades.total());
         assertEquals(4, upgrades.with("iron", 1).total());
     }
+
+    @Test void flatPlanRespectsBothCapsAndStock() {
+        assertEquals(new UpgradeRules.Plan(3, 3), UpgradeRules.flatPlan(0, 0, 3, 8, 64));
+        assertEquals(new UpgradeRules.Plan(1, 1), UpgradeRules.flatPlan(2, 2, 3, 8, 64));
+        assertEquals(new UpgradeRules.Plan(0, 0), UpgradeRules.flatPlan(3, 3, 3, 8, 64));
+        assertEquals(new UpgradeRules.Plan(2, 2), UpgradeRules.flatPlan(0, 6, 3, 8, 64));
+        assertEquals(new UpgradeRules.Plan(2, 2), UpgradeRules.flatPlan(0, 0, 3, 8, 2));
+    }
 }

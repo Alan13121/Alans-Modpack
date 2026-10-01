@@ -1,6 +1,8 @@
 package dev.alan.combat.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.alan.combat.BowEffects;
+import dev.alan.combat.BowUpgrades;
 import dev.alan.combat.CombatMod;
 import dev.alan.combat.OpenTrinkets;
 import dev.alan.combat.Trinkets;
@@ -31,6 +33,16 @@ public final class CombatClient implements ClientModInitializer {
             var upgrades = stack.get(CombatMod.UPGRADES);
             if (upgrades != null && upgrades.total() > 0)
                 lines.add(Component.translatable("combat.upgrade.total", upgrades.total(), UpgradeRules.MAX_TOTAL).withStyle(ChatFormatting.GOLD));
+            var bow = stack.get(CombatMod.BOW_UPGRADES);
+            if (bow != null && bow.total() > 0) {
+                for (var mod : BowUpgrades.Mod.values()) {
+                    int level = bow.level(mod.key);
+                    if (level <= 0) continue;
+                    Object shown = mod == BowUpgrades.Mod.DRAW ? (int) Math.round(level * BowEffects.DRAW_SPEED_PER_LEVEL * 100) : level;
+                    lines.add(Component.translatable("combat.bow." + mod.key, shown).withStyle(ChatFormatting.AQUA));
+                }
+                lines.add(Component.translatable("combat.bow.total", bow.total(), BowUpgrades.MAX_TOTAL).withStyle(ChatFormatting.GOLD));
+            }
             if (Trinkets.of(stack) != null) {
                 var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
                 lines.add(Component.translatable("item." + key.getNamespace() + "." + key.getPath() + ".desc").withStyle(ChatFormatting.GRAY));

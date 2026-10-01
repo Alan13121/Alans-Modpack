@@ -1,6 +1,7 @@
 package dev.alan.combat.mixin;
 
 import dev.alan.combat.ArmorUpgrades;
+import dev.alan.combat.BowUpgrades;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
@@ -20,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Armor in the left slot plus an ore in the right slot becomes an ore upgrade. It costs only the ore, no experience,
+ * Armor (or a bow) in the left slot plus an ore (or bow material) in the right slot becomes an upgrade. It costs only the ore, no experience,
  * so the vanilla cost bookkeeping (which also blocks taking a free result) is bypassed while an upgrade is showing.
  */
 @Mixin(AnvilMenu.class)
@@ -36,6 +37,7 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
     @Inject(method = "createResult", at = @At("HEAD"), cancellable = true)
     private void combat$createResult(CallbackInfo ci) {
         var upgrade = ArmorUpgrades.plan(inputSlots.getItem(0), inputSlots.getItem(1));
+        if (upgrade == null) upgrade = BowUpgrades.plan(inputSlots.getItem(0), inputSlots.getItem(1));
         if (upgrade == null) {
             combat$oreCost = 0;
             return;

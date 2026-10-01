@@ -12,6 +12,12 @@
   "combat.trinkets.slots": "%s / %s 格",
   "combat.trinkets.hint": "身上的飾品背包：%s",
   "combat.upgrade.total": "礦物強化：%s / %s",
+  "combat.bow.draw": "拉弓速度 +%s%%",
+  "combat.bow.no_drop": "箭矢不下墜",
+  "combat.bow.burn": "火焰箭 %s",
+  "combat.bow.slow": "緩速箭 %s",
+  "combat.bow.explode": "爆裂箭 %s",
+  "combat.bow.total": "弓箭強化：%s / %s",
   "key.combat.trinkets": "開啟飾品欄",
   "key.category.combat.main": "戰鬥"
 }

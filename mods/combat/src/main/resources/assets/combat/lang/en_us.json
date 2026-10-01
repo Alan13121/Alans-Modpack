@@ -12,6 +12,12 @@
   "combat.trinkets.slots": "%s / %s slots",
   "combat.trinkets.hint": "Trinket bags carried: %s",
   "combat.upgrade.total": "Ore upgrades: %s / %s",
+  "combat.bow.draw": "Draw speed +%s%%",
+  "combat.bow.no_drop": "Arrows fly straight",
+  "combat.bow.burn": "Flame arrows %s",
+  "combat.bow.slow": "Slowing arrows %s",
+  "combat.bow.explode": "Explosive arrows %s",
+  "combat.bow.total": "Bow upgrades: %s / %s",
   "key.combat.trinkets": "Open trinkets",
   "key.category.combat.main": "Combat"
 }
