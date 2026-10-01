@@ -70,6 +70,7 @@ public final class TrinketMenu extends AbstractContainerMenu {
         TrinketSlots next = TrinketSlots.EMPTY;
         for (int i = 0; i < total; i++) next = next.with(i, Trinkets.idOf(trinkets.getItem(i)));
         owner.setAttached(CombatMod.SLOTS, next);
+        Trinkets.refresh(owner);
     }
 
     @Override public boolean stillValid(Player player) { return player.isAlive(); }

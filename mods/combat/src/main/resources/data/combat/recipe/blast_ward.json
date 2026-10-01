@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": [" O ", "OGO", " O "], "key": {"O": "minecraft:obsidian", "G": "minecraft:gunpowder"}, "result": {"id": "combat:blast_ward", "count": 1}}

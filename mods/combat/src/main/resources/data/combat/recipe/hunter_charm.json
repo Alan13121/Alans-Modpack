@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": [" B ", "BFB", " B "], "key": {"B": "minecraft:bone", "F": "minecraft:rabbit_foot"}, "result": {"id": "combat:hunter_charm", "count": 1}}

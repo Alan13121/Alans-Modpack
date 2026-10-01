@@ -22,6 +22,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.flag.FeatureFlagSet;
@@ -43,11 +45,21 @@ public final class CombatMod implements ModInitializer {
         .syncWith(TrinketSlots.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
 
     // The first three trinkets. Registration order is the slot order of the trinket screen.
-    public static final Item FEATHER_CHARM = Trinkets.register("feather_charm", null, true);
-    public static final Item NIGHT_VISION_CHARM = Trinkets.register("night_vision_charm", MobEffects.NIGHT_VISION, false);
-    public static final Item GILLS_CHARM = Trinkets.register("gills_charm", MobEffects.WATER_BREATHING, false);
-    /** Fourth trinket: shapeshift abilities recharge faster. Also the first one that makes trinket bags useful. */
-    public static final Item SKILL_CHARM = Trinkets.register("skill_charm", null, false, true);
+    public static final Item FEATHER_CHARM = Trinkets.register("feather_charm", Trinkets.spec().perk(Trinket.Perk.FALL_IMMUNE));
+    public static final Item NIGHT_VISION_CHARM = Trinkets.register("night_vision_charm", Trinkets.spec().effect(MobEffects.NIGHT_VISION));
+    public static final Item GILLS_CHARM = Trinkets.register("gills_charm", Trinkets.spec().effect(MobEffects.WATER_BREATHING));
+    /** Shapeshift abilities recharge faster. */
+    public static final Item SKILL_CHARM = Trinkets.register("skill_charm", Trinkets.spec().perk(Trinket.Perk.SKILL_FOCUS));
+    public static final Item FIRE_RING = Trinkets.register("fire_ring", Trinkets.spec().effect(MobEffects.FIRE_RESISTANCE));
+    public static final Item SPEED_BUCKLE = Trinkets.register("speed_buckle",
+        Trinkets.spec().boost(Attributes.MOVEMENT_SPEED, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+    public static final Item SPRING_INSOLE = Trinkets.register("spring_insole",
+        Trinkets.spec().boost(Attributes.JUMP_STRENGTH, 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+    public static final Item REGEN_CHARM = Trinkets.register("regen_charm", Trinkets.spec().perk(Trinket.Perk.REGEN));
+    public static final Item MAGNET = Trinkets.register("magnet", Trinkets.spec().perk(Trinket.Perk.MAGNET));
+    public static final Item BLAST_WARD = Trinkets.register("blast_ward", Trinkets.spec().perk(Trinket.Perk.BLAST_WARD));
+    public static final Item THORNS_RING = Trinkets.register("thorns_ring", Trinkets.spec().perk(Trinket.Perk.THORNS));
+    public static final Item HUNTER_CHARM = Trinkets.register("hunter_charm", Trinkets.spec().perk(Trinket.Perk.HUNTER));
     public static final Item TRINKET_BAG = Registry.register(BuiltInRegistries.ITEM, id("trinket_bag"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("trinket_bag"))).stacksTo(16)));
 
@@ -83,12 +95,13 @@ public final class CombatMod implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> Trinkets.forget(handler.getPlayer()));
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
-            !(entity instanceof Player player && source.is(DamageTypeTags.IS_FALL) && Trinkets.wornFallImmune(player)));
+            !(entity instanceof Player player && source.is(DamageTypeTags.IS_FALL) && Trinkets.has(player, Trinket.Perk.FALL_IMMUNE)));
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
             if (entity instanceof AbstractArrow arrow) BowEffects.onArrowLoaded(arrow);
         });
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
             if (source.getDirectEntity() instanceof AbstractArrow arrow) BowEffects.onDamaged(entity, arrow, damageTaken);
+            if (entity instanceof ServerPlayer player) Trinkets.reflect(player, source, damageTaken);
         });
         if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("shapeshift")) ShapeshiftLink.register();
         LOG.info("Combat loaded");

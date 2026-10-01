@@ -16,7 +16,7 @@ final class ShapeshiftLink {
 
     static void register() {
         SkillHooks.registerScaler(player ->
-            new SkillHooks.Scale(SkillMath.power(emeraldLevels(player)), SkillMath.cooldown(Trinkets.wornSkillFocus(player))));
+            new SkillHooks.Scale(SkillMath.power(emeraldLevels(player)), SkillMath.cooldown(Trinkets.has(player, Trinket.Perk.SKILL_FOCUS))));
         // The skeleton's free arrow carries the upgrades of the bow in hand, as if it had been shot from it.
         SkillHooks.registerLaunch((player, projectile) -> {
             if (!(projectile instanceof AbstractArrow arrow)) return;

@@ -3,7 +3,16 @@ package dev.alan.combat.mixin;
 import dev.alan.combat.BowEffects;
 import dev.alan.combat.BowUpgrades;
 import dev.alan.combat.CombatMod;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import dev.alan.combat.Trinket;
+import dev.alan.combat.Trinkets;
 import dev.alan.combat.Upgrades;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Items;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +33,25 @@ public abstract class LivingEntityMixin {
     @Shadow public abstract net.minecraft.world.item.ItemStack getUseItem();
     /** Fraction of an extra tick not yet applied. */
     @Unique private double combat$drawCarry;
+
+    @Shadow protected abstract void dropFromLootTable(ServerLevel level, DamageSource source, boolean playerKilled);
+
+    /** Blast ward: explosions hurt a wearer less. */
+    @WrapMethod(method = "hurtServer")
+    private boolean combat$blastWard(ServerLevel level, DamageSource source, float amount, Operation<Boolean> original) {
+        if ((Object) this instanceof Player player && source.is(DamageTypeTags.IS_EXPLOSION) && Trinkets.has(player, Trinket.Perk.BLAST_WARD))
+            amount *= Trinkets.BLAST_WARD_FACTOR;
+        return original.call(level, source, amount);
+    }
+
+    /** Hunter charm: a player's kill sometimes yields its loot a second time. */
+    @Inject(method = "dropAllDeathLoot", at = @At("TAIL"))
+    private void combat$hunterLoot(ServerLevel level, DamageSource source, CallbackInfo ci) {
+        LivingEntity self = (LivingEntity) (Object) this;
+        if (self instanceof Player || !(source.getEntity() instanceof ServerPlayer killer)) return;
+        if (self.getRandom().nextFloat() < Trinkets.HUNTER_CHANCE && Trinkets.has(killer, Trinket.Perk.HUNTER))
+            dropFromLootTable(level, source, true);
+    }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void combat$drawFaster(CallbackInfo ci) {

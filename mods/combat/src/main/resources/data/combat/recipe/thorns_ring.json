@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": [" C ", "CGC", " C "], "key": {"C": "minecraft:cactus", "G": "minecraft:gold_ingot"}, "result": {"id": "combat:thorns_ring", "count": 1}}

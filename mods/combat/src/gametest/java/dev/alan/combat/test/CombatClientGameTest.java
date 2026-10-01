@@ -272,6 +272,119 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         });
         context.waitTicks(5);
 
+        // 4f. The other trinkets. Enough bags for every slot, then each trinket on its own.
+        server.runCommand("tp @p 0 120 0 0 0");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.getInventory().add(new ItemStack(CombatMod.TRINKET_BAG, 12));
+            player.setHealth(player.getMaxHealth());
+        });
+        check(server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            return Trinkets.total() == 12 && Trinkets.slotCount(player) == 12;
+        }), "twelve trinkets exist and fourteen bags open every slot");
+
+        // The screen with every trinket worn.
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var all = dev.alan.combat.TrinketSlots.EMPTY;
+            for (int i = 0; i < Trinkets.total(); i++) all = all.with(i, Trinkets.idOf(new ItemStack(Trinkets.all().get(i).item())));
+            player.setAttached(CombatMod.SLOTS, all);
+            player.openMenu(new SimpleMenuProvider((id, inv, p) -> new TrinketMenu(id, inv), Component.literal("Trinkets")));
+        });
+        world.getConnection().waitForClientboundPackets();
+        context.waitTicks(5);
+        context.takeScreenshot("03-all-trinkets");
+        server.runOnServer(s -> s.getPlayerList().getPlayers().get(0).closeContainer());
+        wear(server);
+
+        // Fire ring: fire resistance. Speed buckle and spring insole: attribute boosts that come off again.
+        wear(server, "fire_ring", "speed_buckle", "spring_insole");
+        context.waitTicks(5);
+        check(server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            return player.hasEffect(MobEffects.FIRE_RESISTANCE)
+                && Math.abs(player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED) - 0.1 * 1.15) < 1e-6
+                && Math.abs(player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.JUMP_STRENGTH) - 0.42 * 1.25) < 1e-6;
+        }), "fire resistance, +15% speed and +25% jump while worn");
+        wear(server);
+        context.waitTicks(5);
+        check(server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            return !player.hasEffect(MobEffects.FIRE_RESISTANCE)
+                && Math.abs(player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED) - 0.1) < 1e-6
+                && Math.abs(player.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.JUMP_STRENGTH) - 0.42) < 1e-6;
+        }), "all three are gone again when taken off");
+
+        // Regeneration charm: 1 health per 3 seconds.
+        server.runOnServer(s -> s.getPlayerList().getPlayers().get(0).setHealth(10f));
+        wear(server, "regen_charm");
+        context.waitTicks(130);
+        check(server.computeOnServer(s -> {
+            float health = s.getPlayerList().getPlayers().get(0).getHealth();
+            return health >= 12f && health <= 14f;
+        }), "regeneration charm heals about 1 every 3 seconds");
+        wear(server);
+
+        // Magnet: a loose item four blocks away (clear of the anvil used earlier) flies into the inventory.
+        wear(server, "magnet");
+        server.runCommand("summon item 0 120 -4 {Item:{id:\"minecraft:stick\",count:1},PickupDelay:0s}");
+        context.waitTicks(40);
+        check(server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getInventory().countItem(net.minecraft.world.item.Items.STICK) == 1),
+            "magnet pulls a dropped stick into the inventory");
+        wear(server);
+        server.runCommand("summon item 0 120 -4 {Item:{id:\"minecraft:stick\",count:1},PickupDelay:0s}");
+        context.waitTicks(40);
+        check(server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getInventory().countItem(net.minecraft.world.item.Items.STICK) == 1),
+            "without the magnet the stick stays where it is");
+        server.runCommand("kill @e[type=minecraft:item]");
+
+        // Blast ward: the same explosion hurts half as much.
+        float plainBlast = blast(context, server, false);
+        float wardedBlast = blast(context, server, true);
+        check(Math.abs(plainBlast - 10f) < 0.01f && Math.abs(wardedBlast - 5f) < 0.01f,
+            "blast ward halves explosion damage: " + plainBlast + " vs " + wardedBlast);
+
+        // Thorns ring: a melee hit on the wearer hurts the attacker.
+        server.runCommand("summon iron_golem 0 120 6 {NoAI:1b}");
+        context.waitTicks(5);
+        wear(server);
+        float golemWithout = server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var golem = s.overworld().getEntitiesOfClass(net.minecraft.world.entity.animal.golem.IronGolem.class,
+                new net.minecraft.world.phys.AABB(-5, 118, 0, 5, 124, 12)).get(0);
+            player.hurtServer(s.overworld(), s.overworld().damageSources().mobAttack(golem), 4f);
+            player.setHealth(player.getMaxHealth());
+            return golem.getHealth();
+        });
+        wear(server, "thorns_ring");
+        context.waitTicks(25);
+        float golemWith = server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var golem = s.overworld().getEntitiesOfClass(net.minecraft.world.entity.animal.golem.IronGolem.class,
+                new net.minecraft.world.phys.AABB(-5, 118, 0, 5, 124, 12)).get(0);
+            player.hurtServer(s.overworld(), s.overworld().damageSources().mobAttack(golem), 4f);
+            player.setHealth(player.getMaxHealth());
+            return golem.getHealth();
+        });
+        check(golemWithout == 100f && golemWith < 100f, "thorns ring: golem health without=" + golemWithout + " with=" + golemWith);
+        wear(server);
+        server.runCommand("kill @e[type=!player]");
+
+        // Hunter charm: killing 40 cows drops clearly more beef with it than without.
+        int plainBeef = cowKills(context, server, false);
+        int hunterBeef = cowKills(context, server, true);
+        check(hunterBeef > plainBeef * 1.2, "hunter charm drops more beef: " + plainBeef + " vs " + hunterBeef);
+        wear(server);
+        server.runCommand("kill @e[type=!player]");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.getInventory().clearContent();
+            player.getInventory().add(new ItemStack(CombatMod.TRINKET_BAG, 2));
+            player.setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY.with(2, "combat:gills_charm"));
+        });
+        context.waitTicks(5);
+
         // 5. Trinkets survive death.
         server.runCommand("kill @p");
         context.waitTicks(10);
@@ -314,6 +427,56 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
         return server.computeOnServer(s -> s.overworld().getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.AbstractArrow.class,
             new net.minecraft.world.phys.AABB(-200, 100, -200, 200, 300, 200)).size());
+    }
+
+    /** Puts exactly these trinkets (by short name) in the first slots and refreshes the player. */
+    private static void wear(TestServerContext server, String... names) {
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var slots = dev.alan.combat.TrinketSlots.EMPTY;
+            for (int i = 0; i < names.length; i++) slots = slots.with(i, "combat:" + names[i]);
+            player.setAttached(CombatMod.SLOTS, slots);
+            Trinkets.refresh(player);
+        });
+    }
+
+    /** Damage dealt to the player by a 10 point explosion, with or without the blast ward. */
+    private static float blast(ClientGameTestContext context, TestServerContext server, boolean ward) {
+        if (ward) wear(server, "blast_ward"); else wear(server);
+        context.waitTicks(25);   // the previous hit's invulnerability has to run out
+        return server.computeOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.setHealth(player.getMaxHealth());
+            float before = player.getHealth();
+            player.hurtServer(s.overworld(), s.overworld().damageSources().explosion(null, null), 10f);
+            float lost = before - player.getHealth();
+            player.setHealth(player.getMaxHealth());
+            return lost;
+        });
+    }
+
+    /** Beef dropped by killing 40 cows as the player. */
+    private static int cowKills(ClientGameTestContext context, TestServerContext server, boolean hunter) {
+        if (hunter) wear(server, "hunter_charm"); else wear(server);
+        server.runCommand("kill @e[type=minecraft:item]");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            for (int i = 0; i < 40; i++) {
+                var cow = net.minecraft.world.entity.EntityTypes.COW.create(s.overworld(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+                cow.setPos(30 + (i % 8) * 2, 120, (i / 8) * 2);
+                cow.setNoAi(true);
+                s.overworld().addFreshEntity(cow);
+                cow.hurtServer(s.overworld(), s.overworld().damageSources().playerAttack(player), 1000f);
+            }
+        });
+        context.waitTicks(5);
+        return server.computeOnServer(s -> {
+            int beef = 0;
+            for (var item : s.overworld().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+                new net.minecraft.world.phys.AABB(20, 100, -10, 60, 140, 30)))
+                if (item.getItem().is(net.minecraft.world.item.Items.BEEF)) beef += item.getItem().getCount();
+            return beef;
+        });
     }
 
     private static void check(boolean condition, String what) {
