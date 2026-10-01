@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": [" S ", "SPS", " S "], "key": {"S": "minecraft:slime_ball", "P": "minecraft:piston"}, "result": {"id": "combat:spring_insole", "count": 1}}

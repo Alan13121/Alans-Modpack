@@ -1,5 +1,6 @@
 package dev.alan.shapeshift;
 
+import dev.alan.shapeshift.api.SkillHooks;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -57,7 +58,8 @@ final class Actives {
             player.sendOverlayMessage(Component.translatable("shapeshift.cooldown", (ready - now + 19) / 20));
             return;
         }
-        if (fire(player, active)) readyAt.put(player.getUUID(), now + active.cooldownTicks());
+        var scale = SkillHooks.scaleFor(player);
+        if (fire(player, active, scale)) readyAt.put(player.getUUID(), now + SkillHooks.scaledCooldown(active.cooldownTicks(), scale));
     }
 
     /** Runs every tick for shapeshifted players: counts down a creeper fuse. */
@@ -69,15 +71,15 @@ final class Actives {
             player.removeAttached(ShapeshiftMod.FUSE);
             return;
         }
-        if (player.level().getGameTime() - start >= active.fuseTicks()) explode(player, active.powerValue());
+        if (player.level().getGameTime() - start >= active.fuseTicks()) explode(player, active.powerValue() * SkillHooks.scaleFor(player).power());
     }
 
     static void forget(ServerPlayer player) { readyAt.remove(player.getUUID()); }
 
-    private static boolean fire(ServerPlayer player, ActiveAbility active) {
+    private static boolean fire(ServerPlayer player, ActiveAbility active, SkillHooks.Scale scale) {
         ServerLevel level = player.level();
         Vec3 look = player.getLookAngle();
-        float power = active.powerValue();
+        float power = active.powerValue() * scale.power();
         switch (active.type()) {
             case EXPLODE -> {
                 if (active.fuseTicks() == 0) {
@@ -128,11 +130,13 @@ final class Actives {
 
     private static void launchFromEyes(ServerPlayer player, Entity projectile, Vec3 offset) {
         projectile.setPos(player.getX() + offset.x, player.getEyeY() + offset.y - 0.2, player.getZ() + offset.z);
+        SkillHooks.launched(player, projectile);
         player.level().addFreshEntity(projectile);
     }
 
     private static void shoot(ServerPlayer player, Projectile projectile, float speed, float inaccuracy) {
         projectile.shootFromRotation(player, player.getXRot(), player.getYRot(), 0, speed, inaccuracy);
+        SkillHooks.launched(player, projectile);
         player.level().addFreshEntity(projectile);
     }
 

@@ -10,6 +10,12 @@ modProjects.each { evaluationDependsOn(it.path) }
 
 version = rootProject.pack_version
 
+// 各模組都要求 Java 25；pack 不寫程式碼，但要解析它們的依賴與編譯測試來源，
+// 所以也要用同一個 toolchain，否則用 Gradle 預設 JDK（例如 21）時會解析失敗。
+java {
+	toolchain { languageVersion = JavaLanguageVersion.of(rootProject.java_version as int) }
+}
+
 loom {
 	mods {
 		modProjects.each { p ->

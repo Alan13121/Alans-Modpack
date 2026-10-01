@@ -1,0 +1,1 @@
+{"type": "minecraft:crafting_shaped", "category": "equipment", "pattern": [" B ", "BMB", " B "], "key": {"B": "minecraft:blaze_powder", "M": "minecraft:magma_cream"}, "result": {"id": "combat:fire_ring", "count": 1}}
