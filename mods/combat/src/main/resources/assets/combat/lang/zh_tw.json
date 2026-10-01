@@ -5,6 +5,8 @@
   "item.combat.night_vision_charm.desc": "持續獲得夜視。",
   "item.combat.gills_charm": "鰓之護符",
   "item.combat.gills_charm.desc": "可在水下呼吸。",
+  "item.combat.skill_charm": "技能護符",
+  "item.combat.skill_charm.desc": "變身技能冷卻縮短 30%。",
   "item.combat.trinket_bag": "飾品背包",
   "item.combat.trinket_bag.desc": "帶在身上就多開放一格飾品欄。",
   "combat.trinket.hint": "在飾品介面中裝備。",

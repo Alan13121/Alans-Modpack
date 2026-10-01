@@ -72,6 +72,16 @@ def gills():
             put(px, 5 + i * 2, y, (110, 220, 240))
     return px
 
+def skill():
+    px = blank(); chain(px, 8)
+    disc(px, 8, 9, 5, (70, 30, 80), (190, 150, 60))
+    for i in range(5):
+        put(px, 8, 6 + i, (230, 120, 255)); put(px, 6 + i, 9, (230, 120, 255))
+    put(px, 8, 9, (255, 255, 255))
+    for x, y in ((6, 7), (10, 7), (6, 11), (10, 11)):
+        put(px, x, y, (190, 90, 220))
+    return px
+
 def bag():
     px = blank()
     for y in range(5, 14):
@@ -92,6 +102,7 @@ ITEMS = {
     "feather_charm": (feather, [" F ", "FGF", " F "], {"F": "minecraft:feather", "G": "minecraft:gold_ingot"}),
     "night_vision_charm": (night_vision, [" G ", "GCG", " G "], {"G": "minecraft:gold_ingot", "C": "minecraft:golden_carrot"}),
     "gills_charm": (gills, [" P ", "PNP", " P "], {"P": "minecraft:prismarine_shard", "N": "minecraft:nautilus_shell"}),
+    "skill_charm": (skill, [" G ", "GEG", " G "], {"G": "minecraft:gold_ingot", "E": "minecraft:ender_eye"}),
     "trinket_bag": (bag, ["SIS", "L L", "LLL"], {"S": "minecraft:string", "I": "minecraft:iron_ingot", "L": "minecraft:leather"}),
 }
 
@@ -113,6 +124,8 @@ LANG = {
         "item.combat.night_vision_charm.desc": "Grants night vision.",
         "item.combat.gills_charm": "Gills Charm",
         "item.combat.gills_charm.desc": "Lets you breathe underwater.",
+        "item.combat.skill_charm": "Skill Charm",
+        "item.combat.skill_charm.desc": "Shapeshift abilities recharge 30% faster.",
         "item.combat.trinket_bag": "Trinket Bag",
         "item.combat.trinket_bag.desc": "Carry it to unlock one more trinket slot.",
         "combat.trinket.hint": "Equip in the trinket screen.",
@@ -136,6 +149,8 @@ LANG = {
         "item.combat.night_vision_charm.desc": "持續獲得夜視。",
         "item.combat.gills_charm": "鰓之護符",
         "item.combat.gills_charm.desc": "可在水下呼吸。",
+        "item.combat.skill_charm": "技能護符",
+        "item.combat.skill_charm.desc": "變身技能冷卻縮短 30%。",
         "item.combat.trinket_bag": "飾品背包",
         "item.combat.trinket_bag.desc": "帶在身上就多開放一格飾品欄。",
         "combat.trinket.hint": "在飾品介面中裝備。",

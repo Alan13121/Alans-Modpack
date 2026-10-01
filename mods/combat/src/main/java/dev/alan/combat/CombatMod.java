@@ -46,6 +46,8 @@ public final class CombatMod implements ModInitializer {
     public static final Item FEATHER_CHARM = Trinkets.register("feather_charm", null, true);
     public static final Item NIGHT_VISION_CHARM = Trinkets.register("night_vision_charm", MobEffects.NIGHT_VISION, false);
     public static final Item GILLS_CHARM = Trinkets.register("gills_charm", MobEffects.WATER_BREATHING, false);
+    /** Fourth trinket: shapeshift abilities recharge faster. Also the first one that makes trinket bags useful. */
+    public static final Item SKILL_CHARM = Trinkets.register("skill_charm", null, false, true);
     public static final Item TRINKET_BAG = Registry.register(BuiltInRegistries.ITEM, id("trinket_bag"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("trinket_bag"))).stacksTo(16)));
 
@@ -88,6 +90,7 @@ public final class CombatMod implements ModInitializer {
         ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
             if (source.getDirectEntity() instanceof AbstractArrow arrow) BowEffects.onDamaged(entity, arrow, damageTaken);
         });
+        if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("shapeshift")) ShapeshiftLink.register();
         LOG.info("Combat loaded");
     }
 }

@@ -20,7 +20,11 @@ public final class BowEffects {
     public static void onArrowLoaded(AbstractArrow arrow) {
         var weapon = arrow.getWeaponItem();
         if (weapon == null || !weapon.is(Items.BOW)) return;
-        Upgrades upgrades = weapon.getOrDefault(CombatMod.BOW_UPGRADES, Upgrades.EMPTY);
+        attach(arrow, weapon.getOrDefault(CombatMod.BOW_UPGRADES, Upgrades.EMPTY));
+    }
+
+    /** Gives an arrow a bow's upgrades, whether the arrow came from the bow or from something imitating one. */
+    public static void attach(AbstractArrow arrow, Upgrades upgrades) {
         if (upgrades.total() == 0) return;
         arrow.setAttached(CombatMod.ARROW_MODS, upgrades);
         if (upgrades.level(BowUpgrades.Mod.NO_DROP.key) > 0) arrow.setNoGravity(true);

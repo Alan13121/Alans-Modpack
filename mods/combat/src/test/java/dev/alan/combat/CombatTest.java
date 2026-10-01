@@ -72,4 +72,15 @@ class CombatTest {
         assertEquals(new UpgradeRules.Plan(2, 2), UpgradeRules.flatPlan(0, 6, 3, 8, 64));
         assertEquals(new UpgradeRules.Plan(2, 2), UpgradeRules.flatPlan(0, 0, 3, 8, 2));
     }
+
+    @Test void skillPowerGrowsWithEmeraldLevels() {
+        assertEquals(1f, SkillMath.power(0), 1e-6);
+        assertEquals(1.4f, SkillMath.power(8), 1e-6);
+        assertEquals(1f, SkillMath.power(-3), 1e-6);
+    }
+
+    @Test void focusShortensCooldown() {
+        assertEquals(1f, SkillMath.cooldown(false), 1e-6);
+        assertEquals(0.7f, SkillMath.cooldown(true), 1e-6);
+    }
 }

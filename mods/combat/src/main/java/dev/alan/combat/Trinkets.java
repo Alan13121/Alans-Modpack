@@ -31,10 +31,14 @@ public final class Trinkets {
 
     /** Registers the trinket's item and remembers it; only call during mod initialisation. */
     static Item register(String name, Holder<MobEffect> effect, boolean fallImmune) {
+        return register(name, effect, fallImmune, false);
+    }
+
+    static Item register(String name, Holder<MobEffect> effect, boolean fallImmune, boolean skillFocus) {
         ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, CombatMod.id(name));
         Item item = Registry.register(BuiltInRegistries.ITEM, key.identifier(),
             new TrinketItem(new Item.Properties().setId(key).stacksTo(1)));
-        ALL.add(new Trinket(name, item, effect, fallImmune));
+        ALL.add(new Trinket(name, item, effect, fallImmune, skillFocus));
         return item;
     }
 
@@ -79,6 +83,10 @@ public final class Trinkets {
         for (int i = 0; i < active; i++) if (slots.at(i).equals(id)) return true;
         return false;
     }
+    public static boolean wornSkillFocus(Player player) {
+        for (Trinket trinket : ALL) if (trinket.skillFocus() && worn(player, trinket)) return true;
+        return false;
+    }
     public static boolean wornFallImmune(Player player) {
         for (Trinket trinket : ALL) if (trinket.fallImmune() && worn(player, trinket)) return true;
         return false;
@@ -93,10 +101,11 @@ public final class Trinkets {
             MobEffectInstance current = player.getEffect(trinket.effect());
             if (worn(player, trinket)) {
                 any = true;
-                if (current == null || current.getDuration() < REFRESH_BELOW)
+                // An infinite effect is a shapeshift form's own; leave it be.
+                if (current == null || (!current.isInfiniteDuration() && current.getDuration() < REFRESH_BELOW))
                     player.addEffect(new MobEffectInstance(trinket.effect(), EFFECT_TICKS, 0, true, false, false));
             } else if (current != null && GRANTED.contains(player.getUUID()) && current.isAmbient() && !current.isVisible()
-                && current.getDuration() <= EFFECT_TICKS) {
+                && !current.isInfiniteDuration() && current.getDuration() <= EFFECT_TICKS) {
                 player.removeEffect(trinket.effect());
             }
         }

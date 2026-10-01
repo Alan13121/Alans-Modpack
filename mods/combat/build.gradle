@@ -1,5 +1,26 @@
 // 共用設定在根目錄 build.gradle；這裡只放本模組額外的設定。
 
+// 變身技能與戰鬥的連動：只在編譯時看得到 shapeshift 的 API（dev.alan.shapeshift.api）；
+// 執行時由 CombatMod 在偵測到 shapeshift 已安裝時才載入連動類別，沒裝時照常運作。
+// 開發環境（runClient、遊戲測試）則把 shapeshift 一起載入，才能測連動。
+evaluationDependsOn(':mods:shapeshift')
+def shapeshift = project(':mods:shapeshift')
+
+loom {
+	mods {
+		register('shapeshift') {
+			sourceSet shapeshift.sourceSets.main
+			sourceSet shapeshift.sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	compileOnly shapeshift.sourceSets.main.output
+	runtimeOnly shapeshift.sourceSets.main.output
+	runtimeOnly shapeshift.sourceSets.client.output
+}
+
 // 自動化遊戲內測試：./gradlew :mods:combat:runClientGameTest
 // 截圖存到 build/run/clientGameTest/screenshots。
 fabricApi {

@@ -5,6 +5,8 @@
   "item.combat.night_vision_charm.desc": "Grants night vision.",
   "item.combat.gills_charm": "Gills Charm",
   "item.combat.gills_charm.desc": "Lets you breathe underwater.",
+  "item.combat.skill_charm": "Skill Charm",
+  "item.combat.skill_charm.desc": "Shapeshift abilities recharge 30% faster.",
   "item.combat.trinket_bag": "Trinket Bag",
   "item.combat.trinket_bag.desc": "Carry it to unlock one more trinket slot.",
   "combat.trinket.hint": "Equip in the trinket screen.",

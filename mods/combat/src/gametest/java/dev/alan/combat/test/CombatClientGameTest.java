@@ -191,6 +191,87 @@ public final class CombatClientGameTest implements FabricClientGameTest {
         }), "hit slows, burns and the explosion hurts the cow beside the target");
         server.runCommand("kill @e[type=!player]");
 
+        // 4e. Shapeshift skills: gear scales the skeleton's R-key arrow, the skill charm shortens its cooldown,
+        // and the arrow carries the upgrades of the bow in hand.
+        server.runCommand("execute as @p run shapeshift unlockall");
+        server.runCommand("execute as @p run shapeshift into minecraft:skeleton");
+        server.runCommand("tp @p 0 120 0 0 -60");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            player.setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY);
+        });
+        context.waitTicks(10);
+        double plain = fireSkillArrow(context, server);
+        check(plain > 2.4 && plain < 3.6, "unscaled skeleton arrow speed is about 3, got " + plain);
+
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            for (var slot : new net.minecraft.world.entity.EquipmentSlot[] {
+                net.minecraft.world.entity.EquipmentSlot.HEAD, net.minecraft.world.entity.EquipmentSlot.CHEST}) {
+                ItemStack piece = new ItemStack(slot == net.minecraft.world.entity.EquipmentSlot.HEAD
+                    ? net.minecraft.world.item.Items.IRON_HELMET : net.minecraft.world.item.Items.IRON_CHESTPLATE);
+                piece.set(CombatMod.UPGRADES, new dev.alan.combat.Upgrades(java.util.Map.of("emerald", 4)));
+                player.setItemSlot(slot, piece);
+            }
+        });
+        context.waitTicks(30);
+        double scaled = fireSkillArrow(context, server);
+        check(scaled > 3.9 && scaled < 4.6, "8 emerald levels make the arrow about 1.4x as fast, got " + scaled);
+
+        // Cooldown: the arrow ability has 10 ticks. Two presses 8 ticks apart fire twice with the skill charm only.
+        server.runCommand("kill @e[type=minecraft:arrow]");
+        server.runCommand("kill @e[type=minecraft:arrow]");
+        context.waitTicks(30);
+        int without = pressTwice(context, server, 8);
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY.with(0, "combat:skill_charm"));
+        });
+        context.waitTicks(30);
+        server.runCommand("kill @e[type=minecraft:arrow]");
+        int with = pressTwice(context, server, 8);
+        check(without == 1 && with == 2, "skill charm shortens the cooldown: arrows without=" + without + " with=" + with);
+
+        // The arrow takes on the upgrades of the bow in hand.
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            ItemStack bow = new ItemStack(net.minecraft.world.item.Items.BOW);
+            bow.set(CombatMod.BOW_UPGRADES, new dev.alan.combat.Upgrades(java.util.Map.of("no_drop", 1)));
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, bow);
+        });
+        context.waitTicks(30);
+        server.runCommand("kill @e[type=minecraft:arrow]");
+        pressSkill(context);
+        context.waitTicks(2);
+        check(server.computeOnServer(s -> {
+            for (var arrow : s.overworld().getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.AbstractArrow.class,
+                new net.minecraft.world.phys.AABB(-200, 100, -200, 200, 300, 200)))
+                if (arrow.isNoGravity() && arrow.hasAttached(CombatMod.ARROW_MODS)) return true;
+            return false;
+        }), "skill arrow carries the upgrades of the bow in hand");
+
+        // A form's own infinite night vision is not removed by taking a night vision charm off.
+        server.runCommand("execute as @p run shapeshift into minecraft:cat");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            player.setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY.with(0, "combat:night_vision_charm"));
+        });
+        context.waitTicks(40);
+        server.runOnServer(s -> s.getPlayerList().getPlayers().get(0).setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY));
+        context.waitTicks(40);
+        check(server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).hasEffect(MobEffects.NIGHT_VISION)),
+            "cat form keeps its night vision after the charm is removed");
+        server.runCommand("execute as @p run shapeshift human");
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.HEAD, ItemStack.EMPTY);
+            player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.CHEST, ItemStack.EMPTY);
+            player.setAttached(CombatMod.SLOTS, dev.alan.combat.TrinketSlots.EMPTY.with(2, "combat:gills_charm"));
+        });
+        context.waitTicks(5);
+
         // 5. Trinkets survive death.
         server.runCommand("kill @p");
         context.waitTicks(10);
@@ -201,6 +282,38 @@ public final class CombatClientGameTest implements FabricClientGameTest {
             return player.isAlive() && CombatMod.id("gills_charm").toString().equals(player.getAttached(CombatMod.SLOTS).at(2));
         }), "trinkets kept after death");
         }
+    }
+
+    private static net.minecraft.client.KeyMapping skillKey(ClientGameTestContext context) {
+        return context.computeOnClient(mc -> net.minecraft.client.KeyMapping.get("key.shapeshift.ability"));
+    }
+
+    private static void pressSkill(ClientGameTestContext context) {
+        context.getInput().pressKey(skillKey(context));
+    }
+
+    /** Presses R once and returns the speed of the arrow it launched. */
+    private static double fireSkillArrow(ClientGameTestContext context, TestServerContext server) {
+        server.runCommand("kill @e[type=minecraft:arrow]");
+        pressSkill(context);
+        context.waitTicks(1);
+        return server.computeOnServer(s -> {
+            double best = 0;
+            for (var arrow : s.overworld().getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.AbstractArrow.class,
+                new net.minecraft.world.phys.AABB(-200, 100, -200, 200, 300, 200)))
+                best = Math.max(best, arrow.getDeltaMovement().length());
+            return best;
+        });
+    }
+
+    /** Presses R, waits 8 ticks, presses R again, and counts the arrows in the air. */
+    private static int pressTwice(ClientGameTestContext context, TestServerContext server, int gap) {
+        pressSkill(context);
+        context.waitTicks(gap);
+        pressSkill(context);
+        context.waitTicks(2);
+        return server.computeOnServer(s -> s.overworld().getEntitiesOfClass(net.minecraft.world.entity.projectile.arrow.AbstractArrow.class,
+            new net.minecraft.world.phys.AABB(-200, 100, -200, 200, 300, 200)).size());
     }
 
     private static void check(boolean condition, String what) {
