@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "combat-test",
+  "version": "1.0.0",
+  "name": "Combat client game tests",
+  "environment": "*",
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.combat.test.CombatClientGameTest"]},
+  "depends": {"combat": "*"}
+}

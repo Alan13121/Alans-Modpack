@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "combat",
+  "version": "${version}",
+  "name": "Combat / 戰鬥",
+  "description": "",
+  "authors": ["Alan"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.alan.combat.CombatMod"], "client": ["dev.alan.combat.client.CombatClient"]},
+  "mixins": ["combat.mixins.json", {"config": "combat.client.mixins.json", "environment": "client"}],
+  "depends": {"fabricloader": ">=${loader_version}", "minecraft": "${minecraft_version}", "java": ">=${java_version}", "fabric-api": "*"}
+}

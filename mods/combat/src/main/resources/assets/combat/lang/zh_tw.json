@@ -1,0 +1,16 @@
+{
+  "item.combat.feather_charm": "羽毛護符",
+  "item.combat.feather_charm.desc": "免疫摔落傷害。",
+  "item.combat.night_vision_charm": "夜視護符",
+  "item.combat.night_vision_charm.desc": "持續獲得夜視。",
+  "item.combat.gills_charm": "鰓之護符",
+  "item.combat.gills_charm.desc": "可在水下呼吸。",
+  "item.combat.trinket_bag": "飾品背包",
+  "item.combat.trinket_bag.desc": "帶在身上就多開放一格飾品欄。",
+  "combat.trinket.hint": "在飾品介面中裝備。",
+  "container.combat.trinkets": "飾品",
+  "combat.trinkets.slots": "%s / %s 格",
+  "combat.trinkets.hint": "身上的飾品背包：%s",
+  "key.combat.trinkets": "開啟飾品欄",
+  "key.category.combat.main": "戰鬥"
+}
