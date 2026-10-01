@@ -14,7 +14,7 @@ import net.minecraft.world.item.Item;
  */
 public record Trinket(String name, Item item, Holder<MobEffect> effect, Boost boost, Set<Perk> perks) {
     /** Behaviour that is implemented where it happens (damage events, ticking, loot) and looked up by {@link Trinkets#has}. */
-    public enum Perk { FALL_IMMUNE, SKILL_FOCUS, REGEN, MAGNET, BLAST_WARD, THORNS, HUNTER }
+    public enum Perk { FALL_IMMUNE, SKILL_FOCUS, REGEN, MAGNET, BLAST_WARD, THORNS, HUNTER, FORM_MASTER }
 
     public record Boost(Holder<Attribute> attribute, double amount, AttributeModifier.Operation operation) {}
 
