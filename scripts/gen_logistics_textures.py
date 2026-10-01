@@ -191,6 +191,16 @@ def coal_generator():
             if (x * 3 + y) % 4 != 0: put(px, x, y, (240, 150, 40) if y > 8 else (255, 210, 90))
     return px
 
+def chunk_loader():
+    px = canvas((96, 50, 96), 27)
+    frame(px, (54, 26, 54), (240, 150, 240))
+    for y in range(3, 13):
+        for x in range(3, 13): put(px, x, y, (30, 16, 30))
+    for i in range(3, 13):
+        put(px, i, 6, (230, 140, 230)); put(px, i, 9, (230, 140, 230)); put(px, 6, i, (230, 140, 230)); put(px, 9, i, (230, 140, 230))
+    put(px, 7, 7, (255, 230, 255)); put(px, 8, 8, (255, 230, 255)); put(px, 7, 8, (255, 230, 255)); put(px, 8, 7, (255, 230, 255))
+    return px
+
 def teleporter_top():
     px = canvas((70, 40, 110), 25)
     frame(px, (36, 20, 60), (210, 160, 255))
@@ -244,7 +254,7 @@ for name, px in [("controller_side", controller_side()), ("controller_top", cont
                  ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
                  ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False)),
                  ("channel", channel_block()), ("antenna", antenna()), ("solar_top", solar_top()), ("solar_side", solar_side()),
-                 ("coal_generator", coal_generator()), ("teleporter_top", teleporter_top()), ("teleporter_side", teleporter_side()),
+                 ("coal_generator", coal_generator()), ("chunk_loader", chunk_loader()), ("teleporter_top", teleporter_top()), ("teleporter_side", teleporter_side()),
                  ("../item/channel_card", item_card()), ("../item/wireless_terminal", item_wireless())]:
     target = os.path.join(OUT, name + ".png")
     # Never overwrite a texture that already exists (it may have been replaced by hand); pass --force to regenerate.

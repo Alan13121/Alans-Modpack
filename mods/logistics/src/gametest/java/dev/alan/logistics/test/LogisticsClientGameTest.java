@@ -28,6 +28,8 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         farming(context);
         autocrafting(context);
         transmission(context);
+        twoChannelBlocks(context);
+        crossDimension(context);
     }
 
     /** Two warehouses on one channel merge; energy, generators, antennas and teleporters work across them. */
@@ -90,11 +92,45 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.waitForScreen(dev.alan.logistics.client.DeviceScreen.class);
             context.waitTicks(5);
             context.takeScreenshot("12-channel-block");
-            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_UP));
+            // Named channels: create a private one, check who can use it, rename, publish, delete, then go back to channel 5.
+            java.util.function.BiConsumer<dev.alan.logistics.ChannelAction.Kind, Object[]> act = (kind, args) -> context.runOnClient(mc ->
+                net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new dev.alan.logistics.ChannelAction(mc.player.containerMenu.containerId,
+                    kind, (Integer) args[0], (String) args[1], (Boolean) args[2])));
+            act.accept(dev.alan.logistics.ChannelAction.Kind.CREATE, new Object[] {0, "Base", false});
             context.waitTicks(10);
-            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 6, "the channel button went 5 -> 6");
-            context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.logistics.DeviceMenu.CHANNEL_DOWN));
-            context.waitTicks(5);
+            int created = context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0));
+            check(created >= dev.alan.logistics.ChannelRegistry.FIRST_ID, "a new channel gets an id from 10000 up, got " + created);
+            check(context.computeOnClient(mc -> dev.alan.logistics.client.ClientChannels.label(created).startsWith("Base")), "the client knows the new channel's name");
+            check(world.getServer().computeOnServer(server -> {
+                var registry = dev.alan.logistics.ChannelRegistry.get(server);
+                var info = registry.info(created);
+                var stranger = java.util.UUID.randomUUID();
+                var owner = server.getPlayerList().getPlayers().get(0).getUUID();
+                return info != null && info.name().equals("Base") && !info.isPublic() && info.owner().equals(owner)
+                    && !registry.canUse(created, stranger, false) && registry.canUse(created, stranger, true) && registry.canUse(created, owner, false)
+                    && registry.visibleTo(stranger, false, java.util.List.of()).stream().noneMatch(i -> i.id() == created)
+                    && !registry.canManage(created, stranger, false) && registry.canManage(created, owner, false);
+            }), "a private channel is usable only by its owner (and operators)");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.CREATE, new Object[] {0, "base", true});
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == created, "a duplicate name is refused");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.RENAME, new Object[] {0, "Home", false});
+            act.accept(dev.alan.logistics.ChannelAction.Kind.SET_PUBLIC, new Object[] {0, "", true});
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> {
+                var registry = dev.alan.logistics.ChannelRegistry.get(server);
+                var info = registry.info(created);
+                return info.name().equals("Home") && info.isPublic() && registry.canUse(created, java.util.UUID.randomUUID(), false);
+            }), "rename and publish worked");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.DELETE, new Object[] {0, "", false});
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> dev.alan.logistics.ChannelRegistry.get(server).info(created) == null
+                && !dev.alan.logistics.ChannelRegistry.isLive(created)), "a deleted channel is gone");
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 0, "the block lost its deleted channel");
+            act.accept(dev.alan.logistics.ChannelAction.Kind.SELECT, new Object[] {5, "", false});
+            context.waitTicks(10);
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.DeviceMenu) mc.player.containerMenu).extra(0)) == 5, "an old numbered channel can still be selected");
+            context.takeScreenshot("12a-channel-selected");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
             world.getServer().runCommand("tp @p 1.5 120 -3.5 0 20");
@@ -207,6 +243,127 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             context.waitTicks(30);
             x = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().get(0).getX());
             check(x < 5, "no energy, no teleport, x=" + x);
+        }
+    }
+
+    /** Two channel blocks on one network: same channel, then different channels. */
+    private void twoChannelBlocks(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 80 119 8 minecraft:stone", "fill -8 120 -8 80 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:channel", "setblock 1 121 0 logistics:channel",
+                "setblock 0 121 0 logistics:cell",
+                "setblock 30 120 0 logistics:controller", "setblock 31 120 0 logistics:cable", "setblock 32 120 0 logistics:channel", "setblock 30 121 0 logistics:cell",
+                "setblock 60 120 0 logistics:controller", "setblock 61 120 0 logistics:cable", "setblock 62 120 0 logistics:channel", "setblock 60 121 0 logistics:cell",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(5);
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var a = new net.minecraft.core.BlockPos(0, 120, 0);
+                var c = new net.minecraft.core.BlockPos(60, 120, 0);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(1, 121, 0))).setChannel(6);
+                ((dev.alan.logistics.ChannelBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(62, 120, 0))).setChannel(6);
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(60, 121, 0))).insert(new ItemStack(Items.GOLD_INGOT, 1), true);
+                var network = dev.alan.logistics.Network.scan(level, a);
+                var warehouse = dev.alan.logistics.Warehouse.at(level, a);
+                return network.status == dev.alan.logistics.Network.Status.MULTIPLE_CHANNELS && !network.usable() && !warehouse.usable()
+                    && dev.alan.logistics.Warehouse.at(level, c).count(new ItemStack(Items.GOLD_INGOT)) == 1
+                    && dev.alan.logistics.Warehouse.at(level, c).typeCount() == 1;
+            }), "two channel blocks in one network make it unusable and do not bridge other networks");
+            world.getServer().runCommand("setblock 1 121 0 minecraft:air");
+            context.waitTicks(5);
+            check(world.getServer().computeOnServer(server -> {
+                var level = server.overworld();
+                var network = dev.alan.logistics.Network.scan(level, new net.minecraft.core.BlockPos(0, 120, 0));
+                return network.usable() && network.channels().equals(java.util.Set.of(5));
+            }), "removing the second channel block makes the network work again");
+        }
+    }
+
+    /**
+     * A pad in the overworld and one in the nether on the same channel. The nether chunks are then unloaded: the pad is
+     * still listed (saved pad list) and stepping on the overworld pad arrives there. Chunk loaders force their chunks.
+     */
+    private void crossDimension(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "setblock 0 120 0 logistics:controller", "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:channel", "setblock 3 120 0 logistics:teleporter",
+                "execute in minecraft:the_nether run forceload add -16 -16 16 16",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(60);
+            for (String command : new String[] {
+                "execute in minecraft:the_nether run fill -8 119 -8 8 119 8 minecraft:stone",
+                "execute in minecraft:the_nether run fill -8 120 -8 8 126 8 minecraft:air",
+                "execute in minecraft:the_nether run setblock 0 120 0 logistics:controller",
+                "execute in minecraft:the_nether run setblock 1 120 0 logistics:cable",
+                "execute in minecraft:the_nether run setblock 2 120 0 logistics:channel",
+                "execute in minecraft:the_nether run setblock 3 120 0 logistics:teleporter",
+            }) world.getServer().runCommand(command);
+            context.waitTicks(5);
+            world.getServer().runOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                var overworld = server.overworld();
+                ((dev.alan.logistics.ChannelBlockEntity) overworld.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                ((dev.alan.logistics.ChannelBlockEntity) nether.getBlockEntity(new net.minecraft.core.BlockPos(2, 120, 0))).setChannel(5);
+                dev.alan.logistics.Energy.add(java.util.Set.of(5), 50);
+            });
+            context.waitTicks(60); // the pads register themselves in the saved pad list
+            world.getServer().runCommand("execute in minecraft:the_nether run forceload remove all");
+            context.waitTicks(200);
+            check(world.getServer().computeOnServer(server -> !server.getLevel(net.minecraft.world.level.Level.NETHER).getChunkSource().hasChunk(0, 0)),
+                "the nether chunks are unloaded now");
+            check(world.getServer().computeOnServer(server -> {
+                var overworld = server.overworld();
+                var pad = (dev.alan.logistics.TeleporterBlockEntity) overworld.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 0));
+                var dests = pad.destinations();
+                if (dests.size() != 1 || !dests.get(0).dimension().equals("minecraft:the_nether")) return false;
+                pad.setTarget(dests.get(0));
+                return pad.setMode(dev.alan.logistics.TeleporterBlockEntity.ALWAYS);
+            }), "the unloaded nether pad is still listed as a destination");
+            world.getServer().runCommand("tp @p 3.5 121 0.5");
+            context.waitTicks(60);
+            check(world.getServer().computeOnServer(server -> {
+                var player = server.getPlayerList().getPlayers().get(0);
+                return player.level().dimension().equals(net.minecraft.world.level.Level.NETHER) && Math.abs(player.getX() - 3.5) < 1;
+            }), "the player arrived in the nether");
+            check(world.getServer().computeOnServer(server -> dev.alan.logistics.Energy.availableAt(server.overworld(), new net.minecraft.core.BlockPos(0, 120, 0)) == 40),
+                "the trip cost 10 energy");
+
+            // Chunk loader: the 3x3 chunks around it are forced, released when it is broken, and shared chunks stay.
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 logistics:chunk_loader");
+            context.waitTicks(40);
+            check(world.getServer().computeOnServer(server -> {
+                var forced = server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks();
+                for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) if (!forced.contains(net.minecraft.world.level.ChunkPos.pack(x, z))) return false;
+                return forced.size() == 9;
+            }), "a chunk loader forces the 3x3 chunks around it");
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 4 120 0 logistics:cable");
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 4 121 0 logistics:chunk_loader");
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                var network = dev.alan.logistics.Network.scan(nether, new net.minecraft.core.BlockPos(0, 120, 0));
+                return network.status == dev.alan.logistics.Network.Status.MULTIPLE_LOADERS && !network.usable();
+            }), "two chunk loaders in one network stop it");
+            world.getServer().runOnServer(server -> {
+                var nether = server.getLevel(net.minecraft.world.level.Level.NETHER);
+                nether.destroyBlock(new net.minecraft.core.BlockPos(4, 121, 0), false);
+                nether.destroyBlock(new net.minecraft.core.BlockPos(1, 121, 0), false);
+            });
+            context.waitTicks(10);
+            check(world.getServer().computeOnServer(server -> server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks().isEmpty()),
+                "breaking the loaders releases their chunks");
+            // A loader removed behind our back (setblock) is caught by the periodic check.
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 logistics:chunk_loader");
+            context.waitTicks(40);
+            world.getServer().runCommand("execute in minecraft:the_nether run setblock 1 121 0 minecraft:air");
+            context.waitTicks(250);
+            check(world.getServer().computeOnServer(server -> server.getLevel(net.minecraft.world.level.Level.NETHER).getForceLoadedChunks().isEmpty()),
+                "a loader that vanished is released by the periodic check");
         }
     }
 

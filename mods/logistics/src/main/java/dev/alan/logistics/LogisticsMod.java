@@ -105,6 +105,10 @@ public final class LogisticsMod implements ModInitializer {
     public static final DataComponentType<Integer> CHANNEL = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("channel"),
         DataComponentType.<Integer>builder().persistent(com.mojang.serialization.Codec.intRange(1, ChannelCardItem.MAX_CHANNEL))
             .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
+    /** The channel an alchemy backpack was set to directly (a card in its slot is the fallback). */
+    public static final DataComponentType<Integer> BAG_CHANNEL = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bag_channel"),
+        DataComponentType.<Integer>builder().persistent(com.mojang.serialization.Codec.intRange(1, ChannelCardItem.MAX_CHANNEL))
+            .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.VAR_INT).build());
     /** The channel card inside an alchemy backpack. */
     public static final DataComponentType<net.minecraft.world.item.ItemStack> BAG_CARD = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("bag_card"),
         DataComponentType.<net.minecraft.world.item.ItemStack>builder().persistent(net.minecraft.world.item.ItemStack.CODEC)
@@ -117,6 +121,7 @@ public final class LogisticsMod implements ModInitializer {
     public static final DeviceBlock ANTENNA = block("antenna", p -> new DeviceBlock(p, DeviceMenu.Kind.ANTENNA, () -> LogisticsMod.ANTENNA_ENTITY, null), metal(MapColor.METAL));
     public static final DeviceBlock SOLAR = block("solar_generator", p -> new DeviceBlock(p, null, () -> LogisticsMod.SOLAR_ENTITY, SolarGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLUE));
     public static final DeviceBlock COAL_GENERATOR = block("coal_generator", p -> new DeviceBlock(p, DeviceMenu.Kind.COAL, () -> LogisticsMod.COAL_ENTITY, CoalGeneratorBlockEntity::serverTick), metal(MapColor.COLOR_BLACK));
+    public static final ChunkLoaderBlock CHUNK_LOADER = block("chunk_loader", ChunkLoaderBlock::new, metal(MapColor.COLOR_MAGENTA));
     public static final TeleporterBlock TELEPORTER = block("teleporter", TeleporterBlock::new,
         metal(MapColor.COLOR_PURPLE).lightLevel(state -> state.getValue(TeleporterBlock.OPEN) ? 10 : 0));
 
@@ -128,6 +133,8 @@ public final class LogisticsMod implements ModInitializer {
         id("solar_generator"), new BlockEntityType<>(SolarGeneratorBlockEntity::new, Set.of(SOLAR)));
     public static final BlockEntityType<CoalGeneratorBlockEntity> COAL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("coal_generator"), new BlockEntityType<>(CoalGeneratorBlockEntity::new, Set.of(COAL_GENERATOR)));
+    public static final BlockEntityType<ChunkLoaderBlockEntity> LOADER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("chunk_loader"), new BlockEntityType<>(ChunkLoaderBlockEntity::new, Set.of(CHUNK_LOADER)));
     public static final BlockEntityType<TeleporterBlockEntity> TELEPORTER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("teleporter"), new BlockEntityType<>(TeleporterBlockEntity::new, Set.of(TELEPORTER)));
 
@@ -146,6 +153,7 @@ public final class LogisticsMod implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             Network.clearCaches();
             Grid.clear();
+            ChannelRegistry.setCurrent(null);
         });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register((level, chunk, generated) -> Network.invalidateChunk(level, chunk.getPos()));
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> Network.invalidateChunk(level, chunk.getPos()));
@@ -153,6 +161,12 @@ public final class LogisticsMod implements ModInitializer {
         Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id("cell_decompress"), CellDecompressRecipe.SERIALIZER);
         PayloadTypeRegistry.clientboundPlay().register(TerminalSnapshot.TYPE, TerminalSnapshot.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TeleporterList.TYPE, TeleporterList.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ChannelSync.TYPE, ChannelSync.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ChannelAction.TYPE, ChannelAction.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ChannelAction.TYPE, (payload, context) -> ChannelActions.handle(context.player(), payload));
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> ChannelSync.send(handler.getPlayer()));
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(ChunkLoaders::check);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(server -> ChannelRegistry.setCurrent(ChannelRegistry.get(server)));
         PayloadTypeRegistry.serverboundPlay().register(TerminalAction.TYPE, TerminalAction.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TerminalAction.TYPE, (payload, context) -> {
             var menu = context.player().containerMenu;
@@ -174,6 +188,7 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(SOLAR);
             entries.accept(COAL_GENERATOR);
             entries.accept(TELEPORTER);
+            entries.accept(CHUNK_LOADER);
             entries.accept(CHANNEL_CARD);
             entries.accept(WIRELESS_TERMINAL);
         });

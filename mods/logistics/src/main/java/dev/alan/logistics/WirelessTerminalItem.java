@@ -32,7 +32,7 @@ public final class WirelessTerminalItem extends Item {
     @Override public InteractionResult use(Level level, Player player, InteractionHand hand) {
         if (level.isClientSide() || !(player instanceof ServerPlayer serverPlayer)) return InteractionResult.SUCCESS;
         int channel = ChannelCardItem.channelOf(player.getItemInHand(hand));
-        if (channel == 0) {
+        if (channel == 0 || !ChannelRegistry.isLive(channel)) {
             player.sendOverlayMessage(Component.translatable("logistics.wireless.unbound"));
             return InteractionResult.FAIL;
         }

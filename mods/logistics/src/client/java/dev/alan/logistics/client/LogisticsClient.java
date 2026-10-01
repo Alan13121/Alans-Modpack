@@ -23,6 +23,8 @@ public final class LogisticsClient implements ClientModInitializer {
         MenuScreens.register(LogisticsMod.TELEPORTER_MENU, TeleporterScreen::new);
         net.minecraft.client.renderer.blockentity.BlockEntityRenderers.register(LogisticsMod.TELEPORTER_ENTITY,
             context -> new net.minecraft.client.renderer.blockentity.BeaconRenderer<TeleporterBlockEntity>());
+        ClientPlayNetworking.registerGlobalReceiver(ChannelSync.TYPE, (payload, context) ->
+            context.client().execute(() -> ClientChannels.set(payload.channels())));
         ClientPlayNetworking.registerGlobalReceiver(TeleporterList.TYPE, (payload, context) ->
             context.client().execute(() -> {
                 var menu = context.client().player == null ? null : context.client().player.containerMenu;
@@ -36,7 +38,7 @@ public final class LogisticsClient implements ClientModInitializer {
             }));
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {
             int channel = stack.getOrDefault(LogisticsMod.CHANNEL, 0);
-            if (channel > 0) lines.add(Component.translatable("logistics.channel.number", channel).withStyle(ChatFormatting.AQUA));
+            if (channel > 0) lines.add(Component.translatable("logistics.channel.tooltip", ClientChannels.label(channel)).withStyle(ChatFormatting.AQUA));
             var data = stack.get(LogisticsMod.CELL_DATA);
             if (data == null || !(stack.getItem() instanceof net.minecraft.world.item.BlockItem item
                 && item.getBlock() instanceof dev.alan.logistics.CellBlock cell)) return;

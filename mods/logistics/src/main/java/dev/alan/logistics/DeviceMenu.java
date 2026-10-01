@@ -51,7 +51,7 @@ public final class DeviceMenu extends AbstractContainerMenu {
     }
 
     /** {@link #clickMenuButton} ids of the channel block. */
-    public static final int CHANNEL_DOWN = 0, CHANNEL_UP = 1, CHANNEL_DOWN_MANY = 2, CHANNEL_UP_MANY = 3, WRITE_CARD = 4;
+    public static final int WRITE_CARD = 4, READ_CARD = 5;
 
     public final Kind kind;
     public final EnergyData data;
@@ -59,6 +59,7 @@ public final class DeviceMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final Block block;
     private final int slotEnd;
+    public final int imageHeight;
 
     public static DeviceMenu client(int id, Inventory inventory, Kind kind) {
         return new DeviceMenu(id, inventory, kind, new SimpleContainer(1), new EnergyData(kind.extras), ContainerLevelAccess.NULL, null);
@@ -83,14 +84,22 @@ public final class DeviceMenu extends AbstractContainerMenu {
         this.access = access;
         this.block = block;
         addDataSlots(data);
-        addSlot(new Slot(container, 0, 80, 52) {
+        boolean channel = kind == Kind.CHANNEL;
+        this.imageHeight = channel ? 236 : 180;
+        int invY = channel ? 154 : 98;
+        addSlot(new Slot(container, 0, channel ? 8 : 80, channel ? 108 : 52) {
             @Override public boolean mayPlace(ItemStack stack) { return kind.accepts(stack); }
             @Override public int getMaxStackSize() { return kind.maxStack(); }
         });
         slotEnd = slots.size();
         for (int row = 0; row < 3; row++) for (int col = 0; col < 9; col++)
-            addSlot(new Slot(inventory, col + row * 9 + 9, 8 + col * 18, 98 + row * 18));
-        for (int col = 0; col < 9; col++) addSlot(new Slot(inventory, col, 8 + col * 18, 156));
+            addSlot(new Slot(inventory, col + row * 9 + 9, 8 + col * 18, invY + row * 18));
+        for (int col = 0; col < 9; col++) addSlot(new Slot(inventory, col, 8 + col * 18, invY + 58));
+    }
+
+    /** The channel block this menu belongs to (server side only). */
+    public ChannelBlockEntity channelBlock() {
+        return access.evaluate((level, pos) -> level.getBlockEntity(pos) instanceof ChannelBlockEntity be ? be : null, null);
     }
 
     public long energy() { return EnergyData.read(data); }
@@ -102,11 +111,8 @@ public final class DeviceMenu extends AbstractContainerMenu {
         access.execute((level, pos) -> {
             if (!(level.getBlockEntity(pos) instanceof ChannelBlockEntity be)) return;
             switch (id) {
-                case CHANNEL_DOWN -> be.setChannel(be.channel() - 1);
-                case CHANNEL_UP -> be.setChannel(be.channel() + 1);
-                case CHANNEL_DOWN_MANY -> be.setChannel(be.channel() - 10);
-                case CHANNEL_UP_MANY -> be.setChannel(be.channel() + 10);
                 case WRITE_CARD -> be.writeCard();
+                case READ_CARD -> be.readCard();
                 default -> { return; }
             }
             done[0] = true;

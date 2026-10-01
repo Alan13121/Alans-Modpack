@@ -40,6 +40,11 @@ public final class BagMenu extends AbstractContainerMenu {
             @Override public boolean mayPlace(ItemStack stack) { return index != bagSlot.get(); }
         });
     }
+    /** The backpack stack this menu was opened on (works on the client too, where {@code original} is not known). */
+    public ItemStack bag() {
+        int i = bagSlot.get();
+        return i >= 0 && i < 9 ? inventory.getItem(i) : ItemStack.EMPTY;
+    }
     public BagData data() {
         int i = bagSlot.get();
         return i >= 0 && i < 9 ? inventory.getItem(i).getOrDefault(AlchemyMod.DATA, BagData.EMPTY) : BagData.EMPTY;

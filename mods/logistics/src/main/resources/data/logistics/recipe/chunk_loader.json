@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"redstone","pattern":["OEO","ECE","ODO"],"key":{"O":"minecraft:obsidian","E":"minecraft:ender_eye","C":"logistics:controller","D":"minecraft:diamond"},"result":{"id":"logistics:chunk_loader","count":1}}

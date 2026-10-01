@@ -170,7 +170,12 @@ final class WarehousePanel {
     void drawLabels(GuiGraphicsExtractor g, int summaryY) {
         int centerX = gridX + COLS * CELL / 2, centerY = gridY + rows * CELL / 2 - 4;
         if (link.status() != Network.Status.OK) {
-            Component msg = Component.translatable(link.status() == Network.Status.MULTIPLE_CONTROLLERS ? "logistics.status.multiple" : "logistics.status.none");
+            Component msg = Component.translatable(switch (link.status()) {
+                case MULTIPLE_CONTROLLERS -> "logistics.status.multiple";
+                case MULTIPLE_CHANNELS -> "logistics.status.channels";
+                case MULTIPLE_LOADERS -> "logistics.status.loaders";
+                default -> "logistics.status.none";
+            });
             var lines = font.split(msg, COLS * CELL - 8);
             for (int i = 0; i < lines.size(); i++)
                 g.centeredText(font, lines.get(i), centerX, centerY + i * 10 - (lines.size() - 1) * 5, 0xFFE58A8A);

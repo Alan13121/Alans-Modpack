@@ -19,6 +19,9 @@ import net.minecraft.world.item.ItemStack;
 public final class BagScreen extends AbstractContainerScreen<BagMenu> {
     /** Extra labels other mods draw into the backpack screen (relative to its top-left corner). */
     public static final List<java.util.function.BiConsumer<GuiGraphicsExtractor, net.minecraft.client.gui.Font>> LABELS = new ArrayList<>();
+    /** Widgets other mods add to the backpack screen; called from init with the screen's top-left corner. */
+    public interface Extension { void init(BagScreen screen, java.util.function.Consumer<net.minecraft.client.gui.components.AbstractWidget> add, int left, int top); }
+    public static final List<Extension> EXTENSIONS = new ArrayList<>();
     private static final int ROWS = 6;
     private final Button[] one = new Button[ROWS], stack = new Button[ROWS];
     private final List<Integer> filtered = new ArrayList<>();
@@ -47,6 +50,7 @@ public final class BagScreen extends AbstractContainerScreen<BagMenu> {
             .bounds(leftPos + 190, topPos + 211, 24, 18).build());
         next = addRenderableWidget(Button.builder(Component.literal(">"), b -> { page++; refresh(); })
             .bounds(leftPos + 324, topPos + 211, 24, 18).build());
+        for (var extension : EXTENSIONS) extension.init(this, this::addRenderableWidget, leftPos, topPos);
         refresh();
     }
     private ItemStack item(int learnedIndex) {

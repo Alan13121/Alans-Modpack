@@ -8,7 +8,7 @@ import net.minecraft.world.item.ItemStack;
  * terminals) carry the channel as the {@link LogisticsMod#CHANNEL} component.
  */
 public final class ChannelCardItem extends Item {
-    public static final int MAX_CHANNEL = 9999;
+    public static final int MAX_CHANNEL = Integer.MAX_VALUE;
 
     public ChannelCardItem(Properties properties) { super(properties); }
 
