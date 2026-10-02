@@ -53,8 +53,18 @@ public final class GuideGameTest implements FabricClientGameTest {
                         }
                     }
                 System.out.println("[guide-test] advancements=" + all.size() + " roots=" + roots + " missingTables=" + missingTables);
-                return all.size() == 30 && roots == 6 && missingTables == 0;
-            }), "30 advancements in 6 chapters, and every reward table exists");
+                return all.size() == 35 && roots == 6 && missingTables == 0;
+            }), "35 advancements (30 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
+
+            // 1b. The handbook: one on first join, never a second, /guidebook only when none is carried, and no re-issue on rejoin.
+            check(books(server) == 1, "the first join handed out exactly one handbook");
+            server.runCommand("execute as @p run guidebook");
+            check(books(server) == 1, "/guidebook with a book in the inventory adds nothing");
+            server.runCommand("clear @p guide:handbook");
+            server.runOnServer(s -> dev.alan.guide.Handbook.onJoin(player(s)));
+            check(books(server) == 0, "a later join does not hand out another book");
+            server.runCommand("execute as @p run guidebook");
+            check(books(server) == 1, "/guidebook replaces a lost book");
 
             // 2. Chapter 1 with vanilla triggers: pickaxe, depth, the eight ores and the leather/chest reward.
             server.runCommand("give @p minecraft:iron_pickaxe");
@@ -223,6 +233,15 @@ public final class GuideGameTest implements FabricClientGameTest {
         return server.computeOnServer(s -> {
             var holder = s.getAdvancements().get(Identifier.fromNamespaceAndPath("guide", path));
             return holder != null && player(s).getAdvancements().getOrStartProgress(holder).isDone();
+        });
+    }
+
+    private static int books(TestServerContext server) {
+        return server.computeOnServer(s -> {
+            int n = 0;
+            var inv = player(s).getInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) if (dev.alan.guide.Handbook.isHandbook(inv.getItem(i))) n += inv.getItem(i).getCount();
+            return n;
         });
     }
 
