@@ -99,7 +99,7 @@ final class ItemListOverlay {
         Component label = Component.translatable(cheat ? "lookup.cheat.label_on" : "lookup.cheat.label_off");
         boolean overLabel = mouseX >= left && mouseX < left + font.width(label) + 2 && mouseY >= 2 && mouseY < 12;
         g.text(font, label, left, 3, cheat ? 0xFFFFAA00 : overLabel ? 0xFFFFFFFF : 0xFF909090, true);
-        if (overLabel) g.setTooltipForNextFrame(font, Component.translatable("lookup.cheat.tip"), mouseX, mouseY);
+        if (overLabel) ItemTooltip.drawText(g, font, Component.translatable("lookup.cheat.tip"), mouseX, mouseY);
         ItemStack hover = itemAt(mouseX, mouseY);
         if (bookmarkRows() == 1) {
             g.fill(left, top, left + cols * CELL, top + CELL, 0x50FFCC00);
@@ -121,7 +121,7 @@ final class ItemListOverlay {
         search.extractRenderState(g, mouseX, mouseY, 0);
         button(g, prevX(), "<", page > 0, mouseX, mouseY);
         button(g, nextX(), ">", page + 1 < pages(), mouseX, mouseY);
-        if (hover != null) g.setTooltipForNextFrame(font, hover, mouseX, mouseY);
+        if (hover != null) ItemTooltip.draw(g, mc, font, hover, List.of(), mouseX, mouseY);
     }
 
     private void button(GuiGraphicsExtractor g, int x, String label, boolean active, int mouseX, int mouseY) {

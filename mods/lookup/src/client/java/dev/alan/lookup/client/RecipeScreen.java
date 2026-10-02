@@ -160,13 +160,7 @@ public final class RecipeScreen extends Screen {
     }
 
     private void tooltip(GuiGraphicsExtractor g, RecipePainter.Hover hover, int mouseX, int mouseY) {
-        if (hover.extra().isEmpty()) {
-            g.setTooltipForNextFrame(font, hover.stack(), mouseX, mouseY);
-            return;
-        }
-        List<Component> lines = new ArrayList<>(Screen.getTooltipFromItem(minecraft, hover.stack()));
-        lines.addAll(hover.extra());
-        g.setTooltipForNextFrame(font, lines, hover.stack().getTooltipImage(), mouseX, mouseY);
+        g.setTooltipForNextFrame(font, ItemTooltip.lines(minecraft, hover.stack(), hover.extra()), hover.stack().getTooltipImage(), mouseX, mouseY);
     }
 
     private @Nullable ItemStack stackAt(int mouseX, int mouseY) {

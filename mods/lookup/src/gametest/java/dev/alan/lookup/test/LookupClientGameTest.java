@@ -26,6 +26,18 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             context.waitTicks(10);
             context.takeScreenshot("01-inventory-list");
 
+            // Hover the first cell of the item list: name and owning mod should show.
+            double[] cell = context.computeOnClient(mc -> {
+                var w = mc.getWindow();
+                int width = w.getGuiScaledWidth();
+                int cols = Math.min((width - 4 - ((width - 176) / 2 + 176 + 8)) / 18, 12);
+                int left = width - 4 - cols * 18;
+                return new double[] {(left + 9) * w.getGuiScale(), (22 + 9) * w.getGuiScale()};
+            });
+            context.getInput().setCursorPos(cell[0], cell[1]);
+            context.waitTicks(3);
+            context.takeScreenshot("01b-list-tooltip");
+
             check(count(context, false) > 0, "sticks have a crafting recipe");
             context.runOnClient(mc -> RecipeScreen.show(mc, mc.gui.screen(), Items.STICK, false));
             context.waitTicks(5);
