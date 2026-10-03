@@ -35,7 +35,7 @@ public final class PackClientGameTest implements FabricClientGameTest {
                 return new double[] {(left + 8 + (tabs - 1) * 24 + 10) * scale, (top + 20 + 10) * scale};
             });
             context.getInput().setCursorPos(cursor[0], cursor[1]);
-            context.getInput().pressMouse(0);
+            context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
             context.waitTicks(3);
             context.takeScreenshot("05-alchemy-diamond-tab");
 

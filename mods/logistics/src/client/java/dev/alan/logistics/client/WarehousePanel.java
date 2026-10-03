@@ -1,5 +1,6 @@
 package dev.alan.logistics.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.alan.logistics.*;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -115,8 +116,8 @@ final class WarehousePanel {
     }
 
     boolean click(MouseButtonEvent event, int left, int top) {
-        if (!inGrid(event.x(), event.y(), left, top) || link.status() != Network.Status.OK || (event.button() != 0 && event.button() != 1)) return false;
-        boolean right = event.button() == 1;
+        if (!inGrid(event.x(), event.y(), left, top) || link.status() != Network.Status.OK || (event.button() != InputConstants.MOUSE_BUTTON_LEFT && event.button() != InputConstants.MOUSE_BUTTON_RIGHT)) return false;
+        boolean right = event.button() == InputConstants.MOUSE_BUTTON_RIGHT;
         if (!menu.getCarried().isEmpty()) {
             send(right ? TerminalAction.Kind.INSERT_ONE : TerminalAction.Kind.INSERT_ALL, ItemStack.EMPTY);
         } else {

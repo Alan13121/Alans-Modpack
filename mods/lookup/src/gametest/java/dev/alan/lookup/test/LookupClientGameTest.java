@@ -119,7 +119,7 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             });
             context.takeScreenshot("17-fill-button");
             context.getInput().setCursorPos(plus[0], plus[1]);
-            context.getInput().pressMouse(0);
+            context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
             context.waitTicks(10);
             check(context.computeOnClient(mc -> mc.gui.screen() instanceof InventoryScreen), "fill returns to the inventory");
             int filled = context.computeOnClient(mc -> {
@@ -154,7 +154,7 @@ public final class LookupClientGameTest implements FabricClientGameTest {
             context.runOnClient(mc -> mc.gui.toastManager().clear());
             context.takeScreenshot("19-furnace-fill-button");
             context.getInput().setCursorPos(furnacePlus[0], furnacePlus[1]);
-            context.getInput().pressMouse(0);
+            context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
             context.waitTicks(10);
             check(context.computeOnClient(mc -> mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.FurnaceScreen),
                 "fill returns to the furnace screen");
@@ -184,7 +184,7 @@ public final class LookupClientGameTest implements FabricClientGameTest {
                 return new double[] {(gui - 4 - cols * 18 + 6) * w.getGuiScale(), 7 * w.getGuiScale()};
             });
             context.getInput().setCursorPos(label[0], label[1]);
-            context.getInput().pressMouse(0);
+            context.getInput().pressMouse(com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT);
             context.waitTicks(2);
             check(!context.computeOnClient(mc -> LookupConfig.cheatMode()), "clicking the label turns cheat mode off");
             context.runOnClient(mc -> mc.gui.toastManager().clear());
