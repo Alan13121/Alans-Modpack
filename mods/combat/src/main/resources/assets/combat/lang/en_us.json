@@ -31,6 +31,7 @@
   "combat.boss.cooldown": "The altar is recovering: %s minute(s) left.",
   "combat.boss.missing_forms": "The altar wants every form: you have unlocked %s of %s.",
   "combat.boss.need_items": "The altar asks for a nether star and a dragon's breath.",
+  "combat.command.aborted": "Aborted %s fight(s).",
   "combat.boss.summoned": "The Form King rises!",
   "combat.boss.victory": "The Form King is defeated.",
   "combat.boss.failed": "The Form King fades away. The offering is returned.",
