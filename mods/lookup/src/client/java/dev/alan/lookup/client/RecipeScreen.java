@@ -1,5 +1,6 @@
 package dev.alan.lookup.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.alan.lookup.api.RecipeView;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -200,7 +201,7 @@ public final class RecipeScreen extends Screen {
             if (index >= views.size()) break;
             RecipeView view = views.get(index);
             int fx = fillX(), fy = viewY(i);
-            if (event.button() == 0 && canFill(view) && event.x() >= fx && event.x() < fx + 18 && event.y() >= fy && event.y() < fy + 14) {
+            if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && canFill(view) && event.x() >= fx && event.x() < fx + 18 && event.y() >= fy && event.y() < fy + 14) {
                 ClientPlayNetworking.send(new FillRecipe(((AbstractContainerScreen<?>) parent).getMenu().containerId,
                     new RecipeDisplayId(view.displayId()), event.hasShiftDown()));
                 minecraft.gui.setScreen(parent);
@@ -208,8 +209,8 @@ public final class RecipeScreen extends Screen {
             }
         }
         ItemStack stack = stackAt((int) event.x(), (int) event.y());
-        if (stack != null && (event.button() == 0 || event.button() == 1)) {
-            show(minecraft, this, stack.getItem(), event.button() == 1);
+        if (stack != null && (event.button() == InputConstants.MOUSE_BUTTON_LEFT || event.button() == InputConstants.MOUSE_BUTTON_RIGHT)) {
+            show(minecraft, this, stack.getItem(), event.button() == InputConstants.MOUSE_BUTTON_RIGHT);
             return true;
         }
         return false;

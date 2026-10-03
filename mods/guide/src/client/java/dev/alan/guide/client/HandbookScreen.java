@@ -1,5 +1,6 @@
 package dev.alan.guide.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.google.gson.JsonParser;
 import dev.alan.guide.GuideMod;
 import java.io.IOException;
@@ -140,7 +141,7 @@ public final class HandbookScreen extends Screen {
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) return true;
-        if (event.button() == 0 && event.x() >= left && event.x() < left + SIDE_W && event.y() >= top + PAD) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && event.x() >= left && event.x() < left + SIDE_W && event.y() >= top + PAD) {
             select((int) (event.y() - top - PAD) / ROW_H);
             return true;
         }
@@ -154,20 +155,20 @@ public final class HandbookScreen extends Screen {
 
     @Override public boolean keyPressed(KeyEvent event) {
         int step = switch (event.key()) {
-            case 265 -> -LINE_H;                    // up
-            case 264 -> LINE_H;                     // down
-            case 266 -> -viewH + LINE_H;            // page up
-            case 267 -> viewH - LINE_H;             // page down
-            case 268 -> -contentH;                  // home
-            case 269 -> contentH;                   // end
+            case InputConstants.KEY_UP -> -LINE_H;                    // up
+            case InputConstants.KEY_DOWN -> LINE_H;                     // down
+            case InputConstants.KEY_PAGEUP -> -viewH + LINE_H;            // page up
+            case InputConstants.KEY_PAGEDOWN -> viewH - LINE_H;             // page down
+            case InputConstants.KEY_HOME -> -contentH;                  // home
+            case InputConstants.KEY_END -> contentH;                   // end
             default -> 0;
         };
         if (step != 0) {
             scroll = Math.max(0, Math.min(maxScroll(), scroll + step));
             return true;
         }
-        if (event.key() == 263) { select(selected - 1); return true; }   // left
-        if (event.key() == 262) { select(selected + 1); return true; }   // right
+        if (event.key() == InputConstants.KEY_LEFT) { select(selected - 1); return true; }   // left
+        if (event.key() == InputConstants.KEY_RIGHT) { select(selected + 1); return true; }   // right
         return super.keyPressed(event);
     }
 

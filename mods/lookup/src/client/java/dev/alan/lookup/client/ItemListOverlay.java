@@ -1,5 +1,6 @@
 package dev.alan.lookup.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.alan.lookup.GiveItem;
 import dev.alan.lookup.client.mixin.AbstractContainerScreenAccessor;
 import java.util.List;
@@ -137,7 +138,7 @@ final class ItemListOverlay {
         if (!visible) return false;
         double x = event.x(), y = event.y();
         // The cheat label doubles as a switch.
-        if (event.button() == 0 && x >= left && x < left + font.width(Component.translatable(LookupConfig.cheatMode() ? "lookup.cheat.label_on" : "lookup.cheat.label_off")) + 2 && y >= 2 && y < 12) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && x >= left && x < left + font.width(Component.translatable(LookupConfig.cheatMode() ? "lookup.cheat.label_on" : "lookup.cheat.label_off")) + 2 && y >= 2 && y < 12) {
             LookupClient.toggleCheat(mc);
             return true;
         }
@@ -154,13 +155,13 @@ final class ItemListOverlay {
             return true;
         }
         ItemStack stack = itemAt(x, y);
-        if (stack != null && LookupConfig.cheatMode() && (event.button() == 0 || event.button() == 1)) {
+        if (stack != null && LookupConfig.cheatMode() && (event.button() == InputConstants.MOUSE_BUTTON_LEFT || event.button() == InputConstants.MOUSE_BUTTON_RIGHT)) {
             // Left click takes a full stack, right click a single item; recipes stay on the R and U keys.
-            ClientPlayNetworking.send(new GiveItem(stack.copyWithCount(event.button() == 0 ? stack.getMaxStackSize() : 1)));
+            ClientPlayNetworking.send(new GiveItem(stack.copyWithCount(event.button() == InputConstants.MOUSE_BUTTON_LEFT ? stack.getMaxStackSize() : 1)));
             return true;
         }
-        if (stack != null && (event.button() == 0 || event.button() == 1)) {
-            RecipeScreen.show(mc, screen, stack.getItem(), event.button() == 1);
+        if (stack != null && (event.button() == InputConstants.MOUSE_BUTTON_LEFT || event.button() == InputConstants.MOUSE_BUTTON_RIGHT)) {
+            RecipeScreen.show(mc, screen, stack.getItem(), event.button() == InputConstants.MOUSE_BUTTON_RIGHT);
             return true;
         }
         return inArea(x, y);

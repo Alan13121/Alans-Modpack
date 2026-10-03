@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "name": "Modpack integration tests",
   "environment": "*",
-  "entrypoints": {"fabric-client-gametest": ["dev.alan.pack.test.PackClientGameTest", "dev.alan.pack.test.GuideGameTest"]},
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.pack.test.PackClientGameTest", "dev.alan.pack.test.GuideGameTest", "dev.alan.pack.test.HandbookClickTest"]},
   "depends": {"lookup": "*", "shapeshift": "*", "alchemy_backpack": "*", "logistics": "*", "mineworld": "*", "combat": "*", "guide": "*"}
 }
