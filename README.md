@@ -4,6 +4,8 @@ Minecraft Java **26.3**／Fabric Loader **0.19.5**／Fabric API **0.160.6+26.3**
 
 所有自製模組放在同一個 Gradle 專案裡，共用版本與建置設定，最後由 `pack/` 打包成一個模組包。
 
+> 想玩這個模組包？請看 [玩家指南](PLAYER_GUIDE.md)。以下是開發者說明。
+
 ## 目錄結構
 
 ```text
