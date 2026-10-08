@@ -110,9 +110,9 @@ TASKS = [
      "看見倉庫", "放下倉庫終端機，用物流電纜接到控制器。", "See the Warehouse", "Place a terminal and connect it to the controller with cable."),
     ("ch4/cell", "ch4/terminal", "task", "logistics:cell", has((CELLS, 1)), 80, [(mc("gold_ingot"), 8)], False,
      "第一個儲存單元", "取得儲存單元，它是倉庫的虛擬容量。", "First Storage Cell", "Get a storage cell. It holds the warehouse's virtual stock."),
-    ("ch4/interfaces", "ch4/cell", "task", "logistics:input_interface", placed(["logistics:input_interface"], ["logistics:output_interface"]), 100,
+    ("ch4/interfaces", "ch4/cell", "task", "logistics:storage_interface", placed(["logistics:storage_interface"], ["logistics:conduit"]), 100,
      [(mc("redstone"), 32)], False,
-     "進出口", "放下輸入介面與輸出介面，讓物品自動進出倉庫。", "In and Out", "Place an input and an output interface to move items in and out automatically."),
+     "進出口", "放下儲存介面與導管，讓物品自動進出倉庫。", "In and Out", "Place a storage interface and a conduit to move items in and out automatically."),
     ("ch4/automation", "ch4/interfaces", "task", "logistics:autocrafter", placed(["logistics:crafting_terminal"], ["logistics:autocrafter"]), 150,
      [(mc("diamond"), 4)], False,
      "自動化", "放下合成終端機與自動合成器。", "Automation", "Place a crafting terminal and an auto crafter."),
@@ -292,16 +292,16 @@ Your own ore world: all stone and ore, with ore density 8 times vanilla.
 - 虛擬容量，I 到 IV 四級，每升一級種類 ×2、數量上限 ×4。
 - 四個同級單元排成 2×2 可合成下一級；一個高級單元可拆回四個低一級的。
 # 進出與自動化
-- 輸入介面：漏斗丟進來的物品存入倉庫，也會收走旁邊機器的產物。
-- 輸出介面：右鍵設定過濾清單，把清單上的物品送進旁邊的機器；可設定保持庫存下限。
-- 兩種介面各有四個升級格：紅石加快、石英增加每次數量。
+- 儲存介面：漏斗、導管送進來的物品直接存入倉庫；右鍵設定備貨清單，清單上的物品會備在介面裡，讓漏斗或導管取走；每格可設備貨量（最多 64）。
+- 儲存介面有四個升級格：紅石加快、石英增加每次數量。
+- 導管：連接容器與機器，不屬於倉庫網路。空手右鍵接頭切換 關閉／輸入／輸出，染料設定顏色，紅石與石英可加速與加量（Shift＋空手取回）。同色的輸入會送到同色的輸出。
 - 自動合成器：放好 3×3 配方，從倉庫取材料自動合成。
 - 農場介面：放在農田正上方，自動收割並補種下方 9×9。
 # 任務
 - 倉庫的心臟：放控制器。
 - 看見倉庫：放終端機並接上電纜。
 - 第一個儲存單元：取得儲存單元。
-- 進出口：放輸入與輸出介面。
+- 進出口：放儲存介面與導管。
 - 自動化：放合成終端機與自動合成器。
 - 能源與傳送：放一台發電機，並放傳送裝置。""",
      """# Chapter 4: Logistics
@@ -318,16 +318,16 @@ One terminal operates every chest in your base.
 - Virtual capacity in four tiers, I to IV; each tier doubles the types and quadruples the amount per type.
 - Four cells of one tier in a 2x2 merge into the next tier; one high-tier cell splits back into four of the tier below.
 # Moving items and automation
-- Input interface: stores what hoppers drop in, and collects products from machines beside it.
-- Output interface: right-click to set a filter and it feeds listed items into machines beside it; each filter slot can keep a minimum stock.
-- Both interfaces have four upgrade slots: redstone speeds them up, quartz raises items per pulse.
+- Storage interface: whatever hoppers or conduits put in goes straight into the warehouse. Right-click to set a stock list; listed items are kept ready in the interface for hoppers or conduits to take, and each slot can set how many (up to 64).
+- The storage interface has four upgrade slots: redstone speeds it up, quartz raises items per pulse.
+- Conduit: links containers and machines, and is not part of the warehouse network. Click a connector with an empty hand to cycle off / input / output, use dye for colour, redstone and quartz for speed and amount (Shift + empty hand takes them back). Inputs feed outputs of the same colour.
 - Auto crafter: set a 3x3 pattern and it crafts from the warehouse by itself.
 - Farm interface: place it right above farmland; it harvests and replants the 9x9 area below.
 # Quests
 - Heart of the Warehouse: place a controller.
 - See the Warehouse: place a terminal and link it with cable.
 - First Storage Cell: get a cell.
-- In and Out: place an input and an output interface.
+- In and Out: place a storage interface and a conduit.
 - Automation: place a crafting terminal and an auto crafter.
 - Power and Teleport: place a generator and a teleporter."""),
     (mc("zombie_spawn_egg"), "第五章 變身", "5 Shapeshift",

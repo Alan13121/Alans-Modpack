@@ -15,8 +15,8 @@ import net.minecraft.world.level.block.Block;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Menu of an input or output interface: four upgrade slots, and for the output interface also nine ghost slots
- * where clicking with an item copies it as a filter and clicking with an empty cursor clears it.
+ * Menu of the storage interface (nine ghost slots for the stock list, where clicking with an item copies it and
+ * clicking with an empty cursor clears it, plus four upgrade slots) and of the farm interface.
  */
 public final class InterfaceMenu extends AbstractContainerMenu {
     public static final int FILTER_SLOTS = 9;
@@ -41,13 +41,9 @@ public final class InterfaceMenu extends AbstractContainerMenu {
     private final int filterEnd, upgradeStart, upgradeEnd, inventoryStart, inventoryEnd;
 
     /** Client-side constructor used by the menu types. */
-    public static InterfaceMenu input(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.INPUT_MENU, null, null, null, new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.INPUT_INTERFACE);
-    }
-
-    public static InterfaceMenu output(int id, Inventory inventory) {
-        return new InterfaceMenu(id, inventory, LogisticsMod.OUTPUT_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new SimpleContainerData(FILTER_SLOTS), null,
-            new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.OUTPUT_INTERFACE);
+    public static InterfaceMenu storage(int id, Inventory inventory) {
+        return new InterfaceMenu(id, inventory, LogisticsMod.INTERFACE_MENU, new net.minecraft.world.SimpleContainer(FILTER_SLOTS), new SimpleContainerData(FILTER_SLOTS), null,
+            new UpgradeSlots(() -> {}), ContainerLevelAccess.NULL, LogisticsMod.STORAGE_INTERFACE);
     }
 
     public static InterfaceMenu farm(int id, Inventory inventory) {

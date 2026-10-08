@@ -23,6 +23,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         }
         warehouse(context);
         interfaces(context);
+        conduits(context);
         crafting(context);
         vanillaMachines(context);
         farming(context);
@@ -450,21 +451,26 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
         }
     }
 
-    /** Hopper → input interface → cell, and cell → output interface → furnace, plus a furnace result pulled back in. */
+    /**
+     * Hopper → storage interface → cell, a conduit that pulls a furnace result into an interface, and the stock list:
+     * cell → interface → conduit → furnace.
+     */
     private void interfaces(ClientGameTestContext context) {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getConnection().waitForChunksRender();
             for (String command : new String[] {
                 "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                "fill -3 120 2 -1 120 4 minecraft:stone",
                 "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell",
-                "setblock 1 120 0 logistics:input_interface",
-                "setblock -1 120 0 logistics:cable", "setblock -1 121 0 logistics:cable", "setblock -1 120 1 logistics:cable",
-                "setblock -2 121 0 logistics:output_interface", "setblock -2 120 1 logistics:input_interface",
-                "setblock -2 120 0 minecraft:furnace",
+                "setblock 1 120 0 logistics:storage_interface",
+                "setblock -1 120 0 logistics:cable", "setblock -1 121 0 logistics:cable", "setblock -1 122 0 logistics:cable",
+                "setblock -2 122 0 logistics:storage_interface",
+                "setblock -2 120 0 minecraft:furnace", "setblock -2 121 0 logistics:conduit[up=in,down=out]",
+                "setblock 3 120 0 minecraft:furnace", "setblock 2 120 0 logistics:conduit[west=out,east=in]",
                 "setblock 1 121 0 minecraft:hopper[facing=down]",
                 "item replace block 1 121 0 container.0 with minecraft:iron_ingot 20",
-                "item replace block -2 120 0 container.2 with minecraft:gold_ingot 5",
-                "tp @p -1.5 120 3.5 180 5",
+                "item replace block 3 120 0 container.2 with minecraft:gold_ingot 5",
+                "tp @p -1.5 121 3.5 180 5",
             }) world.getServer().runCommand(command);
             world.getServer().runOnServer(server -> {
                 var cell = (dev.alan.logistics.CellBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
@@ -473,10 +479,10 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             });
             context.waitTicks(220); // a hopper moves one item per 8 ticks
             check(cellCount(world, Items.IRON_INGOT) == 20, "hopper items reached the cell, got " + cellCount(world, Items.IRON_INGOT));
-            check(cellCount(world, Items.GOLD_INGOT) == 5, "the furnace result was pulled in, got " + cellCount(world, Items.GOLD_INGOT));
-            check(furnaceSlot(world, 0) == 0, "an empty filter moves nothing");
+            check(cellCount(world, Items.GOLD_INGOT) == 5, "the conduit pulled the furnace result into the interface, got " + cellCount(world, Items.GOLD_INGOT));
+            check(furnaceSlot(world, 0) == 0, "an empty stock list moves nothing");
 
-            // Set the filter through the real menu: pick up iron ore, click a ghost slot.
+            // Set the stock list through the real menu: pick up iron ore, click a ghost slot.
             world.getServer().runCommand("give @p minecraft:iron_ore 1");
             context.waitTicks(5);
             context.getInput().pressKey(options -> options.keyUse);
@@ -494,76 +500,73 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
                 mc.gameMode.handleContainerInput(id, ore, 0, ContainerInput.PICKUP, mc.player);
             });
             context.waitTicks(10);
-            context.takeScreenshot("06-output-filter");
+            context.takeScreenshot("06-interface-stock");
             context.runOnClient(mc -> mc.gui.setScreen(null));
             context.waitTicks(40);
             check(world.getServer().computeOnServer(server -> {
-                var be = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 122, 0));
                 return be.filter().getItem(0).is(Items.IRON_ORE);
-            }), "the ghost slot holds the filter");
-            check(furnaceSlot(world, 0) > 0, "iron ore reached the furnace input");
-            check(furnaceSlot(world, 1) == 0, "coal is not on the filter, so the fuel slot stays empty");
+            }), "the ghost slot holds the stock item");
+            check(furnaceSlot(world, 0) > 0, "iron ore went from the interface through the conduit into the furnace input");
+            check(furnaceSlot(world, 1) == 0, "coal is not on the list, so the fuel slot stays empty");
 
-            // Upgrades: quartz moves more per pulse, redstone pulses more often. A dropper takes 576 items.
-            world.getServer().runCommand("setblock -3 121 0 minecraft:dropper");
+            // Stock: a pulse of 32 brings half a stack, the stock stops at a full stack.
             world.getServer().runOnServer(server -> {
                 var level = server.overworld();
-                var cell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
-                cell.insert(new ItemStack(Items.COBBLESTONE, 500), true);
-                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
-                for (int i = 0; i < 9; i++) out.filter().setItem(i, ItemStack.EMPTY);
-                out.filter().setItem(0, new ItemStack(Items.COBBLESTONE));
-                // The dropper is next to the output interface's west face.
+                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).insert(new ItemStack(Items.COBBLESTONE, 500), true);
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                be.filter().setItem(0, new ItemStack(Items.COBBLESTONE));
             });
+            context.waitTicks(15);
+            int early = stock(world, 0);
+            check(early >= 32 && early <= 64, "the first pulses bring 32 cobblestone each, got " + early);
             context.waitTicks(25);
-            int slow = dropperItems(world);
-            check(slow > 0 && slow <= 96, "without upgrades only a few pulses of 32 arrive, got " + slow);
+            check(stock(world, 0) == 64, "the stock slot stops at a full stack, got " + stock(world, 0));
+
+            // Upgrades: quartz moves more per pulse, redstone pulses more often.
             check(world.getServer().computeOnServer(server -> {
-                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
-                return out.upgrades().interval() == 10 && out.upgrades().amount() == 32;
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                return be.upgrades().interval() == 10 && be.upgrades().amount() == 32;
             }), "no upgrades means 10 ticks and 32 items");
             world.getServer().runOnServer(server -> {
-                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
-                out.upgrades().setItem(0, new ItemStack(Items.REDSTONE, 8));
-                out.upgrades().setItem(1, new ItemStack(Items.REDSTONE, 8));
-                out.upgrades().setItem(2, new ItemStack(Items.QUARTZ, 8));
-                out.upgrades().setItem(3, new ItemStack(Items.QUARTZ, 8));
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                be.upgrades().setItem(0, new ItemStack(Items.REDSTONE, 8));
+                be.upgrades().setItem(1, new ItemStack(Items.REDSTONE, 8));
+                be.upgrades().setItem(2, new ItemStack(Items.QUARTZ, 8));
+                be.upgrades().setItem(3, new ItemStack(Items.QUARTZ, 8));
             });
             check(world.getServer().computeOnServer(server -> {
-                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
-                return out.upgrades().interval() == 1 && out.upgrades().amount() == 256;
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                return be.upgrades().interval() == 1 && be.upgrades().amount() == 256;
             }), "16 redstone and 16 quartz mean every tick and 256 items");
-            context.waitTicks(20);
-            int fast = dropperItems(world);
-            check(fast >= 400, "upgraded interface moved most of the 500 cobblestone in 20 ticks, dropper has " + fast);
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0))).upgrades().clearContent());
 
-            // Keep-in-stock level: the interface tops the dropper up to 100 cobblestone and no further.
+            // Keep-in-stock level: the interface keeps exactly 20 cobblestone ready and refills what is taken.
             world.getServer().runOnServer(server -> {
-                var level = server.overworld();
-                var dropper = (net.minecraft.world.Container) level.getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
-                dropper.clearContent();
-                ((dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).insert(new ItemStack(Items.COBBLESTONE, 500), true);
-                var out = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0));
-                out.levels().set(0, 100);
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                be.removeItem(9, 64);
+                be.levels().set(0, 20);
             });
             context.waitTicks(30);
-            check(dropperItems(world) == 100, "a level of 100 stops at 100 cobblestone, got " + dropperItems(world));
-            world.getServer().runOnServer(server -> {
-                var dropper = (net.minecraft.world.Container) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
-                int toRemove = 30;
-                for (int i = 0; i < dropper.getContainerSize() && toRemove > 0; i++) {
-                    int n = Math.min(toRemove, dropper.getItem(i).getCount());
-                    dropper.getItem(i).shrink(n);
-                    toRemove -= n;
-                }
-                dropper.setChanged();
-            });
-            check(dropperItems(world) == 70, "30 cobblestone were taken out");
+            check(stock(world, 0) == 20, "a level of 20 stops at 20 cobblestone, got " + stock(world, 0));
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0))).removeItem(9, 5));
+            check(stock(world, 0) == 15, "5 cobblestone were taken out");
             context.waitTicks(30);
-            check(dropperItems(world) == 100, "the interface refilled the dropper back to 100, got " + dropperItems(world));
+            check(stock(world, 0) == 20, "the interface refilled the stock back to 20, got " + stock(world, 0));
+            // An item that leaves the list goes back into the warehouse.
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0))).filter().setItem(0, ItemStack.EMPTY));
+            context.waitTicks(30);
+            check(stock(world, 0) == 0, "the stock slot was emptied once the item left the list");
+            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.CellBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(Items.COBBLESTONE))) == 500 - 64 - 5, "the stock went back to the cell (500 minus the 69 taken out by hand)");
 
             // Changing the level through the menu, like the scroll wheel does.
-            world.getServer().runCommand("tp @p -1.5 120 3.5 180 5");
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(-2, 122, 0))).levels().set(0, 40));
+            world.getServer().runCommand("tp @p -1.5 121 3.5 180 5");
             context.waitTicks(10);
             context.getInput().pressKey(options -> options.keyUse);
             context.waitForScreen(dev.alan.logistics.client.InterfaceScreen.class);
@@ -574,13 +577,13 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
                 mc.gameMode.handleInventoryButtonClick(id, dev.alan.logistics.InterfaceMenu.levelButton(0, dev.alan.logistics.InterfaceMenu.DOWN_ONE));
             });
             context.waitTicks(10);
-            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.OutputInterfaceBlockEntity) server.overworld()
-                .getBlockEntity(new net.minecraft.core.BlockPos(-2, 121, 0))).levels().get(0)) == 115, "level 100 +16 -1 = 115");
-            check(context.computeOnClient(mc -> ((dev.alan.logistics.InterfaceMenu) mc.player.containerMenu).level(0)) == 115, "the client menu shows the level");
-            context.takeScreenshot("06a-output-level");
+            check(world.getServer().computeOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(-2, 122, 0))).levels().get(0)) == 55, "level 40 +16 -1 = 55");
+            check(context.computeOnClient(mc -> ((dev.alan.logistics.InterfaceMenu) mc.player.containerMenu).level(0)) == 55, "the client menu shows the level");
+            context.takeScreenshot("06a-interface-level");
             context.runOnClient(mc -> mc.gui.setScreen(null));
 
-            // The input interface has a screen with upgrade slots; shift-click puts quartz there.
+            // The menu has upgrade slots too; shift-click puts quartz there.
             world.getServer().runCommand("give @p minecraft:quartz 5");
             world.getServer().runCommand("tp @p 1.5 120 3.5 180 20");
             context.waitTicks(10);
@@ -593,21 +596,78 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             });
             context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.containerMenu.containerId, quartz, 0, ContainerInput.QUICK_MOVE, mc.player));
             context.waitTicks(10);
-            context.takeScreenshot("06b-input-upgrades");
+            context.takeScreenshot("06b-interface-upgrades");
             check(world.getServer().computeOnServer(server -> {
-                var be = (dev.alan.logistics.InputInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
+                var be = (dev.alan.logistics.StorageInterfaceBlockEntity) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0));
                 return be.upgrades().amount() == 32 + 5 * 14;
-            }), "quartz landed in the input interface's upgrade slots");
+            }), "quartz landed in the interface's upgrade slots");
         }
     }
 
-    private static int dropperItems(TestSingleplayerContext world) {
+    /** What the stock slot of filter slot {@code index} of the interface at (1, 120, 0) holds. */
+    private static int stock(TestSingleplayerContext world, int index) {
+        return world.getServer().computeOnServer(server -> ((dev.alan.logistics.StorageInterfaceBlockEntity)
+            server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0))).getItem(9 + index).getCount());
+    }
+
+    /** Conduits: modes, colours, taking turns between outputs, and the empty-hand click that cycles a connector. */
+    private void conduits(ClientGameTestContext context) {
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {
+                "fill -8 119 -8 8 119 8 minecraft:stone", "fill -8 120 -8 8 126 8 minecraft:air",
+                // source chest - conduit - two target chests (a T), all in a row along x with one branch up
+                "setblock 0 120 0 minecraft:chest", "setblock 1 120 0 logistics:conduit[west=in,east=link]",
+                "setblock 2 120 0 logistics:conduit[east=link,west=link,up=link]",
+                "setblock 3 120 0 minecraft:chest", "setblock 2 121 0 minecraft:chest",
+                "item replace block 0 120 0 container.0 with minecraft:cobblestone 64",
+            }) world.getServer().runCommand(command);
+            var inputSide = net.minecraft.core.Direction.WEST;
+            context.waitTicks(40);
+            check(chestItems(world, 3, 120, 0) == 0, "nothing moves while the target connectors are off");
+            // Switch both target connectors to output; they are white like the input, so items flow.
+            world.getServer().runCommand("setblock 2 120 0 logistics:conduit[east=out,west=link,up=out]");
+            context.waitTicks(100);
+            int east = chestItems(world, 3, 120, 0), top = chestItems(world, 2, 121, 0);
+            check(east > 0 && top > 0, "both outputs got items (taking turns): east " + east + ", top " + top);
+            check(chestItems(world, 0, 120, 0) + east + top == 64, "nothing was lost or made");
+            // A different colour on the input stops the flow.
+            world.getServer().runOnServer(server -> ((dev.alan.logistics.ConduitBlockEntity) server.overworld()
+                .getBlockEntity(new net.minecraft.core.BlockPos(1, 120, 0))).setColor(inputSide, 3));
+            context.waitTicks(5);
+            int before = chestItems(world, 0, 120, 0);
+            context.waitTicks(60);
+            check(chestItems(world, 0, 120, 0) == before, "an input of another colour moves nothing");
+
+            // The empty-hand click on an arm cycles off -> input -> output -> off.
+            world.getServer().runCommand("setblock 6 120 0 logistics:conduit[east=link]");
+            world.getServer().runCommand("setblock 7 120 0 minecraft:chest");
+            world.getServer().runCommand("tp @p 6.8 124 0.5 0 90");
+            context.waitTicks(15);
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitTicks(5);
+            check(conduitSide(world, 6).equals("in"), "first click: input, got " + conduitSide(world, 6));
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitTicks(5);
+            check(conduitSide(world, 6).equals("out"), "second click: output, got " + conduitSide(world, 6));
+            context.getInput().pressKey(options -> options.keyUse);
+            context.waitTicks(5);
+            check(conduitSide(world, 6).equals("link"), "third click: off again, got " + conduitSide(world, 6));
+        }
+    }
+
+    private static int chestItems(TestSingleplayerContext world, int x, int y, int z) {
         return world.getServer().computeOnServer(server -> {
-            var dropper = (net.minecraft.world.Container) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(-3, 121, 0));
+            var chest = (net.minecraft.world.Container) server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(x, y, z));
             int n = 0;
-            for (int i = 0; i < dropper.getContainerSize(); i++) n += dropper.getItem(i).getCount();
+            for (int i = 0; i < chest.getContainerSize(); i++) n += chest.getItem(i).getCount();
             return n;
         });
+    }
+
+    private static String conduitSide(TestSingleplayerContext world, int x) {
+        return world.getServer().computeOnServer(server -> server.overworld().getBlockState(new net.minecraft.core.BlockPos(x, 120, 0))
+            .getValue(dev.alan.logistics.ConduitBlock.SIDES.get(net.minecraft.core.Direction.EAST)).getSerializedName());
     }
 
     /** Auto crafter: pattern from the API and from a recipe placement, crafts until the keep level is reached. */
@@ -732,24 +792,28 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
             world.getConnection().waitForChunksRender();
             for (String command : new String[] {
                 "fill -8 119 -8 12 119 12 minecraft:stone", "fill -8 120 -8 12 126 12 minecraft:air",
-                // composter line
+                // composter line: interface (seeds) -> conduit -> composter -> conduit -> interface (collects)
                 "setblock 0 120 0 logistics:controller", "setblock 0 121 0 logistics:cell",
-                "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:cable", "setblock 2 121 0 logistics:cable",
-                "setblock 3 120 0 minecraft:composter", "setblock 3 121 0 logistics:output_interface",
-                "setblock 4 121 0 logistics:cable", "setblock 4 120 0 logistics:input_interface",
-                // brewing line
+                "setblock 1 120 0 logistics:cable", "setblock 2 120 0 logistics:cable", "setblock 2 121 0 logistics:cable", "setblock 2 122 0 logistics:cable",
+                "setblock 3 122 0 logistics:storage_interface", "setblock 3 121 0 logistics:conduit[up=in,down=out]",
+                "setblock 3 120 0 minecraft:composter",
+                "setblock 4 122 0 logistics:cable", "setblock 4 121 0 logistics:storage_interface",
+                "setblock 4 120 0 logistics:conduit[west=in,up=out]",
+                // brewing line: wart from above, bottles and blaze powder from the side, potions collected on the east
                 "setblock 0 120 8 logistics:controller", "setblock 0 121 8 logistics:cell",
-                "setblock 1 120 8 logistics:cable", "setblock 2 120 8 logistics:cable", "setblock 2 121 8 logistics:cable",
-                "setblock 2 120 7 logistics:cable",
-                "setblock 3 120 8 minecraft:brewing_stand", "setblock 3 121 8 logistics:output_interface",
-                "setblock 3 120 7 logistics:output_interface",
-                "setblock 4 121 8 logistics:cable", "setblock 4 120 8 logistics:input_interface",
+                "setblock 1 120 8 logistics:cable", "setblock 2 120 8 logistics:cable", "setblock 2 121 8 logistics:cable", "setblock 2 122 8 logistics:cable",
+                "setblock 2 120 7 logistics:cable", "setblock 2 120 6 logistics:cable",
+                "setblock 3 120 8 minecraft:brewing_stand",
+                "setblock 3 122 8 logistics:storage_interface", "setblock 3 121 8 logistics:conduit[up=in,down=out]",
+                "setblock 3 120 6 logistics:storage_interface", "setblock 3 120 7 logistics:conduit[north=in,south=out]",
+                "setblock 4 122 8 logistics:cable", "setblock 4 121 8 logistics:storage_interface",
+                "setblock 4 120 8 logistics:conduit[west=in,up=out]",
             }) world.getServer().runCommand(command);
             world.getServer().runOnServer(server -> {
                 var level = server.overworld();
                 var seedsCell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0));
                 seedsCell.insert(new ItemStack(Items.WHEAT_SEEDS, 200), true);
-                var compostOut = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 121, 0));
+                var compostOut = (dev.alan.logistics.StorageInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 122, 0));
                 compostOut.filter().setItem(0, new ItemStack(Items.WHEAT_SEEDS));
                 var brewCell = (dev.alan.logistics.CellBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 8));
                 brewCell.insert(net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER).copyWithCount(1), true);
@@ -757,10 +821,10 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
                 brewCell.insert(net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER).copyWithCount(1), true);
                 brewCell.insert(new ItemStack(Items.NETHER_WART, 5), true);
                 brewCell.insert(new ItemStack(Items.BLAZE_POWDER, 4), true);
-                var top = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 121, 8));
+                var top = (dev.alan.logistics.StorageInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 122, 8));
                 top.filter().setItem(0, new ItemStack(Items.NETHER_WART));
                 top.levels().set(0, 1);
-                var side = (dev.alan.logistics.OutputInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 7));
+                var side = (dev.alan.logistics.StorageInterfaceBlockEntity) level.getBlockEntity(new net.minecraft.core.BlockPos(3, 120, 6));
                 side.filter().setItem(0, net.minecraft.world.item.alchemy.PotionContents.createItemStack(Items.POTION, net.minecraft.world.item.alchemy.Potions.WATER));
                 side.filter().setItem(1, new ItemStack(Items.BLAZE_POWDER));
                 side.levels().set(1, 2);
@@ -770,7 +834,7 @@ public final class LogisticsClientGameTest implements FabricClientGameTest {
                 server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(Items.BONE_MEAL)));
             long seeds = world.getServer().computeOnServer(server -> (long) ((dev.alan.logistics.CellBlockEntity)
                 server.overworld().getBlockEntity(new net.minecraft.core.BlockPos(0, 121, 0))).count(new ItemStack(Items.WHEAT_SEEDS)));
-            check(bone >= 1, "the composter made bone meal and the input interface collected it, got " + bone + " (seeds left " + seeds + ")");
+            check(bone >= 1, "the composter made bone meal and a conduit carried it to the interface, got " + bone + " (seeds left " + seeds + ")");
             check(seeds < 200, "seeds went into the composter");
 
             // Brewing: 400 ticks of brewing plus feeding time.

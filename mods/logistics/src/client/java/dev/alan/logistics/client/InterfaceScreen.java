@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-/** Shared screen of the input interface (upgrades only) and the output interface (filter plus upgrades). */
+/** Shared screen of the storage interface (stock list plus upgrades) and the farm interface (bone-meal option plus upgrades). */
 public final class InterfaceScreen extends AbstractContainerScreen<InterfaceMenu> {
     private final int accent;
 
