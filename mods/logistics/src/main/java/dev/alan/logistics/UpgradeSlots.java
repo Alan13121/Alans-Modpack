@@ -9,7 +9,7 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 
 /**
- * The upgrade slots of an input or output interface. Redstone makes it pulse more often, quartz makes each pulse
+ * The upgrade slots of a storage interface. Redstone makes it pulse more often, quartz makes each pulse
  * move more items. Each type counts up to {@link #MAX_EFFECT} pieces; slots hold {@link #MAX_PER_SLOT} at most.
  */
 public final class UpgradeSlots extends SimpleContainer {
@@ -40,7 +40,12 @@ public final class UpgradeSlots extends SimpleContainer {
     }
 
     /** Game ticks between pulses: 10 with no redstone, down to 1 with 16. */
-    public int interval() { return Math.max(1, BASE_INTERVAL - (count(Items.REDSTONE) * (BASE_INTERVAL - 1) + MAX_EFFECT - 1) / MAX_EFFECT); }
+    public int interval() { return intervalFor(count(Items.REDSTONE)); }
+
+    /** The same curve for a plain redstone count (conduit connectors keep their upgrades as numbers). */
+    public static int intervalFor(int redstone) {
+        return Math.max(1, BASE_INTERVAL - (Math.min(redstone, MAX_EFFECT) * (BASE_INTERVAL - 1) + MAX_EFFECT - 1) / MAX_EFFECT);
+    }
 
     /** Items moved per pulse: 32 with no quartz, up to 256 with 16. */
     public int amount() { return BASE_AMOUNT + count(Items.QUARTZ) * AMOUNT_PER_QUARTZ; }

@@ -1,0 +1,1 @@
+{"textures":{"0":"logistics:block/conduit_out","particle":"logistics:block/conduit_out"},"elements":[{"from":[5,5,0],"to":[11,11,5],"faces":{"north":{"texture":"#0"},"east":{"texture":"#0"},"west":{"texture":"#0"},"up":{"texture":"#0"},"down":{"texture":"#0"}}}]}

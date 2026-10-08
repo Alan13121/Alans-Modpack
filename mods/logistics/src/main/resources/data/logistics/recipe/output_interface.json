@@ -1,1 +1,0 @@
-{"type":"minecraft:crafting_shapeless","category":"redstone","ingredients":["minecraft:dropper","logistics:cable","minecraft:iron_ingot"],"result":{"id":"logistics:output_interface","count":1}}

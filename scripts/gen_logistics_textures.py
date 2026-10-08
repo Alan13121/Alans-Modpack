@@ -97,6 +97,26 @@ def arrows(base, edge, glow, seed, inward):
         for x in range(7, 9): put(px, x, y, glow)
     return px
 
+def storage_interface():
+    px = canvas((50, 82, 96), 8)
+    frame(px, (26, 44, 54), (120, 235, 215))
+    for y in range(4, 12):
+        for x in range(4, 12): put(px, x, y, (22, 30, 38))
+    # chevrons pointing in at the top and out at the bottom
+    for i in range(3):
+        for x, y in ((4 + i, 4 + i), (11 - i, 4 + i)): put(px, x, y, (90, 230, 200))
+        for x, y in ((4 + i, 11 - i), (11 - i, 11 - i)): put(px, x, y, (250, 170, 80))
+    for y in range(5, 11):
+        for x in range(7, 9): put(px, x, y, (200, 235, 225))
+    return px
+
+def conduit(base, stripe, seed):
+    px = canvas(base, seed, 6)
+    for x in range(16):
+        put(px, x, 0, tuple(int(c * 0.7) for c in base)); put(px, x, 15, tuple(int(c * 0.7) for c in base))
+        if x % 4 < 2: put(px, x, 7, stripe); put(px, x, 8, stripe)
+    return px
+
 def crafting_front():
     px = canvas((70, 56, 44), 10)
     frame(px, (36, 28, 22))
@@ -251,8 +271,10 @@ for name, px in [("controller_side", controller_side()), ("controller_top", cont
                  ("cell_4", cell((196, 204, 210), (110, 118, 126), (255, 255, 255), (90, 98, 108), (226, 232, 238), (120, 220, 255), 14, 3)),
                  ("crafting_terminal_front", crafting_front()), ("crafting_terminal_top", crafting_top()),
                  ("farm_interface", farm_interface()), ("autocrafter", autocrafter_front()),
-                 ("input_interface", arrows((44, 86, 92), (24, 44, 50), (90, 230, 200), 8, True)),
-                 ("output_interface", arrows((104, 74, 44), (56, 38, 22), (250, 170, 80), 9, False)),
+                 ("storage_interface", storage_interface()),
+                 ("conduit", conduit((140, 150, 160), (120, 235, 215), 30)),
+                 ("conduit_in", conduit((50, 150, 170), (190, 255, 245), 31)),
+                 ("conduit_out", conduit((200, 130, 50), (255, 225, 150), 32)),
                  ("channel", channel_block()), ("antenna", antenna()), ("solar_top", solar_top()), ("solar_side", solar_side()),
                  ("coal_generator", coal_generator()), ("chunk_loader", chunk_loader()), ("teleporter_top", teleporter_top()), ("teleporter_side", teleporter_side()),
                  ("../item/channel_card", item_card()), ("../item/wireless_terminal", item_wireless())]:

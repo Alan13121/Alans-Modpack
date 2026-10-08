@@ -13,8 +13,7 @@ public final class LogisticsClient implements ClientModInitializer {
         if (LogisticsMod.ALCHEMY) BagLabel.register();
         MenuScreens.register(LogisticsMod.TERMINAL_MENU, TerminalScreen::new);
         MenuScreens.register(LogisticsMod.CRAFTING_TERMINAL_MENU, CraftingTerminalScreen::new);
-        MenuScreens.register(LogisticsMod.OUTPUT_MENU, InterfaceScreen::new);
-        MenuScreens.register(LogisticsMod.INPUT_MENU, InterfaceScreen::new);
+        MenuScreens.register(LogisticsMod.INTERFACE_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.FARM_MENU, InterfaceScreen::new);
         MenuScreens.register(LogisticsMod.AUTOCRAFTER_MENU, AutoCrafterScreen::new);
         MenuScreens.register(LogisticsMod.CHANNEL_MENU, DeviceScreen::new);

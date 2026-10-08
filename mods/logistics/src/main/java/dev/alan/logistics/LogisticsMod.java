@@ -63,8 +63,9 @@ public final class LogisticsMod implements ModInitializer {
     }
 
     public static final CraftingTerminalBlock CRAFTING_TERMINAL = block("crafting_terminal", CraftingTerminalBlock::new, metal(MapColor.COLOR_BROWN));
-    public static final InputInterfaceBlock INPUT_INTERFACE = block("input_interface", InputInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
-    public static final OutputInterfaceBlock OUTPUT_INTERFACE = block("output_interface", OutputInterfaceBlock::new, metal(MapColor.COLOR_ORANGE));
+    public static final StorageInterfaceBlock STORAGE_INTERFACE = block("storage_interface", StorageInterfaceBlock::new, metal(MapColor.COLOR_CYAN));
+    public static final ConduitBlock CONDUIT = block("conduit", ConduitBlock::new,
+        BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(1.0F, 3.0F).sound(SoundType.COPPER).noOcclusion());
 
     public static final FarmInterfaceBlock FARM_INTERFACE = block("farm_interface", FarmInterfaceBlock::new, metal(MapColor.PLANT));
 
@@ -73,10 +74,10 @@ public final class LogisticsMod implements ModInitializer {
     public static final AutoCrafterBlock AUTOCRAFTER = block("autocrafter", AutoCrafterBlock::new, metal(MapColor.COLOR_BROWN));
     public static final BlockEntityType<AutoCrafterBlockEntity> AUTOCRAFTER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
         id("autocrafter"), new BlockEntityType<>(AutoCrafterBlockEntity::new, Set.of(AUTOCRAFTER)));
-    public static final BlockEntityType<InputInterfaceBlockEntity> INPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
-        id("input_interface"), new BlockEntityType<>(InputInterfaceBlockEntity::new, Set.of(INPUT_INTERFACE)));
-    public static final BlockEntityType<OutputInterfaceBlockEntity> OUTPUT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
-        id("output_interface"), new BlockEntityType<>(OutputInterfaceBlockEntity::new, Set.of(OUTPUT_INTERFACE)));
+    public static final BlockEntityType<StorageInterfaceBlockEntity> INTERFACE_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("storage_interface"), new BlockEntityType<>(StorageInterfaceBlockEntity::new, Set.of(STORAGE_INTERFACE)));
+    public static final BlockEntityType<ConduitBlockEntity> CONDUIT_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+        id("conduit"), new BlockEntityType<>(ConduitBlockEntity::new, Set.of(CONDUIT)));
     public static final BlockEntityType<CellBlockEntity> CELL_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id("cell"),
         new BlockEntityType<>(CellBlockEntity::new, new java.util.HashSet<net.minecraft.world.level.block.Block>(CELLS)));
     public static final DataComponentType<CellData> CELL_DATA = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("cell_contents"),
@@ -85,14 +86,12 @@ public final class LogisticsMod implements ModInitializer {
         new MenuType<>(TerminalMenu::new, FeatureFlagSet.of()));
     public static final MenuType<CraftingTerminalMenu> CRAFTING_TERMINAL_MENU = Registry.register(BuiltInRegistries.MENU, id("crafting_terminal"),
         new MenuType<>(CraftingTerminalMenu::new, FeatureFlagSet.of()));
-    public static final MenuType<InterfaceMenu> INPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("input_interface"),
-        new MenuType<>(InterfaceMenu::input, FeatureFlagSet.of()));
     public static final MenuType<AutoCrafterMenu> AUTOCRAFTER_MENU = Registry.register(BuiltInRegistries.MENU, id("autocrafter"),
         new MenuType<>(AutoCrafterMenu::client, FeatureFlagSet.of()));
     public static final MenuType<InterfaceMenu> FARM_MENU = Registry.register(BuiltInRegistries.MENU, id("farm_interface"),
         new MenuType<>(InterfaceMenu::farm, FeatureFlagSet.of()));
-    public static final MenuType<InterfaceMenu> OUTPUT_MENU = Registry.register(BuiltInRegistries.MENU, id("output_interface"),
-        new MenuType<>(InterfaceMenu::output, FeatureFlagSet.of()));
+    public static final MenuType<InterfaceMenu> INTERFACE_MENU = Registry.register(BuiltInRegistries.MENU, id("storage_interface"),
+        new MenuType<>(InterfaceMenu::storage, FeatureFlagSet.of()));
 
     // ---- channels, energy, wireless and teleporting ------------------------------------------------------------
 
@@ -179,8 +178,8 @@ public final class LogisticsMod implements ModInitializer {
             entries.accept(TERMINAL);
             entries.accept(CRAFTING_TERMINAL);
             for (CellBlock cell : CELLS) entries.accept(cell);
-            entries.accept(INPUT_INTERFACE);
-            entries.accept(OUTPUT_INTERFACE);
+            entries.accept(STORAGE_INTERFACE);
+            entries.accept(CONDUIT);
             entries.accept(FARM_INTERFACE);
             entries.accept(AUTOCRAFTER);
             entries.accept(CHANNEL_BLOCK);

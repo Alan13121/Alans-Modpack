@@ -1,7 +1,5 @@
 package dev.alan.logistics;
 
-import java.util.ArrayList;
-import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
@@ -17,12 +15,16 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ChestBlock;
+import org.jspecify.annotations.Nullable;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-/** Moves items between an interface block and the machines or hoppers touching it (never the warehouse's own chests). */
+/** Reaches the containers beside a conduit and moves items in and out of them, honouring the vanilla face rules. */
 final class Neighbours {
     /**
-     * A container beside an interface; {@code face} is the side of that container the interface touches. Blocks such
+     * A container beside a conduit; {@code face} is the side of that container the interface touches. Blocks such
      * as the composter hand out a fresh temporary container on every request ({@code holder}), and it stops accepting
      * items after one change, so they must be asked for again after each item.
      */
@@ -30,20 +32,38 @@ final class Neighbours {
 
     private Neighbours() {}
 
-    static List<Target> around(Level level, BlockPos pos) {
-        List<Target> out = new ArrayList<>();
-        for (Direction dir : Direction.values()) {
-            BlockPos next = pos.relative(dir);
-            if (!level.hasChunk(next.getX() >> 4, next.getZ() >> 4) || level.getBlockState(next).getBlock() instanceof NetworkNode) continue;
-            BlockState state = level.getBlockState(next);
-            if (state.getBlock() instanceof WorldlyContainerHolder holder) {
-                out.add(new Target(holder.getContainer(state, level, next), dir.getOpposite(), next, true));
-                continue;
-            }
-            BlockEntity be = level.getBlockEntity(next);
-            if (be instanceof Container c && !Network.isStorage(be)) out.add(new Target(c, dir.getOpposite(), next, false));
+    /** Whether a conduit can plug into the block at {@code pos}: a container, but no network part except the storage interface. */
+    static boolean connectable(LevelReader level, BlockPos pos) {
+        Block block = level.getBlockState(pos).getBlock();
+        if (block instanceof WorldlyContainerHolder) return true;
+        if (block instanceof NetworkNode && !(block instanceof StorageInterfaceBlock)) return false;
+        return level.getBlockEntity(pos) instanceof Container;
+    }
+
+    /** The container on the {@code dir} side of {@code from} as seen from a conduit there, or null. */
+    static @Nullable Target at(Level level, BlockPos from, Direction dir) {
+        BlockPos next = from.relative(dir);
+        if (!level.hasChunk(next.getX() >> 4, next.getZ() >> 4) || !connectable(level, next)) return null;
+        BlockState state = level.getBlockState(next);
+        if (state.getBlock() instanceof WorldlyContainerHolder holder)
+            return new Target(holder.getContainer(state, level, next), dir.getOpposite(), next, true);
+        if (state.getBlock() instanceof ChestBlock chest) {
+            Container both = ChestBlock.getContainer(chest, state, level, next, true);
+            if (both != null) return new Target(both, dir.getOpposite(), next, false);
         }
-        return out;
+        return new Target((Container) level.getBlockEntity(next), dir.getOpposite(), next, false);
+    }
+
+    /** Pushes into the target; temporary containers (composter) take one item at a time, asked for anew each time. */
+    static ItemStack pushAll(Level level, Target target, ItemStack items) {
+        if (!target.holder()) return push(target, items);
+        ItemStack rest = items.copy();
+        while (!rest.isEmpty()) {
+            ItemStack left = push(refresh(level, target), rest.copyWithCount(1));
+            if (!left.isEmpty()) break;
+            rest.shrink(1);
+        }
+        return rest;
     }
 
     private static int[] slotsFor(Container c, Direction face) {
@@ -81,15 +101,15 @@ final class Neighbours {
     }
 
     /**
-     * Slots a machine would hand to a hopper underneath it (a furnace's result, a brewing stand's bottles), so the
-     * interface takes outputs and never a machine's raw ingredients. Plain containers are left alone.
+     * Slots a machine would hand to a hopper underneath it (a furnace's result, a brewing stand's bottles), so a
+     * conduit takes outputs and never a machine's raw ingredients. Plain containers (chests, droppers) give every slot.
      */
     static int[] takeableSlots(Target t) {
-        return t.container instanceof WorldlyContainer w ? w.getSlotsForFace(Direction.DOWN) : new int[0];
+        return slotsFor(t.container, Direction.DOWN);
     }
 
     static boolean canTake(Target t, int slot, ItemStack stack) {
-        if (!(t.container instanceof WorldlyContainer w) || !w.canTakeItemThroughFace(slot, stack, Direction.DOWN)) return false;
+        if (t.container instanceof WorldlyContainer w && !w.canTakeItemThroughFace(slot, stack, Direction.DOWN)) return false;
         return !(t.container instanceof BrewingStandBlockEntity stand) || brewedPotionReady(stand, slot, stack);
     }
 
@@ -113,15 +133,5 @@ final class Neighbours {
         BlockState state = level.getBlockState(t.pos);
         if (!(state.getBlock() instanceof WorldlyContainerHolder holder)) return t;
         return new Target(holder.getContainer(state, level, t.pos), t.face, t.pos, true);
-    }
-
-    /** Whether any slot of the target would take some of this item right now. */
-    static boolean canAccept(Target t, ItemStack stack) {
-        for (int slot : slotsFor(t.container, t.face)) {
-            if (!accepts(t, slot, stack)) continue;
-            ItemStack cur = t.container.getItem(slot);
-            if (cur.isEmpty() || (ItemStack.isSameItemSameComponents(cur, stack) && cur.getCount() < t.container.getMaxStackSize(cur))) return true;
-        }
-        return false;
     }
 }
