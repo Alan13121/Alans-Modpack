@@ -110,10 +110,10 @@ public final class GuideGameTest implements FabricClientGameTest {
             // The game fires this trigger whenever a block item is placed; do the same for blocks that need two or three groups.
             place(server, "logistics:controller");
             check(done(server, "ch4/controller"), "placing the controller is noticed");
-            place(server, "logistics:input_interface");
-            check(!done(server, "ch4/interfaces"), "the input interface alone does not finish the interfaces step");
-            place(server, "logistics:output_interface");
-            check(done(server, "ch4/interfaces"), "input and output interface together do");
+            place(server, "logistics:storage_interface");
+            check(!done(server, "ch4/interfaces"), "the storage interface alone does not finish the interfaces step");
+            place(server, "logistics:conduit");
+            check(done(server, "ch4/interfaces"), "storage interface and conduit together do");
             place(server, "logistics:coal_generator");
             check(!done(server, "ch4/power_and_teleport"), "a generator alone is not enough");
             place(server, "logistics:teleporter");
