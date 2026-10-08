@@ -49,6 +49,13 @@ public final class CombatClient implements ClientModInitializer {
                 lines.add(Component.translatable("combat.trinket.hint").withStyle(ChatFormatting.DARK_GRAY));
             } else if (stack.is(CombatMod.TRINKET_BAG)) {
                 lines.add(Component.translatable("item.combat.trinket_bag.desc").withStyle(ChatFormatting.GRAY));
+            } else if (stack.is(CombatMod.FORM_SHARD) || stack.is(CombatMod.FORM_SEED) || stack.is(CombatMod.FORM_CORE) || stack.is(CombatMod.FORM_MARK)) {
+                var key = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                lines.add(Component.translatable("item." + key.getNamespace() + "." + key.getPath() + ".desc").withStyle(ChatFormatting.GRAY));
+                String target = stack.get(CombatMod.MARK_TARGET);
+                var id = target == null ? null : net.minecraft.resources.Identifier.tryParse(target);
+                if (stack.is(CombatMod.FORM_MARK) && id != null && BuiltInRegistries.ENTITY_TYPE.containsKey(id))
+                    lines.add(Component.translatable("combat.mark.tooltip", BuiltInRegistries.ENTITY_TYPE.getValue(id).getDescription()).withStyle(ChatFormatting.LIGHT_PURPLE));
             }
         });
     }

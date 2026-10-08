@@ -8,12 +8,12 @@ import java.util.Optional;
 
 /**
  * Hand-tuned data for one form, loaded from {@code data/<namespace>/shapeshift/forms/<entity>.json}.
- * Every field is optional; forms without a file still get the entity's size, health and combat stats.
+ * Every field is optional; {@code rare} marks forms that are hard to find (a biome or structure) and are not required by the Form King altar; forms without a file still get the entity's size, health and combat stats.
  */
 public record FormDefinition(Optional<Double> maxHealth, Optional<Float> flyingSpeed, List<Ability> abilities,
                              Map<String, ModifierSpec> attributes, Optional<ActiveAbility> active, List<Weakness> weaknesses,
-                             List<String> scares, List<String> huntedBy) {
-    public static final FormDefinition EMPTY = new FormDefinition(Optional.empty(), Optional.empty(), List.of(), Map.of(), Optional.empty(), List.of(), List.of(), List.of());
+                             List<String> scares, List<String> huntedBy, boolean rare) {
+    public static final FormDefinition EMPTY = new FormDefinition(Optional.empty(), Optional.empty(), List.of(), Map.of(), Optional.empty(), List.of(), List.of(), List.of(), false);
     /** Entity ids ("minecraft:creeper") or entity type tags ("#minecraft:skeletons"). */
     public static final Codec<String> ENTITY_SELECTOR = Codec.STRING.validate(s -> {
         String id = s.startsWith("#") ? s.substring(1) : s;
@@ -29,7 +29,8 @@ public record FormDefinition(Optional<Double> maxHealth, Optional<Float> flyingS
         ActiveAbility.CODEC.optionalFieldOf("active").forGetter(FormDefinition::active),
         Weakness.CODEC.listOf().optionalFieldOf("weaknesses", List.of()).forGetter(FormDefinition::weaknesses),
         ENTITY_SELECTOR.listOf().optionalFieldOf("scares", List.of()).forGetter(FormDefinition::scares),
-        ENTITY_SELECTOR.listOf().optionalFieldOf("hunted_by", List.of()).forGetter(FormDefinition::huntedBy)
+        ENTITY_SELECTOR.listOf().optionalFieldOf("hunted_by", List.of()).forGetter(FormDefinition::huntedBy),
+        Codec.BOOL.optionalFieldOf("rare", false).forGetter(FormDefinition::rare)
     ).apply(i, FormDefinition::new));
     public FormDefinition {
         abilities = List.copyOf(abilities);

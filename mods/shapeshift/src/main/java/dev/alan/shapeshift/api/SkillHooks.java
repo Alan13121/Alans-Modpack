@@ -53,9 +53,9 @@ public final class SkillHooks {
         for (Launch launch : LAUNCHES) launch.beforeLaunch(player, projectile);
     }
 
-    /** Cooldown in ticks after scaling; a scaled cooldown never rounds down to nothing unless it was nothing. */
+    /** Cooldown in ticks after scaling; a scaled cooldown never rounds down to nothing unless it was nothing or the scale is zero. */
     public static int scaledCooldown(int ticks, Scale scale) {
-        if (ticks <= 0) return 0;
+        if (ticks <= 0 || scale.cooldown() <= 0f) return 0;
         return Math.max(1, Math.round(ticks * Math.max(0f, scale.cooldown())));
     }
 }

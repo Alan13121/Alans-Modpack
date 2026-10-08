@@ -21,11 +21,16 @@ final class ShapeshiftLink {
         SkillHooks.registerModifierFilter((player, id, amount, operation) ->
             !(id.equals("minecraft:max_health") && amount < 0 && Trinkets.has(player, Trinket.Perk.FORM_MASTER)));
         dev.alan.combat.boss.FormKingFights.setCollection(new dev.alan.combat.boss.FormKingFights.Collection() {
-            @Override public int total() { return FormsApi.collectable().size(); }
-            @Override public int unlocked(net.minecraft.server.level.ServerPlayer player) { return FormsApi.unlockedCount(player); }
+            @Override public int total() { return FormsApi.required().size(); }
+            @Override public int unlocked(net.minecraft.server.level.ServerPlayer player) { return FormsApi.requiredUnlockedCount(player); }
+            @Override public int allTotal() { return FormsApi.collectable().size(); }
+            @Override public int allUnlocked(net.minecraft.server.level.ServerPlayer player) { return FormsApi.unlockedCount(player); }
         });
-        SkillHooks.registerScaler(player ->
-            new SkillHooks.Scale(SkillMath.power(emeraldLevels(player)), SkillMath.cooldown(Trinkets.has(player, Trinket.Perk.SKILL_FOCUS))));
+        SkillHooks.registerScaler(player -> {
+            boolean master = Trinkets.has(player, Trinket.Perk.FORM_MASTER);
+            return new SkillHooks.Scale(SkillMath.power(emeraldLevels(player), master),
+                SkillMath.cooldown(Trinkets.has(player, Trinket.Perk.SKILL_FOCUS), master));
+        });
         // The skeleton's free arrow carries the upgrades of the bow in hand, as if it had been shot from it.
         SkillHooks.registerLaunch((player, projectile) -> {
             if (!(projectile instanceof AbstractArrow arrow)) return;
@@ -37,6 +42,19 @@ final class ShapeshiftLink {
                 }
             }
         });
+    }
+
+    /** Rare forms this player has not unlocked yet. */
+    static java.util.List<String> lockedRare(net.minecraft.server.level.ServerPlayer player) {
+        var missing = FormsApi.missing(player);
+        return FormsApi.rare().stream().filter(missing::contains).toList();
+    }
+
+    static boolean unlock(net.minecraft.server.level.ServerPlayer player, String id) { return FormsApi.unlock(player, id); }
+
+    /** Display name of a form id such as {@code minecraft:frog}. */
+    static net.minecraft.network.chat.Component name(String id) {
+        return net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getValue(net.minecraft.resources.Identifier.parse(id)).getDescription();
     }
 
     /** Emerald upgrade levels over all worn armor pieces. */

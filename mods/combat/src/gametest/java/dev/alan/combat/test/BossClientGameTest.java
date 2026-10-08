@@ -34,12 +34,15 @@ public final class BossClientGameTest implements FabricClientGameTest {
             server.runOnServer(s -> s.overworld().setBlockAndUpdate(ALTAR, CombatMod.FORM_ALTAR.defaultBlockState()));
             context.waitTicks(10);
 
-            // 1. The altar refuses until every form is unlocked and the offering is in the inventory.
+            // 1. The altar refuses until every common form is unlocked and the offering is in the inventory.
             check(!summon(server), "no summon without any unlocked forms");
-            server.runCommand("execute as @p run shapeshift unlockall");
+            setUnlocks(server, true);
             check(!summon(server), "no summon without the offering");
             giveOffering(server);
-            check(summon(server), "summoned with every form unlocked and the offering");
+            setUnlocks(server, false);
+            check(!summon(server), "no summon while one common form is missing");
+            setUnlocks(server, true);
+            check(summon(server), "summoned with every common form (rare ones left out) and the offering");
             context.waitTicks(5);
             check(server.computeOnServer(s -> {
                 FormKingFight fight = fight(s);
@@ -170,11 +173,90 @@ public final class BossClientGameTest implements FabricClientGameTest {
             context.waitTicks(5);
             check(server.computeOnServer(s -> {
                 ServerPlayer player = s.getPlayerList().getPlayers().get(0);
-                return fight(s) == null && noBosses(s) && player.getInventory().countItem(CombatMod.FORM_CORE) == 1;
-            }), "victory: fight over and one form core in the inventory (the quest book entry is checked in the pack test)");
+                int shards = player.getInventory().countItem(CombatMod.FORM_SHARD);
+                return fight(s) == null && noBosses(s) && shards >= 10 && shards <= 20 && player.getInventory().countItem(CombatMod.FORM_CORE) == 0;
+            }), "victory: fight over, 10 to 20 form shards and no core (the quest book entry is checked in the pack test)");
             giveOffering(server);
             check(!summon(server), "the altar rests for a while after a victory");
             check(server.computeOnServer(s -> FormKingFights.cooldownUntil(s.overworld(), ALTAR) > s.overworld().getGameTime()), "the cooldown is set");
+
+            // 9. The True Form King: a seed and every form (rare ones too). No star or breath is asked for.
+            server.runOnServer(s -> {
+                FormKingFights.clearCooldown(s.overworld(), ALTAR);
+                var player = s.getPlayerList().getPlayers().get(0);
+                player.getInventory().clearContent();
+                player.getInventory().add(new ItemStack(CombatMod.FORM_SEED));
+            });
+            setUnlocks(server, true);
+            check(!summon(server), "a seed does not help while rare forms are still missing");
+            server.runOnServer(s -> {
+                var player = s.getPlayerList().getPlayers().get(0);
+                player.setAttached(dev.alan.shapeshift.ShapeshiftMod.UNLOCKS, new dev.alan.shapeshift.Unlocks(dev.alan.shapeshift.api.FormsApi.collectable()));
+            });
+            check(summon(server), "the seed and every form call the True Form King");
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> {
+                FormKingFight fight = fight(s);
+                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                return fight != null && fight.ascended() && fight.maxHp() == 1200 && player.getInventory().countItem(CombatMod.FORM_SEED) == 0;
+            }), "the True Form King has twice the health and the seed is spent");
+            context.takeScreenshot("11-true-boss");
+            // Giving up returns the seed.
+            server.runOnServer(s -> FormKingFights.abortAll());
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> {
+                var inventory = s.getPlayerList().getPlayers().get(0).getInventory();
+                int seeds = inventory.countItem(CombatMod.FORM_SEED);
+                for (var item : s.overworld().getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new AABB(ALTAR).inflate(6)))
+                    if (item.getItem().is(CombatMod.FORM_SEED)) seeds += item.getItem().getCount();
+                return fight(s) == null && seeds == 1;
+            }), "the seed comes back after a failed fight");
+            server.runCommand("tp @p 3 120 3");
+            context.waitTicks(40);
+            server.runOnServer(s -> {
+                var player = s.getPlayerList().getPlayers().get(0);
+                player.getInventory().clearContent();
+                player.getInventory().add(new ItemStack(CombatMod.FORM_SEED));
+            });
+            server.runCommand("kill @e[type=minecraft:item]");
+            check(summon(server), "summoned again with the seed");
+            context.waitTicks(5);
+            server.runOnServer(s -> fight(s).setHp(10));
+            check(server.computeOnServer(s -> {
+                FormKingFight fight = fight(s);
+                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                body(s, fight).hurtServer(s.overworld(), s.overworld().damageSources().playerAttack(player), 100f);
+                return fight.hp() <= 0;
+            }), "a hit takes the True Form King's last health");
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> {
+                var inventory = s.getPlayerList().getPlayers().get(0).getInventory();
+                int shards = inventory.countItem(CombatMod.FORM_SHARD);
+                return fight(s) == null && noBosses(s) && shards >= 10 && shards <= 20 && inventory.countItem(CombatMod.FORM_CORE) == 1;
+            }), "the True Form King drops one form core and 10 to 20 shards");
+
+            // 10. The form mark: sneak-use picks a locked rare form, plain use unlocks it and spends the mark.
+            server.runCommand("gamemode survival @p");
+            setUnlocks(server, true);
+            server.runOnServer(s -> {
+                var player = s.getPlayerList().getPlayers().get(0);
+                player.getInventory().clearContent();
+                player.getInventory().add(new ItemStack(CombatMod.FORM_MARK, 2));
+            });
+            check(server.computeOnServer(s -> {
+                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                var rare = dev.alan.shapeshift.api.FormsApi.rare();
+                player.setShiftKeyDown(true);
+                CombatMod.FORM_MARK.use(s.overworld(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+                player.setShiftKeyDown(false);
+                String chosen = player.getMainHandItem().get(CombatMod.MARK_TARGET);
+                if (chosen == null || !rare.contains(chosen)) return false;
+                CombatMod.FORM_MARK.use(s.overworld(), player, net.minecraft.world.InteractionHand.MAIN_HAND);
+                return dev.alan.shapeshift.Shapeshifter.unlocks(player).contains(chosen)
+                    && player.getInventory().countItem(CombatMod.FORM_MARK) == 1
+                    && dev.alan.shapeshift.api.FormsApi.requiredUnlockedCount(player) == dev.alan.shapeshift.api.FormsApi.required().size();
+            }), "a form mark unlocks the chosen rare form and is spent");
+            server.runCommand("gamemode creative @p");
         }
     }
 
@@ -196,6 +278,16 @@ public final class BossClientGameTest implements FabricClientGameTest {
             ServerPlayer player = s.getPlayerList().getPlayers().get(0);
             player.getInventory().add(new ItemStack(Items.NETHER_STAR));
             player.getInventory().add(new ItemStack(Items.DRAGON_BREATH));
+        });
+    }
+
+    /** Gives the player every non-rare form; with {@code complete} false, one common form is held back. */
+    private static void setUnlocks(TestServerContext server, boolean complete) {
+        server.runOnServer(s -> {
+            ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+            var ids = new java.util.ArrayList<>(dev.alan.shapeshift.api.FormsApi.required());
+            if (!complete) ids.remove(0);
+            player.setAttached(dev.alan.shapeshift.ShapeshiftMod.UNLOCKS, new dev.alan.shapeshift.Unlocks(ids));
         });
     }
 

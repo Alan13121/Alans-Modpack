@@ -37,7 +37,7 @@ class FormPlanTest {
         var horseBase = Map.of("minecraft:max_health", 53.0, "minecraft:step_height", 1.0);
         var def = new FormDefinition(Optional.of(22.0), Optional.empty(), List.of(),
             Map.of("movement_speed", new ModifierSpec(1.0, Operation.ADD_MULTIPLIED_BASE),
-                   "minecraft:step_height", ModifierSpec.add(0.9)), Optional.empty(), List.of(), List.of(), List.of());
+                   "minecraft:step_height", ModifierSpec.add(0.9)), Optional.empty(), List.of(), List.of(), List.of(), false);
         var m = FormPlan.modifiers(horseBase, PLAYER, def, Set.of(), 1.4, 1.6);
         assertEquals(ModifierSpec.add(2), m.get("minecraft:max_health"));
         assertEquals(new ModifierSpec(1.0, Operation.ADD_MULTIPLIED_BASE), m.get("minecraft:movement_speed"));
@@ -46,7 +46,7 @@ class FormPlanTest {
         assertEquals(53.0, FormPlan.maxHealth(horseBase, FormDefinition.EMPTY));
     }
     @Test void healthOverrideEqualToPlayerRemovesModifier() {
-        var def = new FormDefinition(Optional.of(20.0), Optional.empty(), List.of(), Map.of(), Optional.empty(), List.of(), List.of(), List.of());
+        var def = new FormDefinition(Optional.of(20.0), Optional.empty(), List.of(), Map.of(), Optional.empty(), List.of(), List.of(), List.of(), false);
         var m = FormPlan.modifiers(Map.of("minecraft:max_health", 53.0), PLAYER, def, Set.of(), 0.6, 1.8);
         assertFalse(m.containsKey("minecraft:max_health"));
     }

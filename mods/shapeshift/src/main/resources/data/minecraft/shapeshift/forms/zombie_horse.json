@@ -1,4 +1,5 @@
 {
+  "rare": true,
   "attributes": {
     "movement_speed": {
       "amount": 0.8,

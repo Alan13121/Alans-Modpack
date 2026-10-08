@@ -1,4 +1,5 @@
 {
+  "rare": true,
   "max_health": 22,
   "attributes": {
     "movement_speed": {

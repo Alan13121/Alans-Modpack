@@ -44,4 +44,9 @@ class ShapeshiftLogicTest {
         assertEquals(50, FormStats.cooldownRemaining(100, 90, 60));
         assertEquals(0, FormStats.cooldownRemaining(200, 90, 60));
     }
+
+    @Test void zeroCooldownScaleMeansNoCooldown() {
+        assertEquals(0, dev.alan.shapeshift.api.SkillHooks.scaledCooldown(200, new dev.alan.shapeshift.api.SkillHooks.Scale(1f, 0f)));
+        assertEquals(1, dev.alan.shapeshift.api.SkillHooks.scaledCooldown(1, new dev.alan.shapeshift.api.SkillHooks.Scale(1f, 0.1f)));
+    }
 }
