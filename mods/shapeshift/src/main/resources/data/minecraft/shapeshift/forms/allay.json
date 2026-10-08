@@ -1,4 +1,5 @@
 {
+  "rare": true,
   "flying_speed": 0.06,
   "abilities": [
     "flight",

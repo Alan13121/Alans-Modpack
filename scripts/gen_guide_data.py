@@ -146,9 +146,9 @@ TASKS = [
      "兩大原版 Boss", "擊殺凋零與終界龍。形態祭壇需要一顆下界之星與一瓶龍息。",
      "The Two Bosses", "Defeat the Wither and the Ender Dragon. The form altar asks for a nether star and a dragon's breath."),
     ("ch6/form_king", "ch6/vanilla_bosses", "challenge", "combat:form_core", impossible(), 2000, [(mc("diamond_block"), 3)], True,
-     "形態之王", "集齊所有形態，在形態祭壇擊敗形態之王。", "The Form King", "Collect every form and defeat the Form King at the form altar."),
+     "形態之王", "集齊所有一般形態，在形態祭壇擊敗形態之王，拿到形態碎片。", "The Form King", "Collect every common form (rare ones are not needed) and defeat the Form King at the form altar for form shards."),
     ("ch6/master_charm", "ch6/form_king", "challenge", "combat:master_charm", has(("combat:master_charm", 1)), 500, [], True,
-     "終局護符", "用形態核心做出終局護符。", "Master's Charm", "Craft the master's charm from a form core."),
+     "終局護符", "用形態碎片做出形態之種，召喚並擊敗真・形態之王，用掉落的形態核心做出終局護符。", "Master's Charm", "Make a form seed from shards, defeat the True Form King, and craft the master's charm from its form core."),
 ]
 
 # A tab only shows once its root is done (or an ancestor within two steps is), and the real first task of
@@ -383,7 +383,8 @@ Kill a mob yourself to unlock its form for good, then become it whenever you lik
 # 形態之王
 - 先擊殺凋零與終界龍，取得下界之星與龍息。
 - 集齊所有形態。
-- 在形態祭壇召喚形態之王並擊敗牠，掉落形態核心。
+- 在形態祭壇召喚形態之王並擊敗牠，掉落形態碎片。
+- 用 9 個碎片做出形態之種；解鎖全部形態後用它召喚真・形態之王，擊敗牠會掉落形態核心。
 - 用形態核心做出終局護符。
 # 任務
 - 第一個飾品：取得任一飾品。

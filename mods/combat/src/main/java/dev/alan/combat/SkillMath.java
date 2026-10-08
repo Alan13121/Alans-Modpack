@@ -7,8 +7,16 @@ public final class SkillMath {
     /** Cooldown factor with a skill charm worn. */
     public static final float FOCUS_COOLDOWN = 0.7f;
 
+    /** Ability power factor with the master's charm worn. */
+    public static final float MASTER_POWER = 1.5f;
+
     private SkillMath() {}
 
-    public static float power(int emeraldLevels) { return 1f + POWER_PER_EMERALD_LEVEL * Math.max(0, emeraldLevels); }
-    public static float cooldown(boolean focus) { return focus ? FOCUS_COOLDOWN : 1f; }
+    public static float power(int emeraldLevels) { return power(emeraldLevels, false); }
+    public static float power(int emeraldLevels, boolean master) {
+        return (1f + POWER_PER_EMERALD_LEVEL * Math.max(0, emeraldLevels)) * (master ? MASTER_POWER : 1f);
+    }
+    public static float cooldown(boolean focus) { return cooldown(focus, false); }
+    /** The master's charm removes the cooldown altogether. */
+    public static float cooldown(boolean focus, boolean master) { return master ? 0f : focus ? FOCUS_COOLDOWN : 1f; }
 }

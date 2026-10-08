@@ -20,6 +20,9 @@ public final class FormKingFights {
     public interface Collection {
         int total();
         int unlocked(ServerPlayer player);
+        /** Every collectable form, rare ones included. */
+        int allTotal();
+        int allUnlocked(ServerPlayer player);
     }
 
     /** Altar cooldown after a win, in ticks (30 minutes). */
@@ -58,42 +61,50 @@ public final class FormKingFights {
             player.sendOverlayMessage(Component.translatable("combat.boss.cooldown", (cooldown - now + 1199) / 1200));
             return false;
         }
-        int total = collection.total(), unlocked = collection.unlocked(player);
-        if (unlocked < total) {
-            player.sendOverlayMessage(Component.translatable("combat.boss.missing_forms", unlocked, total));
-            return false;
-        }
         var inventory = player.getInventory();
-        if (inventory.countItem(Items.NETHER_STAR) < 1 || inventory.countItem(Items.DRAGON_BREATH) < 1) {
-            player.sendOverlayMessage(Component.translatable("combat.boss.need_items"));
-            return false;
-        }
+        // A seed in the bag and every form unlocked calls the True Form King; otherwise the usual rules apply.
+        boolean ascended = inventory.countItem(CombatMod.FORM_SEED) >= 1 && collection.allUnlocked(player) >= collection.allTotal();
         List<ItemStack> offering = new ArrayList<>();
-        offering.add(take(player, Items.NETHER_STAR));
-        offering.add(take(player, Items.DRAGON_BREATH));
+        if (ascended) {
+            offering.add(take(player, CombatMod.FORM_SEED));
+        } else {
+            int total = collection.total(), unlocked = collection.unlocked(player);
+            if (unlocked < total) {
+                player.sendOverlayMessage(Component.translatable("combat.boss.missing_forms", unlocked, total));
+                return false;
+            }
+            if (inventory.countItem(Items.NETHER_STAR) < 1 || inventory.countItem(Items.DRAGON_BREATH) < 1) {
+                player.sendOverlayMessage(Component.translatable("combat.boss.need_items"));
+                return false;
+            }
+            offering.add(take(player, Items.NETHER_STAR));
+            offering.add(take(player, Items.DRAGON_BREATH));
+        }
         int fighters = level.getPlayers(p -> p.isAlive() && !p.isSpectator()
             && p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= FormKingFight.RADIUS * FormKingFight.RADIUS).size();
-        FormKingFight fight = new FormKingFight(level, pos, key, offering, fighters);
+        FormKingFight fight = new FormKingFight(level, pos, key, offering, fighters, ascended);
         FIGHTS.put(key, fight);
         fight.begin(now);
         for (ServerPlayer nearby : level.getPlayers(p -> p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= FormKingFight.BAR_RADIUS * FormKingFight.BAR_RADIUS))
-            nearby.sendSystemMessage(Component.translatable("combat.boss.summoned"));
+            nearby.sendSystemMessage(Component.translatable(ascended ? "combat.boss.summoned_true" : "combat.boss.summoned"));
         return true;
     }
 
     /** Operator command: starts a fight at pos with no altar, offering, cooldown or form requirement. */
-    public static boolean forceSummon(ServerLevel level, BlockPos pos) {
+    public static boolean forceSummon(ServerLevel level, BlockPos pos) { return forceSummon(level, pos, false); }
+
+    public static boolean forceSummon(ServerLevel level, BlockPos pos, boolean ascended) {
         String key = key(level, pos);
         if (FIGHTS.containsKey(key) || nearAnyFight(level, pos)) return false;
         double r2 = FormKingFight.RADIUS * FormKingFight.RADIUS;
         int fighters = Math.max(1, level.getPlayers(p -> p.isAlive() && !p.isSpectator()
             && p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= r2).size());
-        FormKingFight fight = new FormKingFight(level, pos, key, new ArrayList<>(), fighters);
+        FormKingFight fight = new FormKingFight(level, pos, key, new ArrayList<>(), fighters, ascended);
         FIGHTS.put(key, fight);
         fight.begin(level.getGameTime());
         double bar = FormKingFight.BAR_RADIUS * FormKingFight.BAR_RADIUS;
         for (ServerPlayer nearby : level.getPlayers(p -> p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= bar))
-            nearby.sendSystemMessage(Component.translatable("combat.boss.summoned"));
+            nearby.sendSystemMessage(Component.translatable(ascended ? "combat.boss.summoned_true" : "combat.boss.summoned"));
         return true;
     }
 

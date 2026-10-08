@@ -69,7 +69,7 @@ public final class CombatMod implements ModInitializer {
     public static final Item BLAST_WARD = Trinkets.register("blast_ward", Trinkets.spec().perk(Trinket.Perk.BLAST_WARD));
     public static final Item THORNS_RING = Trinkets.register("thorns_ring", Trinkets.spec().perk(Trinket.Perk.THORNS));
     public static final Item HUNTER_CHARM = Trinkets.register("hunter_charm", Trinkets.spec().perk(Trinket.Perk.HUNTER));
-    /** The endgame trinket: a shapeshifted wearer keeps at least their human maximum health. */
+    /** The endgame trinket: no ability cooldown, stronger abilities, and a shapeshifted wearer keeps at least their human maximum health. */
     public static final Item MASTER_CHARM = Trinkets.register("master_charm", Trinkets.spec().perk(Trinket.Perk.FORM_MASTER));
     public static final Item TRINKET_BAG = Registry.register(BuiltInRegistries.ITEM, id("trinket_bag"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("trinket_bag"))).stacksTo(16)));
@@ -84,9 +84,22 @@ public final class CombatMod implements ModInitializer {
     /** The bow upgrades an arrow in flight carries; dropped when they have fired. Not saved. */
     public static final AttachmentType<Upgrades> ARROW_MODS = AttachmentRegistry.create(id("arrow_mods"));
 
-    /** Drops from the Form King, one per fighter; the material for the endgame trinket. */
+    /** Drops from the True Form King, one per fighter; the material for the endgame trinket. */
     public static final Item FORM_CORE = Registry.register(BuiltInRegistries.ITEM, id("form_core"),
         new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("form_core"))).rarity(net.minecraft.world.item.Rarity.EPIC)));
+    /** Drops from the Form King, 10 to 20 per fighter; made into marks and seeds. */
+    public static final Item FORM_SHARD = Registry.register(BuiltInRegistries.ITEM, id("form_shard"),
+        new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("form_shard"))).rarity(net.minecraft.world.item.Rarity.RARE)));
+    /** Nine shards; offered at the altar to call the True Form King. */
+    public static final Item FORM_SEED = Registry.register(BuiltInRegistries.ITEM, id("form_seed"),
+        new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("form_seed"))).rarity(net.minecraft.world.item.Rarity.EPIC).stacksTo(16)));
+    /** The rare form a mark is set to unlock. */
+    public static final DataComponentType<String> MARK_TARGET = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id("mark_target"),
+        DataComponentType.<String>builder().persistent(com.mojang.serialization.Codec.STRING)
+            .networkSynchronized(net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8).build());
+    /** Unlocks a rare form of your choice. */
+    public static final Item FORM_MARK = Registry.register(BuiltInRegistries.ITEM, id("form_mark"),
+        new FormMarkItem(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id("form_mark"))).rarity(net.minecraft.world.item.Rarity.RARE).stacksTo(16)));
 
     public static final FormAltarBlock FORM_ALTAR = registerBlock("form_altar", FormAltarBlock::new,
         BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_PURPLE).strength(5.0F, 1200.0F).sound(SoundType.AMETHYST).lightLevel(s -> 7));
@@ -111,6 +124,9 @@ public final class CombatMod implements ModInitializer {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.COMBAT).register(entries -> {
             for (Trinket trinket : Trinkets.all()) entries.accept(trinket.item());
             entries.accept(TRINKET_BAG);
+            entries.accept(FORM_SHARD);
+            entries.accept(FORM_MARK);
+            entries.accept(FORM_SEED);
             entries.accept(FORM_CORE);
         });
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> entries.accept(FORM_ALTAR));

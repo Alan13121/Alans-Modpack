@@ -160,6 +160,34 @@ def form_core():
                 put(px, cx, cy, (210, 120, 255) if d > 4 else (255, 215, 255) if d < 2 else (170, 70, 235))
     return px
 
+def form_shard():
+    px = blank()
+    tri = ((8, 2), (7, 3), (8, 3), (9, 3), (6, 4), (7, 4), (8, 4), (9, 4), (10, 4), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5),
+           (5, 6), (6, 6), (7, 6), (8, 6), (9, 6), (10, 6), (11, 6), (5, 7), (6, 7), (7, 7), (8, 7), (9, 7), (10, 7), (11, 7),
+           (6, 8), (7, 8), (8, 8), (9, 8), (10, 8), (6, 9), (7, 9), (8, 9), (9, 9), (7, 10), (8, 10), (9, 10), (8, 11), (8, 12))
+    for x, y in tri:
+        put(px, x, y, (210, 120, 255) if x >= 8 else (170, 70, 235))
+    for x, y in ((7, 4), (7, 5), (6, 6), (7, 6)):
+        put(px, x, y, (255, 225, 255))
+    return px
+
+def form_seed():
+    px = blank()
+    disc(px, 8, 9, 4, (60, 150, 70), (255, 215, 120))
+    for x, y in ((8, 8), (8, 9), (7, 9), (9, 10)):
+        put(px, x, y, (190, 255, 160))
+    for x, y in ((8, 4), (8, 3), (9, 2), (10, 2)):
+        put(px, x, y, (120, 220, 110))
+    return px
+
+def form_mark():
+    px = blank()
+    disc(px, 8, 8, 6, (50, 25, 80), (210, 120, 255))
+    for i in range(-3, 4):
+        put(px, 8 + i, 8, (255, 225, 255)); put(px, 8, 8 + i, (255, 225, 255))
+    put(px, 8, 8, (255, 255, 255))
+    return px
+
 def altar_top():
     px = [[[0, 0, 0, 255] for _ in range(16)] for _ in range(16)]
     for y in range(16):
@@ -233,9 +261,25 @@ ITEMS = {
     "thorns_ring": (thorns_ring, [" C ", "CGC", " C "], {"C": "minecraft:cactus", "G": "minecraft:gold_ingot"}),
     "hunter_charm": (hunter_charm, [" B ", "BFB", " B "], {"B": "minecraft:bone", "F": "minecraft:rabbit_foot"}),
     "form_core": (form_core, None, None),
+    "form_shard": (form_shard, None, None),
     "master_charm": (master_charm, [" E ", "GCG", " E "], {"E": "minecraft:ender_eye", "G": "minecraft:gold_ingot", "C": "combat:form_core"}),
     "trinket_bag": (bag, ["SIS", "L L", "LLL"], {"S": "minecraft:string", "I": "minecraft:iron_ingot", "L": "minecraft:leather"}),
 }
+
+# Shapeless recipes: result -> ingredients.
+SHAPELESS = {
+    "form_seed": (form_seed, ["combat:form_shard"] * 9),
+    "form_mark": (form_mark, ["combat:form_shard"] * 8 + ["minecraft:ender_eye"]),
+}
+for name, (draw, ingredients) in SHAPELESS.items():
+    write(os.path.join(ASSETS, "items", name + ".json"),
+          json.dumps({"model": {"type": "minecraft:model", "model": "combat:item/" + name}}) + "\n")
+    write(os.path.join(ASSETS, "models", "item", name + ".json"),
+          json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": "combat:item/" + name}}) + "\n")
+    write(os.path.join(DATA, "recipe", name + ".json"),
+          json.dumps({"type": "minecraft:crafting_shapeless", "category": "misc", "ingredients": ingredients,
+                      "result": {"id": "combat:" + name, "count": 1}}) + "\n")
+    png(os.path.join(ASSETS, "textures", "item", name + ".png"), draw())
 
 for name, (draw, pattern, key) in ITEMS.items():
     write(os.path.join(ASSETS, "items", name + ".json"),
@@ -296,13 +340,14 @@ LANG = {
         "combat.boss.dormant": "The altar is silent. It needs the shapeshift mod.",
         "combat.boss.busy": "A battle is already under way here.",
         "combat.boss.cooldown": "The altar is recovering: %s minute(s) left.",
-        "combat.boss.missing_forms": "The altar wants every form: you have unlocked %s of %s.",
+        "combat.boss.missing_forms": "The altar wants every common form (rare ones are not needed): you have unlocked %s of %s.",
         "combat.boss.need_items": "The altar asks for a nether star and a dragon's breath.",
+        "combat.command.aborted": "Aborted %s fight(s).",
         "combat.boss.summoned": "The Form King rises!",
         "combat.boss.victory": "The Form King is defeated.",
         "combat.boss.failed": "The Form King fades away. The offering is returned.",
         "item.combat.master_charm": "Master's Charm",
-        "item.combat.master_charm.desc": "While shapeshifted, your maximum health never drops below your human health.",
+        "item.combat.master_charm.desc": "While shapeshifted: abilities have no cooldown and +50% power, and your maximum health never drops below your human health.",
         "item.combat.trinket_bag": "Trinket Bag",
         "item.combat.trinket_bag.desc": "Carry it to unlock one more trinket slot.",
         "combat.trinket.hint": "Equip in the trinket screen.",
@@ -318,6 +363,19 @@ LANG = {
         "combat.bow.total": "Bow upgrades: %s / %s",
         "key.combat.trinkets": "Open trinkets",
         "key.category.combat.main": "Combat",
+        "item.combat.form_core.desc": "Dropped by the True Form King. The heart of the Master's Charm.",
+        "item.combat.form_shard": "Form Shard",
+        "item.combat.form_shard.desc": "Dropped by the Form King. 9 make a Form Seed, 8 and an Eye of Ender make a Form Mark.",
+        "item.combat.form_seed": "Form Seed",
+        "item.combat.form_seed.desc": "Use the altar with this in your bag, having unlocked every form, to call the True Form King.",
+        "item.combat.form_mark": "Form Mark",
+        "item.combat.form_mark.desc": "Use to unlock a rare form. Sneak and use to choose which one.",
+        "combat.mark.target": "Form Mark set to: %s",
+        "combat.mark.tooltip": "Will unlock: %s",
+        "combat.mark.unlocked": "Unlocked: %s",
+        "combat.mark.none": "There is no rare form left to unlock.",
+        "combat.boss.name_true": "True Form King",
+        "combat.boss.summoned_true": "The True Form King rises!",
     },
     "zh_tw": {
         "item.combat.feather_charm": "羽毛護符",
@@ -350,13 +408,14 @@ LANG = {
         "combat.boss.dormant": "祭壇毫無反應，需要安裝變身模組。",
         "combat.boss.busy": "這裡已經有一場戰鬥正在進行。",
         "combat.boss.cooldown": "祭壇正在恢復：還要 %s 分鐘。",
-        "combat.boss.missing_forms": "祭壇要求集齊所有形態：你已解鎖 %s／%s。",
+        "combat.boss.missing_forms": "祭壇要求集齊所有一般形態（稀有形態不計）：你已解鎖 %s／%s。",
         "combat.boss.need_items": "祭壇需要一顆下界之星和一瓶龍息。",
+        "combat.command.aborted": "已中止 %s 場戰鬥。",
         "combat.boss.summoned": "形態之王現身了！",
         "combat.boss.victory": "形態之王被擊敗了。",
         "combat.boss.failed": "形態之王消散了，祭品已退還。",
         "item.combat.master_charm": "終局護符",
-        "item.combat.master_charm.desc": "變身時，生命上限不會低於人類原本的生命上限。",
+        "item.combat.master_charm.desc": "變身時：技能沒有冷卻、威力 +50%，且生命上限不會低於人類原本的生命上限。",
         "item.combat.trinket_bag": "飾品背包",
         "item.combat.trinket_bag.desc": "帶在身上就多開放一格飾品欄。",
         "combat.trinket.hint": "在飾品介面中裝備。",
@@ -372,6 +431,19 @@ LANG = {
         "combat.bow.total": "弓箭強化：%s / %s",
         "key.combat.trinkets": "開啟飾品欄",
         "key.category.combat.main": "戰鬥",
+        "item.combat.form_core.desc": "真・形態之王掉落。終局護符的核心。",
+        "item.combat.form_shard": "形態碎片",
+        "item.combat.form_shard.desc": "形態之王掉落。9 個合成形態之種，8 個加終界之眼合成形態印記。",
+        "item.combat.form_seed": "形態之種",
+        "item.combat.form_seed.desc": "解鎖全部形態後，帶著它使用祭壇，召喚真・形態之王。",
+        "item.combat.form_mark": "形態印記",
+        "item.combat.form_mark.desc": "使用後解鎖一個稀有形態。蹲下使用可切換要解鎖的形態。",
+        "combat.mark.target": "形態印記已設為：%s",
+        "combat.mark.tooltip": "將解鎖：%s",
+        "combat.mark.unlocked": "已解鎖：%s",
+        "combat.mark.none": "沒有尚未解鎖的稀有形態了。",
+        "combat.boss.name_true": "真・形態之王",
+        "combat.boss.summoned_true": "真・形態之王現身了！",
     },
 }
 for code, entries in LANG.items():

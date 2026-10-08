@@ -19,6 +19,10 @@ class BundledFormsTest {
                 count++;
             }
         }
+        var pillager = FormDefinition.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(Files.readString(dir.resolve("pillager.json"))));
+        assertTrue(pillager.getOrThrow().rare(), "pillager is a rare form");
+        var zombie = FormDefinition.CODEC.parse(JsonOps.INSTANCE, JsonParser.parseString(Files.readString(dir.resolve("zombie.json"))));
+        assertFalse(zombie.getOrThrow().rare(), "zombie is a common form");
         assertTrue(count >= 12, "expected the bundled forms, found " + count);
     }
 }

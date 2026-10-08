@@ -23,6 +23,28 @@ public final class FormsApi {
         return ids;
     }
 
+    /** Collectable forms the Form King altar asks for: everything except forms marked {@code rare} in their data. */
+    public static List<String> required() {
+        return collectable().stream().filter(id -> !FormDefinitions.serverDefinitions().get(id).rare()).toList();
+    }
+
+    /** Collectable forms marked {@code rare}: the ones the Form King altar does not ask for. */
+    public static List<String> rare() {
+        return collectable().stream().filter(id -> FormDefinitions.serverDefinitions().get(id).rare()).toList();
+    }
+
+    /** Unlocks one collectable form for this player. @return whether it was newly unlocked */
+    public static boolean unlock(ServerPlayer player, String id) {
+        if (!collectable().contains(id)) return false;
+        return Forms.type(id).filter(type -> Shapeshifter.unlock(player, type)).isPresent();
+    }
+
+    /** How many of {@link #required()} this player has unlocked. */
+    public static int requiredUnlockedCount(ServerPlayer player) {
+        var unlocks = Shapeshifter.unlocks(player);
+        return (int) required().stream().filter(unlocks::contains).count();
+    }
+
     /** The collectable forms this player has not unlocked yet. */
     public static List<String> missing(ServerPlayer player) {
         var unlocks = Shapeshifter.unlocks(player);

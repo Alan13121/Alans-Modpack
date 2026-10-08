@@ -41,7 +41,7 @@ final class BossSkills {
         if (target != null) boss.lookAt(EntityAnchorArgument.Anchor.EYES, target.getEyePosition());
         ServerLevel level = fight.level;
         switch (fight.form) {
-            case SKELETON -> timed(fight, now, target, () -> arrow(level, boss, target));
+            case SKELETON -> timed(fight, now, target, () -> arrow(fight, level, boss, target));
             case BLAZE, BLAZE_FAST -> timed(fight, now, target, () -> fireball(level, boss, target));
             case BREEZE -> timed(fight, now, target, () -> windCharge(level, boss, target));
             case EVOKER -> timed(fight, now, target, () -> fangs(level, boss, target));
@@ -50,7 +50,7 @@ final class BossSkills {
             case SPIDER -> leap(fight, boss, target, targets, now);
             case CREEPER -> {
                 if (now - fight.formStart >= FUSE_TICKS) {
-                    level.explode(boss, boss.getX(), boss.getY(0.5), boss.getZ(), CREEPER_POWER, Level.ExplosionInteraction.NONE);
+                    level.explode(boss, boss.getX(), boss.getY(0.5), boss.getZ(), CREEPER_POWER * fight.damageScale(), Level.ExplosionInteraction.NONE);
                     fight.changeForm(BossForm.WEAK, now, true);
                 }
             }
@@ -74,14 +74,14 @@ final class BossSkills {
     private static void timed(FormKingFight fight, long now, ServerPlayer target, Runnable skill) {
         if (target == null || now < fight.nextSkill) return;
         skill.run();
-        fight.nextSkill = now + fight.form.interval;
+        fight.nextSkill = now + fight.paced(fight.form.interval);
     }
 
-    private static void arrow(ServerLevel level, Mob boss, ServerPlayer target) {
+    private static void arrow(FormKingFight fight, ServerLevel level, Mob boss, ServerPlayer target) {
         Vec3 from = boss.getEyePosition(), to = target.getEyePosition();
         Arrow arrow = new Arrow(level, boss, new ItemStack(Items.ARROW), null);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
-        arrow.setBaseDamage(4.0);
+        arrow.setBaseDamage(4.0 * fight.damageScale());
         arrow.setPos(from);
         Vec3 d = to.subtract(from);
         arrow.shoot(d.x, d.y + Math.sqrt(d.x * d.x + d.z * d.z) * 0.2, d.z, 1.8f, 3f);
@@ -158,9 +158,9 @@ final class BossSkills {
             }
             default -> {
                 if (now < fight.strikeAt) return;
-                for (ServerPlayer player : targets) if (player.distanceToSqr(boss) < 3.5 * 3.5) hit(level, boss, player);
+                for (ServerPlayer player : targets) if (player.distanceToSqr(boss) < 3.5 * 3.5) hit(fight, level, boss, player);
                 fight.strikeState = 0;
-                fight.nextSkill = now + fight.form.interval;
+                fight.nextSkill = now + fight.paced(fight.form.interval);
             }
         }
     }
@@ -172,7 +172,7 @@ final class BossSkills {
             if (fight.leapHit) return;
             for (ServerPlayer player : targets) {
                 if (player.distanceToSqr(boss) < 2.0 * 2.0) {
-                    hit(level, boss, player);
+                    hit(fight, level, boss, player);
                     fight.leapHit = true;
                     break;
                 }
@@ -185,12 +185,12 @@ final class BossSkills {
         boss.setDeltaMovement(d.x / length * 0.9, 0.45, d.z / length * 0.9);
         fight.leapUntil = now + LEAP_TICKS;
         fight.leapHit = false;
-        fight.nextSkill = now + fight.form.interval;
+        fight.nextSkill = now + fight.paced(fight.form.interval);
         sound(level, boss, SoundEvents.SPIDER_AMBIENT);
     }
 
-    static void hit(ServerLevel level, Mob boss, ServerPlayer target) {
-        target.hurtServer(level, level.damageSources().mobAttack(boss), MELEE_DAMAGE);
+    static void hit(FormKingFight fight, ServerLevel level, Mob boss, ServerPlayer target) {
+        target.hurtServer(level, level.damageSources().mobAttack(boss), MELEE_DAMAGE * fight.damageScale());
     }
 
     /** Primes the creeper body's fuse; the real blast is scripted, see {@link #FUSE_TICKS}. */

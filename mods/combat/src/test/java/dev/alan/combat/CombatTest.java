@@ -83,4 +83,21 @@ class CombatTest {
         assertEquals(1f, SkillMath.cooldown(false), 1e-6);
         assertEquals(0.7f, SkillMath.cooldown(true), 1e-6);
     }
+
+    @Test void masterCharmRemovesCooldownAndAddsPower() {
+        assertEquals(0f, SkillMath.cooldown(true, true), 1e-6);
+        assertEquals(0f, SkillMath.cooldown(false, true), 1e-6);
+        assertEquals(1.5f, SkillMath.power(0, true), 1e-6);
+        assertEquals(1.4f * 1.5f, SkillMath.power(8, true), 1e-6);
+    }
+
+    @Test void markCyclesThroughLockedForms() {
+        var locked = java.util.List.of("a", "b", "c");
+        assertEquals("a", MarkPick.pick(locked, null, false));
+        assertEquals("a", MarkPick.pick(locked, null, true));
+        assertEquals("b", MarkPick.pick(locked, "a", true));
+        assertEquals("a", MarkPick.pick(locked, "c", true));
+        assertEquals("b", MarkPick.pick(locked, "b", false));
+        assertEquals("a", MarkPick.pick(locked, "gone", false));
+    }
 }

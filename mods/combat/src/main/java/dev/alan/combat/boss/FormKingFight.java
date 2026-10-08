@@ -33,6 +33,10 @@ public final class FormKingFight {
     public static final int ABSENT_LIMIT = 200, DEAD_LIMIT = 60;
     public static final double BASE_HP = 600, EXTRA_PLAYER = 0.5, HIT_CAP = 0.05;
     public static final int MAX_PLAYERS = 4;
+    /** The True Form King: twice the health, quicker skills and forms, harder hits. */
+    public static final double ASCENDED_HP = 2.0;
+    public static final double ASCENDED_PACE = 0.75, ASCENDED_DAMAGE = 1.5;
+    public static final int SHARDS_MIN = 10, SHARDS_MAX = 20;
     public static final float STAGGER_BONUS = 0.25f, WEAK_BONUS = 0.5f;
     public static final int STAGGER_TICKS = 60, WEAK_TICKS = 100;
     /** The body's own health, high enough that nothing can kill it; it is topped up after every hit. */
@@ -43,6 +47,7 @@ public final class FormKingFight {
     final String key;
     final List<ItemStack> offering;
     final double maxHp;
+    final boolean ascended;
     final ServerBossEvent bar;
     final Set<UUID> damagers = new HashSet<>();
     double hp;
@@ -59,14 +64,15 @@ public final class FormKingFight {
     private int absent, deadFor;
     private boolean over;
 
-    FormKingFight(ServerLevel level, BlockPos altar, String key, List<ItemStack> offering, int players) {
+    FormKingFight(ServerLevel level, BlockPos altar, String key, List<ItemStack> offering, int players, boolean ascended) {
+        this.ascended = ascended;
         this.level = level;
         this.altar = altar;
         this.key = key;
         this.offering = offering;
-        this.maxHp = BASE_HP * (1 + EXTRA_PLAYER * (Math.min(Math.max(players, 1), MAX_PLAYERS) - 1));
+        this.maxHp = BASE_HP * (ascended ? ASCENDED_HP : 1) * (1 + EXTRA_PLAYER * (Math.min(Math.max(players, 1), MAX_PLAYERS) - 1));
         this.hp = maxHp;
-        this.bar = new ServerBossEvent(UUID.randomUUID(), title(BossForm.SKELETON), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS);
+        this.bar = new ServerBossEvent(UUID.randomUUID(), Component.translatable(ascended ? "combat.boss.name_true" : "combat.boss.name").append(" — ").append(BossForm.SKELETON.type.getDescription()), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS);
     }
 
     public double hp() { return hp; }
@@ -74,6 +80,11 @@ public final class FormKingFight {
     public int stage() { return stage; }
     public BossForm form() { return form; }
     public boolean isOver() { return over; }
+    public boolean ascended() { return ascended; }
+    /** Ticks between two uses of a skill, shorter for the True Form King. */
+    int paced(int ticks) { return ascended ? Math.max(1, (int) Math.round(ticks * ASCENDED_PACE)) : ticks; }
+    /** Damage multiplier of the boss's attacks. */
+    float damageScale() { return ascended ? (float) ASCENDED_DAMAGE : 1f; }
     public UUID bossId() { return bossId; }
     public BlockPos altar() { return altar; }
     /** For tests: sets the remaining health. */
@@ -81,8 +92,8 @@ public final class FormKingFight {
     /** For tests and commands: switches to {@code next} right away, as if its turn had come. */
     public void forceForm(BossForm next) { changeForm(next, level.getGameTime(), false); }
 
-    static Component title(BossForm form) {
-        return Component.translatable("combat.boss.name").append(" — ").append(form.type.getDescription());
+    Component title(BossForm form) {
+        return Component.translatable(ascended ? "combat.boss.name_true" : "combat.boss.name").append(" — ").append(form.type.getDescription());
     }
 
     /** Starts the fight: the first body appears at a point on the arena's edge. */
@@ -129,7 +140,7 @@ public final class FormKingFight {
             changeForm(nextForm(), now, false);
             boss = boss();
             if (boss == null) return;
-        } else if (form == BossForm.WEAK ? now >= weakUntil : form != BossForm.CREEPER && now - formStart >= BossForm.STAGES.get(stage - 1).formTicks()) {
+        } else if (form == BossForm.WEAK ? now >= weakUntil : form != BossForm.CREEPER && now - formStart >= paced(BossForm.STAGES.get(stage - 1).formTicks())) {
             changeForm(nextForm(), now, false);
             boss = boss();
             if (boss == null) return;
@@ -235,13 +246,12 @@ public final class FormKingFight {
         if (victory) {
             level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, at.x, at.y + 1, at.z, 3, 1.0, 1.0, 1.0, 0);
             level.playSound(null, at.x, at.y, at.z, SoundEvents.ENDER_DRAGON_DEATH, SoundSource.HOSTILE, 2f, 1f);
-            ExperienceOrb.award(level, at, 500);
+            ExperienceOrb.award(level, at, ascended ? 1500 : 500);
             for (UUID id : damagers) {
                 ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
                 if (player == null) continue;
-                ItemStack core = new ItemStack(CombatMod.FORM_CORE);
-                player.getInventory().add(core);
-                if (!core.isEmpty()) level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), core));
+                give(player, new ItemStack(CombatMod.FORM_SHARD, SHARDS_MIN + level.getRandom().nextInt(SHARDS_MAX - SHARDS_MIN + 1)));
+                if (ascended) give(player, new ItemStack(CombatMod.FORM_CORE));
                 FormKingFights.award(player);
             }
             for (ServerPlayer player : nearby) player.sendSystemMessage(Component.translatable("combat.boss.victory"));
@@ -253,6 +263,11 @@ public final class FormKingFight {
             for (ServerPlayer player : nearby) player.sendSystemMessage(Component.translatable("combat.boss.failed"));
         }
         FormKingFights.finished(this, victory, now);
+    }
+
+    private void give(ServerPlayer player, ItemStack stack) {
+        player.getInventory().add(stack);
+        if (!stack.isEmpty()) level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), stack));
     }
 
     /** Server stopping: leave nothing behind and keep the offering. */
