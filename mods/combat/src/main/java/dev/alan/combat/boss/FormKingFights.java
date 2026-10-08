@@ -81,6 +81,29 @@ public final class FormKingFights {
         return true;
     }
 
+    /** Operator command: starts a fight at pos with no altar, offering, cooldown or form requirement. */
+    public static boolean forceSummon(ServerLevel level, BlockPos pos) {
+        String key = key(level, pos);
+        if (FIGHTS.containsKey(key) || nearAnyFight(level, pos)) return false;
+        double r2 = FormKingFight.RADIUS * FormKingFight.RADIUS;
+        int fighters = Math.max(1, level.getPlayers(p -> p.isAlive() && !p.isSpectator()
+            && p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= r2).size());
+        FormKingFight fight = new FormKingFight(level, pos, key, new ArrayList<>(), fighters);
+        FIGHTS.put(key, fight);
+        fight.begin(level.getGameTime());
+        double bar = FormKingFight.BAR_RADIUS * FormKingFight.BAR_RADIUS;
+        for (ServerPlayer nearby : level.getPlayers(p -> p.distanceToSqr(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5) <= bar))
+            nearby.sendSystemMessage(Component.translatable("combat.boss.summoned"));
+        return true;
+    }
+
+    /** Operator command: ends every running fight without a payout. */
+    public static int abortAll() {
+        int n = 0;
+        for (FormKingFight fight : running()) { fight.abandon(); n++; }
+        return n;
+    }
+
     private static boolean nearAnyFight(ServerLevel level, BlockPos pos) {
         double limit = 2.0 * FormKingFight.RADIUS;
         for (FormKingFight fight : FIGHTS.values())

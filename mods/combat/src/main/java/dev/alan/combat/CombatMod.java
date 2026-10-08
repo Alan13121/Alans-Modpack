@@ -137,6 +137,8 @@ public final class CombatMod implements ModInitializer {
             if (entity instanceof ServerPlayer player) Trinkets.reflect(player, source, damageTaken);
         });
         if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("shapeshift")) ShapeshiftLink.register();
+        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, context, environment) ->
+            dev.alan.combat.boss.FormKingCommands.register(dispatcher));
         ServerTickEvents.END_SERVER_TICK.register(FormKingFights::tick);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> FormKingFights.shutdown());
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> FormKingFights.onEntityLoad(entity));

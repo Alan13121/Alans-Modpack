@@ -31,6 +31,7 @@
   "combat.boss.cooldown": "祭壇正在恢復：還要 %s 分鐘。",
   "combat.boss.missing_forms": "祭壇要求集齊所有形態：你已解鎖 %s／%s。",
   "combat.boss.need_items": "祭壇需要一顆下界之星和一瓶龍息。",
+  "combat.command.aborted": "已中止 %s 場戰鬥。",
   "combat.boss.summoned": "形態之王現身了！",
   "combat.boss.victory": "形態之王被擊敗了。",
   "combat.boss.failed": "形態之王消散了，祭品已退還。",
