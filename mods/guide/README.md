@@ -1,6 +1,6 @@
 # 任務書 Guide
 
-Minecraft Java 26.3／Fabric，屬於本模組包的一部分。純資料模組：六章、30 個任務（外加 5 個章首進度，共 35 個），加上獎勵戰利品表與語言檔。清單與設計見 `docs/quest-book.md`。
+Minecraft Java 26.3／Fabric，屬於本模組包的一部分。純資料模組：六章、30 個任務（外加 5 個章首進度，共 35 個），加上獎勵戰利品表與語言檔。清單與設計見 `docs/mods/guide.md`。
 
 ## 修改任務
 

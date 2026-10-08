@@ -1,6 +1,6 @@
 # 戰鬥 Combat
 
-Minecraft Java 26.3／Fabric，屬於本模組包的一部分。設計與數值見 `docs/mainline-outline.md`、`docs/boss-design.md`。
+Minecraft Java 26.3／Fabric，屬於本模組包的一部分。設計與數值見 `docs/mods/combat.md`。
 
 ## 內容
 

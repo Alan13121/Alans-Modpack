@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generates the quest book (guide mod): advancements, reward loot tables and language files.
-The task list lives in docs/quest-book.md; this script is its machine-readable twin.
+The task list lives in docs/mods/guide.md; this script is its machine-readable twin.
 Always rewrites everything under the guide mod's data and lang files."""
 import json, os
 
