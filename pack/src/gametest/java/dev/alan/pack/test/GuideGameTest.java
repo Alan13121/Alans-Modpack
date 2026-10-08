@@ -196,7 +196,7 @@ public final class GuideGameTest implements FabricClientGameTest {
             }), "two world cauldrons were made");
             check(done(server, "ch3/cauldron") && done(server, "ch3/second_world"), "first and second world are noticed");
 
-            // 10. Beating the Form King awards its entry and pays a form core (the unlockall above satisfied the altar).
+            // 10. Beating the Form King awards its entry and pays 10 to 20 form shards (the unlockall above satisfied the altar).
             check(server.computeOnServer(s -> {
                 ServerPlayer player = player(s);
                 BlockPos altar = new BlockPos(8, 120, 8);
@@ -216,7 +216,10 @@ public final class GuideGameTest implements FabricClientGameTest {
                 return true;
             }), "the last hit lands");
             context.waitTicks(5);
-            check(done(server, "ch6/form_king") && server.computeOnServer(s -> player(s).getInventory().countItem(dev.alan.combat.CombatMod.FORM_CORE) == 1),
+            check(done(server, "ch6/form_king") && server.computeOnServer(s -> {
+                int shards = player(s).getInventory().countItem(dev.alan.combat.CombatMod.FORM_SHARD);
+                return shards >= 10 && shards <= 20;
+            }),
                 "beating the Form King awards its quest book entry");
 
             // 11. The Form King's entry exists and is a challenge that announces itself.
