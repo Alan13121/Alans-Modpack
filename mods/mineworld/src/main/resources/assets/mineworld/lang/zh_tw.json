@@ -8,5 +8,12 @@
   "mineworld.lookup.water": "需裝滿水",
   "mineworld.lookup.either": "原礦或錠皆可",
   "mineworld.lookup.note": "丟進水鍋釜,每種消耗 1 個",
-  "mineworld.tooltip.world": "礦世界:%s"
+  "mineworld.tooltip.world": "礦世界:%s",
+  "entity.mineworld.city_zombie": "殭屍雜貨商",
+  "entity.mineworld.city_skeleton": "骷髏守衛",
+  "entity.mineworld.city_piglin": "豬布林居民",
+  "entity.mineworld.city_captain": "衛兵隊長",
+  "entity.mineworld.city_creeper": "城市苦力怕",
+  "entity.mineworld.city_enderman": "終界使者商人",
+  "mineworld.inn.spawn_set": "已在旅店設定重生點"
 }
