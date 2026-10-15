@@ -97,6 +97,9 @@ public final class CityClientGameTest implements FabricClientGameTest {
             check(residents.contains(need), "residents include " + need + ": " + residents);
         }
 
+        // 2b. Trading: a piglin trade goes through; the enderman's offers are enchanted, lockable, and locks persist.
+        checkTrades(context, server, connection, worldId, in);
+
         // 3. Guards kill a zombie that walks in through the gate (the player stands in the passage so the area ticks).
         server.runCommand(in + "tp @p 0.5 " + (C.getY() + 1) + " " + (C.getZ() - CityLayout.WALL_OUTER - 4) + " 0 0");
         context.waitTicks(40);
@@ -173,6 +176,91 @@ public final class CityClientGameTest implements FabricClientGameTest {
         System.out.println("MINEWORLD RANDOM CITY " + far);
         check(!far.equals("none"), "random cities generate");
         world.close();
+    }
+
+
+    private static void checkTrades(ClientGameTestContext context, TestServerContext server,
+                                    net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection connection, String worldId, String in) {
+        // A piglin with a trading profession sells its list; buying the first offer pays with gold.
+        String piglin = server.computeOnServer(s -> {
+            ServerLevel level = level(s, worldId);
+            var player = s.getPlayerList().getPlayers().get(0);
+            CityPiglin seller = level.getEntitiesOfClass(CityPiglin.class, new AABB(C).inflate(70, 40, 70), p -> p.seller() != null).getFirst();
+            player.teleportTo(level, seller.getX(), seller.getY(), seller.getZ(), java.util.Set.of(), 0, 0, false);
+            player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.GOLD_INGOT, 64));
+            seller.mobInteract(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            if (!(player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu menu)) return "no menu";
+            int expected = dev.alan.mineworld.city.CityTrades.of(seller.seller()).size();
+            var offer = menu.getOffers().getFirst();
+            menu.setSelectionHint(0);
+            menu.tryMoveItems(0);
+            var bought = menu.quickMoveStack(player, 2);
+            player.closeContainer();
+            return "offers=" + menu.getOffers().size() + "/" + expected + " bought=" + !bought.isEmpty()
+                + " result=" + net.minecraft.world.item.ItemStack.isSameItem(bought, offer.getResult()) + " unlimited=" + (offer.getMaxUses() == Integer.MAX_VALUE);
+        });
+        System.out.println("MINEWORLD TRADE PIGLIN " + piglin);
+        check(piglin.matches("offers=(\\d+)/\\1 bought=true result=true unlimited=true"), "piglin trade: " + piglin);
+
+        // The enderman: open its screen for real so the client draws the lock button.
+        int ender = server.computeOnServer(s -> {
+            ServerLevel level = level(s, worldId);
+            var player = s.getPlayerList().getPlayers().get(0);
+            var e = level.getEntitiesOfClass(dev.alan.mineworld.city.CityEnderman.class, new AABB(C).inflate(70, 40, 70), x -> true).getFirst();
+            player.teleportTo(level, e.getX() + 1, e.getY(), e.getZ(), java.util.Set.of(), 0, 0, false);
+            e.merchant().interact(player, e.seller(), e.lockable());
+            return e.getId();
+        });
+        connection.waitForClientboundPackets();
+        context.waitTicks(10);
+        String offers = server.computeOnServer(s -> {
+            var menu = (net.minecraft.world.inventory.MerchantMenu) s.getPlayerList().getPlayers().get(0).containerMenu;
+            int enchanted = 0, cursed = 0;
+            for (var o : menu.getOffers()) {
+                var result = o.getResult();
+                if (net.minecraft.world.item.enchantment.EnchantmentHelper.hasAnyEnchantments(result)) enchanted++;
+                var all = result.getOrDefault(net.minecraft.core.component.DataComponents.STORED_ENCHANTMENTS,
+                    result.getOrDefault(net.minecraft.core.component.DataComponents.ENCHANTMENTS, net.minecraft.world.item.enchantment.ItemEnchantments.EMPTY));
+                for (var en : all.keySet()) if (en.is(net.minecraft.tags.EnchantmentTags.CURSE)) cursed++;
+            }
+            return "offers=" + menu.getOffers().size() + " enchanted=" + enchanted + " cursed=" + cursed + " xp=" + menu.getTraderXp();
+        });
+        System.out.println("MINEWORLD TRADE ENDER " + offers);
+        check(offers.equals("offers=10 enchanted=10 cursed=0 xp=1"), "enderman offers: " + offers);
+
+        // Lock offer 3 with the client button path (menu button click), as the lock button does.
+        net.minecraft.world.item.ItemStack picked = server.computeOnServer(s ->
+            ((net.minecraft.world.inventory.MerchantMenu) s.getPlayerList().getPlayers().get(0).containerMenu).getOffers().get(3).getResult().copy());
+        context.runOnClient(mc -> mc.gameMode.handleInventoryButtonClick(mc.player.containerMenu.containerId, dev.alan.mineworld.city.CityMerchant.LOCK_BUTTON + 3));
+        connection.waitForClientboundPackets();
+        context.waitTicks(10);
+        context.takeScreenshot("city-06-enderman-trades");
+        String locked = server.computeOnServer(s -> {
+            var player = s.getPlayerList().getPlayers().get(0);
+            var locks = player.getAttachedOrCreate(dev.alan.mineworld.city.CityMerchant.LOCKS);
+            var first = ((net.minecraft.world.inventory.MerchantMenu) player.containerMenu).getOffers().getFirst().getResult();
+            return "locks=" + locks.size() + " first=" + net.minecraft.world.item.ItemStack.matches(first, picked);
+        });
+        check(locked.equals("locks=1 first=true"), "locked offer moves to the top: " + locked);
+        boolean clientSees = context.computeOnClient(mc -> mc.player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu m && m.getTraderXp() == 2);
+        check(clientSees, "client knows one offer is locked");
+
+        // Close and reopen: the locked offer is still there, unchanged; then unlock it.
+        String reopened = server.computeOnServer(s -> {
+            ServerLevel level = level(s, worldId);
+            var player = s.getPlayerList().getPlayers().get(0);
+            player.closeContainer();
+            var e = (dev.alan.mineworld.city.CityEnderman) level.getEntity(ender);
+            e.merchant().interact(player, e.seller(), e.lockable());
+            var menu = (net.minecraft.world.inventory.MerchantMenu) player.containerMenu;
+            boolean same = net.minecraft.world.item.ItemStack.matches(menu.getOffers().getFirst().getResult(), picked);
+            e.merchant().toggleLock(player, 0);
+            int after = player.getAttachedOrCreate(dev.alan.mineworld.city.CityMerchant.LOCKS).size();
+            player.closeContainer();
+            return "same=" + same + " offers=" + menu.getOffers().size() + " afterUnlock=" + after;
+        });
+        System.out.println("MINEWORLD TRADE LOCK " + reopened);
+        check(reopened.equals("same=true offers=11 afterUnlock=0"), "lock persists across visits: " + reopened);
     }
 
     private static ServerLevel level(net.minecraft.server.MinecraftServer s, String worldId) {

@@ -5,6 +5,7 @@
   "mixins": [
     "AbstractBedBlockMixin",
     "ItemEntityMixin",
+    "MerchantMenuMixin",
     "MinecraftServerAccessor",
     "ServerLevelMixin"
   ],

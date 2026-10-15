@@ -39,7 +39,7 @@ public final class GuideGameTest implements FabricClientGameTest {
             }) server.runCommand(command);
             context.waitTicks(10);
 
-            // 1. Everything the book promises loads: 30 advancements, six tabs, and every reward table exists.
+            // 1. Everything the book promises loads: 31 tasks, six tabs, and every reward table exists.
             check(server.computeOnServer(s -> {
                 var all = s.getAdvancements().getAllAdvancements().stream().filter(h -> h.id().getNamespace().equals("guide")).toList();
                 long roots = all.stream().filter(h -> h.value().parent().isEmpty()).count();
@@ -53,8 +53,8 @@ public final class GuideGameTest implements FabricClientGameTest {
                         }
                     }
                 System.out.println("[guide-test] advancements=" + all.size() + " roots=" + roots + " missingTables=" + missingTables);
-                return all.size() == 35 && roots == 6 && missingTables == 0;
-            }), "35 advancements (30 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
+                return all.size() == 36 && roots == 6 && missingTables == 0;
+            }), "36 advancements (31 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
 
             // 1b. The handbook: one on first join, never a second, /guidebook only when none is carried, and no re-issue on rejoin.
             check(books(server) == 1, "the first join handed out exactly one handbook");
@@ -195,6 +195,25 @@ public final class GuideGameTest implements FabricClientGameTest {
                 return true;
             }), "two world cauldrons were made");
             check(done(server, "ch3/cauldron") && done(server, "ch3/second_world"), "first and second world are noticed");
+
+            // 9b. Buying from a city piglin awards the first city trade.
+            check(server.computeOnServer(s -> {
+                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                var piglin = dev.alan.mineworld.city.City.PIGLIN.create(s.overworld(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+                piglin.snapTo(player.getX() + 1, player.getY(), player.getZ(), 0, 0);
+                piglin.setup(dev.alan.mineworld.city.CityPiglin.Role.CIVILIAN, dev.alan.mineworld.city.CityPiglin.Profession.FARMER);
+                s.overworld().addFreshEntity(piglin);
+                player.getInventory().add(new ItemStack(Items.GOLD_INGOT, 8));
+                piglin.mobInteract(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+                if (!(player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu menu)) return false;
+                menu.setSelectionHint(0);
+                menu.tryMoveItems(0);
+                boolean bought = !menu.quickMoveStack(player, 2).isEmpty();
+                player.closeContainer();
+                piglin.discard();
+                return bought;
+            }), "bought from a city piglin");
+            check(done(server, "ch3/trade"), "the first city trade is noticed");
 
             // 10. Beating the Form King awards its entry and pays 10 to 20 form shards (the unlockall above satisfied the altar).
             check(server.computeOnServer(s -> {

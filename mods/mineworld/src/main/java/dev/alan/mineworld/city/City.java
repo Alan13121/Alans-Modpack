@@ -64,6 +64,7 @@ public final class City {
         MineWorldMod.id("city_building"), (StructurePieceType.StructureTemplateType) BuildingPiece::new);
 
     public static void init() {
+        java.util.Objects.requireNonNull(CityMerchant.LOCKS); // registers the player attachment
         FabricDefaultAttributeRegistry.register(ZOMBIE, Zombie.createAttributes());
         FabricDefaultAttributeRegistry.register(SKELETON, AbstractSkeleton.createAttributes());
         FabricDefaultAttributeRegistry.register(PIGLIN, Piglin.createAttributes());
