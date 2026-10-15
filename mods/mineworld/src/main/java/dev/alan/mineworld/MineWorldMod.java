@@ -1,5 +1,6 @@
 package dev.alan.mineworld;
 
+import java.util.Map;
 import java.util.function.Function;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
@@ -32,7 +33,14 @@ public final class MineWorldMod implements ModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger(MOD_ID);
     public static Identifier id(String name) { return Identifier.fromNamespaceAndPath(MOD_ID, name); }
 
+    /** Biome of chunks generated before the caves existed; old worlds still use it. */
     public static final ResourceKey<Biome> BIOME = ResourceKey.create(Registries.BIOME, id("mine"));
+    /** Cave ecosystems and their (temperature, humidity) climate points; keep in sync with CAVE_BIOMES in scripts/gen_mineworld_data.py. */
+    public static final Map<ResourceKey<Biome>, float[]> CAVE_BIOMES = Map.of(
+        ResourceKey.create(Registries.BIOME, id("crystal_cave")), new float[]{-0.3F, -0.3F},
+        ResourceKey.create(Registries.BIOME, id("lush_cave")), new float[]{-0.3F, 0.3F},
+        ResourceKey.create(Registries.BIOME, id("dripstone_cave")), new float[]{0.3F, -0.3F},
+        ResourceKey.create(Registries.BIOME, id("ore_nest")), new float[]{0.3F, 0.3F});
     public static final ResourceKey<NoiseGeneratorSettings> NOISE_SETTINGS = ResourceKey.create(Registries.NOISE_SETTINGS, id("mine"));
     public static final ResourceKey<DimensionType> DIMENSION_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE, id("mine"));
 
