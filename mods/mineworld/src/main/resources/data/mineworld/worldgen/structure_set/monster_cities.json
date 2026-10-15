@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "mineworld:monster_city",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 44,
+    "separation": 30,
+    "salt": 26101501
+  }
+}

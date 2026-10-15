@@ -1,5 +1,7 @@
 package dev.alan.mineworld;
 
+import dev.alan.mineworld.city.City;
+import dev.alan.mineworld.city.CityLayout;
 import dev.alan.mineworld.mixin.MinecraftServerAccessor;
 import com.mojang.datafixers.util.Pair;
 import java.util.ArrayDeque;
@@ -103,9 +105,18 @@ public final class DynamicLevels {
         return level;
     }
 
-    /** Carves the 5x5x3 start room out of the solid stone, with the return block and glowstone in the ceiling corners. */
+    /** Carves the 5x5x3 start room inside a sealed stone shell, with the return block, glowstone in the ceiling corners and the tunnel to the first city. */
     private static void buildSpawnRoom(ServerLevel level) {
         for (int cx = -1; cx <= 0; cx++) for (int cz = -1; cz <= 0; cz++) level.getChunk(cx, cz);
+        // A closed stone shell first, so a geode or other feature next to the room cannot open into it.
+        for (int x = -3; x <= 3; x++) {
+            for (int z = -3; z <= 3; z++) {
+                for (int y = FLOOR; y <= FLOOR + 4; y++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    if (level.getBlockState(pos).canBeReplaced()) level.setBlock(pos, Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+                }
+            }
+        }
         for (int x = -2; x <= 2; x++) {
             for (int z = -2; z <= 2; z++) {
                 for (int y = FLOOR + 1; y <= FLOOR + 3; y++) {
@@ -119,5 +130,23 @@ public final class DynamicLevels {
             }
         }
         level.setBlock(RETURN_BLOCK, MineWorldMod.RETURN_BLOCK.defaultBlockState(), Block.UPDATE_ALL);
+        digTunnelToFirstCity(level);
+    }
+
+    /** A lit 3x3 tunnel from the room's south wall straight to the gate passage of the first city. */
+    private static void digTunnelToFirstCity(ServerLevel level) {
+        int end = City.FIRST_CENTRE.getZ() - CityLayout.WALL_OUTER - CityLayout.PASSAGE_LENGTH - 1;
+        for (int z = 3; z <= end; z++) {
+            for (int x = -2; x <= 2; x++) {
+                for (int y = FLOOR; y <= FLOOR + 4; y++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    boolean shell = Math.abs(x) == 2 || y == FLOOR || y == FLOOR + 4;
+                    if (!shell) level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                    else if (y == FLOOR + 4 && x == 0 && z % 6 == 0) level.setBlock(pos, Blocks.GLOWSTONE.defaultBlockState(), Block.UPDATE_ALL);
+                    else if (y == FLOOR) level.setBlock(pos, Blocks.POLISHED_ANDESITE.defaultBlockState(), Block.UPDATE_ALL);
+                    else if (level.getBlockState(pos).canBeReplaced()) level.setBlock(pos, Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
+                }
+            }
+        }
     }
 }

@@ -1,0 +1,13 @@
+{
+  "structures": [
+    {
+      "structure": "mineworld:monster_city_first",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "mineworld:fixed_chunk",
+    "chunk_x": 0,
+    "chunk_z": 9
+  }
+}

@@ -144,12 +144,14 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
                                    net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection connection, String worldId) {
         String report = server.computeOnServer(s -> {
             var level = s.getLevel(DynamicLevels.key(worldId));
-            // Spawn shield: no air within 16 blocks of the room centre except the room itself.
+            // Sealed room: the shell around the room and the tunnel to the first city is solid, so no cave opens into it.
             for (int cx = -2; cx <= 1; cx++) for (int cz = -2; cz <= 1; cz++) level.getChunk(cx, cz);
             int shieldAir = 0;
-            for (int x = -16; x <= 16; x++) for (int y = 113; y <= 145; y++) for (int z = -16; z <= 16; z++) {
-                boolean inRoom = Math.abs(x) <= 2 && Math.abs(z) <= 2 && y >= DynamicLevels.FLOOR + 1 && y <= DynamicLevels.FLOOR + 3;
-                if (!inRoom && x * x + (y - 129) * (y - 129) + z * z <= 16 * 16 && level.getBlockState(new BlockPos(x, y, z)).isAir()) shieldAir++;
+            for (int x = -3; x <= 3; x++) for (int y = DynamicLevels.FLOOR; y <= DynamicLevels.FLOOR + 4; y++) for (int z = -3; z <= 16; z++) {
+                boolean room = Math.abs(x) <= 2 && Math.abs(z) <= 2 && y >= DynamicLevels.FLOOR + 1 && y <= DynamicLevels.FLOOR + 3;
+                boolean tunnel = Math.abs(x) <= 1 && z >= 3 && y >= DynamicLevels.FLOOR + 1 && y <= DynamicLevels.FLOOR + 3;
+                boolean shell = z <= 3 || Math.abs(x) == 2 || y == DynamicLevels.FLOOR || y == DynamicLevels.FLOOR + 4;
+                if (!room && !tunnel && shell && level.getBlockState(new BlockPos(x, y, z)).isAir()) shieldAir++;
             }
             // Wide biome layout from the noise (no chunk generation needed).
             java.util.Map<String, Integer> biomes = new java.util.TreeMap<>();
@@ -181,7 +183,7 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
                 + " chambersPer100=" + String.format("%.2f", 100.0 * entries / (rows * 128.0)) + " biomes=" + biomes + " marks=" + marks;
         });
         System.out.println("MINEWORLD CAVES " + report);
-        check(report.startsWith("shieldAir=0 "), "no cave cuts into the spawn room: " + report);
+        check(report.startsWith("shieldAir=0 "), "no cave opens into the spawn room or tunnel: " + report);
         for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest"}) check(report.contains(b + "="), "biome " + b + " appears: " + report);
         check(!report.contains("mine="), "new worlds only use the cave biomes: " + report);
         String mineshaft = server.computeOnServer(s -> {
