@@ -39,7 +39,7 @@ public final class GuideGameTest implements FabricClientGameTest {
             }) server.runCommand(command);
             context.waitTicks(10);
 
-            // 1. Everything the book promises loads: 31 tasks, six tabs, and every reward table exists.
+            // 1. Everything the book promises loads: 32 tasks, six tabs, and every reward table exists.
             check(server.computeOnServer(s -> {
                 var all = s.getAdvancements().getAllAdvancements().stream().filter(h -> h.id().getNamespace().equals("guide")).toList();
                 long roots = all.stream().filter(h -> h.value().parent().isEmpty()).count();
@@ -53,8 +53,8 @@ public final class GuideGameTest implements FabricClientGameTest {
                         }
                     }
                 System.out.println("[guide-test] advancements=" + all.size() + " roots=" + roots + " missingTables=" + missingTables);
-                return all.size() == 36 && roots == 6 && missingTables == 0;
-            }), "36 advancements (31 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
+                return all.size() == 37 && roots == 6 && missingTables == 0;
+            }), "37 advancements (32 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
 
             // 1b. The handbook: one on first join, never a second, /guidebook only when none is carried, and no re-issue on rejoin.
             check(books(server) == 1, "the first join handed out exactly one handbook");
@@ -214,6 +214,23 @@ public final class GuideGameTest implements FabricClientGameTest {
                 return bought;
             }), "bought from a city piglin");
             check(done(server, "ch3/trade"), "the first city trade is noticed");
+
+            // 9c. Holding a bounty proof (here from a killed wanted mob) completes the bounty hunter quest.
+            check(server.computeOnServer(s -> {
+                ServerPlayer player = s.getPlayerList().getPlayers().get(0);
+                var wanted = dev.alan.mineworld.city.Wanted.spawn(s.overworld(), player.blockPosition().offset(2, 0, 0), dev.alan.mineworld.city.Wanted.Tier.C);
+                wanted.kill(s.overworld());
+                for (ItemEntity drop : s.overworld().getEntitiesOfClass(ItemEntity.class, wanted.getBoundingBox().inflate(3))) {
+                    if (drop.getItem().is(dev.alan.mineworld.city.City.BOUNTY_PROOF)) {
+                        player.getInventory().add(drop.getItem().copy());
+                        drop.discard();
+                        return true;
+                    }
+                }
+                return false;
+            }), "a killed wanted mob drops a bounty proof");
+            context.waitTicks(3);
+            check(done(server, "ch3/bounty"), "the bounty hunter quest is noticed");
 
             // 10. Beating the Form King awards its entry and pays 10 to 20 form shards (the unlockall above satisfied the altar).
             check(server.computeOnServer(s -> {

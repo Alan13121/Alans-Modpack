@@ -39,6 +39,11 @@ public final class City {
     /** Random cities put their floor between these heights. */
     public static final int MIN_FLOOR = 60, MAX_FLOOR = 200;
 
+    /** Dropped by wanted mobs (1 / 3 / 8 by tier); the guard captain's currency. */
+    public static final net.minecraft.world.item.Item BOUNTY_PROOF = Registry.register(BuiltInRegistries.ITEM, MineWorldMod.id("bounty_proof"),
+        new net.minecraft.world.item.Item(new net.minecraft.world.item.Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, MineWorldMod.id("bounty_proof"))).rarity(net.minecraft.world.item.Rarity.UNCOMMON)));
+
     public static final TagKey<Structure> CITIES = TagKey.create(Registries.STRUCTURE, MineWorldMod.id("monster_city"));
 
     private static <T extends Mob> EntityType<T> entity(String name, EntityType.EntityFactory<T> factory, EntityType<?> look) {
@@ -65,6 +70,7 @@ public final class City {
 
     public static void init() {
         java.util.Objects.requireNonNull(CityMerchant.LOCKS); // registers the player attachment
+        Wanted.init();
         FabricDefaultAttributeRegistry.register(ZOMBIE, Zombie.createAttributes());
         FabricDefaultAttributeRegistry.register(SKELETON, AbstractSkeleton.createAttributes());
         FabricDefaultAttributeRegistry.register(PIGLIN, Piglin.createAttributes());

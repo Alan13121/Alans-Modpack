@@ -108,6 +108,8 @@ TASKS = [
      "第二個世界", "做出第二個世界鍋釜，每一個都是不同的世界。", "A Second World", "Make a second world cauldron. Every one is a different world."),
     ("ch3/trade", "ch3/enter", "task", mc("gold_ingot"), impossible(), 50, [(mc("gold_ingot"), 8)], False,
      "第一筆城市交易", "在怪物城市和居民交易一次。", "First City Trade", "Trade once with a resident of a monster city."),
+    ("ch3/bounty", "ch3/enter", "task", "mineworld:bounty_proof", has(("mineworld:bounty_proof", 1)), 100, [(mc("golden_apple"), 1)], False,
+     "賞金獵人", "打倒通緝犯，取得第一張懸賞證明。", "Bounty Hunter", "Defeat a wanted mob and get your first bounty proof."),
 
     # Chapter 4: logistics
     ("ch4/controller", None, "task", "logistics:controller", placed(["logistics:controller"]), 50, [(mc("redstone"), 16)], False,
@@ -179,7 +181,7 @@ BOOK = [
      """# 歡迎來到 Alan's Modpack
 這本手冊介紹整合包裡有什麼，以及每個任務該怎麼完成。左邊選章節，滾輪或方向鍵捲動內容。
 # 任務書
-- 按 L 打開任務書（原版的進度畫面），有六個分頁、31 個任務。
+- 按 L 打開任務書（原版的進度畫面），有六個分頁、32 個任務。
 - 完成任務會自動發經驗和物品，不用另外領。
 - 每章的第一個任務在分頁最左邊，往右依序完成。
 # 手冊弄丟了？
@@ -188,7 +190,7 @@ BOOK = [
      """# Welcome to Alan's Modpack
 This handbook covers what the modpack adds and how to finish each quest. Pick a chapter on the left; scroll with the wheel or the arrow keys.
 # The quest book
-- Press L to open the quest book (the vanilla advancements screen): six tabs, 31 quests.
+- Press L to open the quest book (the vanilla advancements screen): six tabs, 32 quests.
 - Finishing a quest pays experience and items by itself.
 - Each chapter starts at the left of its tab; work to the right.
 # Lost this handbook?
@@ -263,6 +265,10 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 - 城市是安全屋：不生怪、有守衛。旅店的床可以設定重生點（礦世界其他地方的床會爆炸）。
 - 居民交易：豬布林收金錠（礦工、農夫、鐵匠、酒保、牧民），殭屍雜貨商收礦物，終界使者收鑽石和綠寶石賣附魔商品。
 - 終界使者的附魔商品每次開啟都重新隨機，看到喜歡的可以按「鎖定交易」留住。
+# 通緝犯
+- 礦世界（城市外）和主世界偶爾會出現「通緝犯」：名字上掛著等級，靠近 32 格會發光。
+- C 級是強化殭屍或骷髏，B 級是衛道士或豬布林蠻兵，A 級是帶 3 隻小弟的喚魔者頭目（有血條）。
+- 打倒後掉懸賞證明（C 1、B 3、A 8 張），拿去守衛所找衛兵隊長換經驗瓶、金蘋果、不死圖騰、附魔金蘋果。
 # 其他
 - 每個世界鍋釜有自己的世界；敲掉再放回會接回同一個世界。
 - 用命名牌可以替世界鍋釜取名。
@@ -271,7 +277,8 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 - 踏入礦世界。
 - 豐收：同時持有鑽石 16、綠寶石 16、紅石 64。
 - 第二個世界：做出第二個世界鍋釜。
-- 第一筆城市交易：和城市居民交易一次。""",
+- 第一筆城市交易：和城市居民交易一次。
+- 賞金獵人：取得第一張懸賞證明。""",
      """# Chapter 3: Mine World
 Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 # Making a world cauldron
@@ -288,6 +295,10 @@ Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 - Cities are safe houses: no monsters spawn and guards protect them. Inn beds set your respawn point (beds elsewhere in a mine world explode).
 - Trading: piglins take gold (miner, farmer, smith, bartender, herder), the zombie shopkeeper takes ores, the enderman takes diamonds and emeralds for enchanted gear.
 - The enderman's enchanted offers re-roll on every visit; press "Lock offer" to keep one you like.
+# Wanted mobs
+- Now and then a wanted mob appears in a mine world (outside cities) or the overworld. Its name shows its tier and it glows within 32 blocks.
+- Tier C is a strengthened zombie or skeleton, tier B a vindicator or piglin brute, tier A an evoker boss with 3 minions (with a boss bar).
+- They drop bounty proofs (C 1, B 3, A 8). The guard captain in the guard post trades them for bottles of enchanting, golden apples, totems and enchanted golden apples.
 # Also
 - Every world cauldron is its own world; breaking and replacing it reconnects to the same one.
 - A name tag names a world cauldron.
@@ -296,7 +307,8 @@ Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 - Step into the Mine World.
 - Harvest: hold 16 diamonds, 16 emeralds and 64 redstone at once.
 - Second World: make another world cauldron.
-- First City Trade: trade once with a city resident."""),
+- First City Trade: trade once with a city resident.
+- Bounty Hunter: get your first bounty proof."""),
     ("logistics:controller", "第四章 物流", "4 Logistics",
      """# 第四章 物流
 用一個終端機操作基地裡所有的箱子。

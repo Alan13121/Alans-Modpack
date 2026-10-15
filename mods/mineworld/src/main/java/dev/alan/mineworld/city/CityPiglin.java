@@ -116,9 +116,13 @@ public class CityPiglin extends Piglin implements TradingResident {
 
     @Override public CityMerchant merchant() { return this.merchant; }
 
-    /** Civilians sell by profession; guards and the captain do not trade (the captain takes bounties later). */
+    /** Civilians sell by profession, the captain pays for bounty proofs; guards do not trade. */
     @Override public CityTrades.@Nullable Seller seller() {
-        return this.role == Role.CIVILIAN ? CityTrades.of(this.profession) : null;
+        return switch (this.role) {
+            case CIVILIAN -> CityTrades.of(this.profession);
+            case CAPTAIN -> CityTrades.Seller.CAPTAIN;
+            case MELEE, RANGED -> null;
+        };
     }
 
     @Override public InteractionResult mobInteract(Player player, InteractionHand hand) {
