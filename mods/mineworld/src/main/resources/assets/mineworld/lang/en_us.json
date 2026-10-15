@@ -15,5 +15,16 @@
   "entity.mineworld.city_captain": "Guard Captain",
   "entity.mineworld.city_creeper": "City Creeper",
   "entity.mineworld.city_enderman": "Enderman Merchant",
-  "mineworld.inn.spawn_set": "Respawn point set at the inn"
+  "mineworld.inn.spawn_set": "Respawn point set at the inn",
+  "mineworld.trade.lock": "Lock offer",
+  "mineworld.trade.unlock": "Unlock offer",
+  "mineworld.lookup.trade": "City Trades",
+  "mineworld.lookup.trade.enchanted": "Enchanted at random each visit; can be locked",
+  "mineworld.trade.seller.zombie": "Zombie Shopkeeper",
+  "mineworld.trade.seller.enderman": "Enderman Merchant",
+  "mineworld.trade.seller.miner": "Piglin Miner",
+  "mineworld.trade.seller.farmer": "Piglin Farmer",
+  "mineworld.trade.seller.smith": "Piglin Smith",
+  "mineworld.trade.seller.bartender": "Piglin Bartender (inn)",
+  "mineworld.trade.seller.herder": "Piglin Herder"
 }

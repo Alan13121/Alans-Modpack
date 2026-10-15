@@ -2,11 +2,12 @@ package dev.alan.mineworld.city;
 
 import java.util.Locale;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
@@ -25,7 +26,7 @@ import org.jspecify.annotations.Nullable;
  * Piglin townsfolk: civilians with a profession, melee and ranged guards, and the guard captain. The vanilla piglin
  * brain (bartering, gold greed, hostility, zombification) never runs; everything is goal based.
  */
-public class CityPiglin extends Piglin implements CityResident {
+public class CityPiglin extends Piglin implements TradingResident {
     public enum Role { CIVILIAN, MELEE, RANGED, CAPTAIN }
 
     public enum Profession {
@@ -53,6 +54,7 @@ public class CityPiglin extends Piglin implements CityResident {
 
     private Role role = Role.CIVILIAN;
     private Profession profession = Profession.IDLER;
+    private final CityMerchant merchant = new CityMerchant(this, SoundEvents.PIGLIN_CELEBRATE);
     private @Nullable Goal attackGoal;
     private @Nullable Goal targetGoal;
 
@@ -112,8 +114,15 @@ public class CityPiglin extends Piglin implements CityResident {
 
     @Override public boolean wantsToPickUp(ServerLevel level, ItemStack stack) { return false; }
 
+    @Override public CityMerchant merchant() { return this.merchant; }
+
+    /** Civilians sell by profession; guards and the captain do not trade (the captain takes bounties later). */
+    @Override public CityTrades.@Nullable Seller seller() {
+        return this.role == Role.CIVILIAN ? CityTrades.of(this.profession) : null;
+    }
+
     @Override public InteractionResult mobInteract(Player player, InteractionHand hand) {
-        return InteractionResult.PASS;
+        return this.merchant.interact(player, this.seller(), false);
     }
 
     @Override protected void addAdditionalSaveData(ValueOutput output) {

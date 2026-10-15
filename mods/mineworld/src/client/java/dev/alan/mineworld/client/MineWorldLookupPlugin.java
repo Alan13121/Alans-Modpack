@@ -4,6 +4,7 @@ import dev.alan.lookup.api.LookupPlugin;
 import dev.alan.lookup.api.LookupRegistry;
 import dev.alan.lookup.api.RecipeView;
 import dev.alan.mineworld.MineWorldMod;
+import dev.alan.mineworld.city.CityTrades;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -11,10 +12,29 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
-/** Adds the "create a mine world" card to Lookup. Loaded only when Lookup is installed. */
+/** Adds the "create a mine world" card and the monster city trades to Lookup. Loaded only when Lookup is installed. */
 public final class MineWorldLookupPlugin implements LookupPlugin {
     @Override public void register(LookupRegistry registry) {
-        registry.views(() -> List.of(createView()));
+        registry.views(() -> {
+            var views = new java.util.ArrayList<RecipeView>();
+            views.add(createView());
+            for (CityTrades.Trade trade : CityTrades.ALL) views.add(tradeView(trade));
+            return views;
+        });
+    }
+
+    /** One city trade: cost(s) -> result, with the seller as the note. Enchanted results show the plain item. */
+    private static RecipeView tradeView(CityTrades.Trade trade) {
+        var inputs = new java.util.ArrayList<RecipeView.Slot>();
+        inputs.add(new RecipeView.Slot(18, 18, List.of(trade.costA())));
+        trade.costB().ifPresent(b -> inputs.add(new RecipeView.Slot(36, 18, List.of(b))));
+        ItemStack result = trade.result().is(Items.BOOK) ? new ItemStack(Items.ENCHANTED_BOOK) : trade.result();
+        List<Component> extra = trade.enchanted()
+            ? List.of(Component.translatable("mineworld.lookup.trade.enchanted").withStyle(ChatFormatting.LIGHT_PURPLE))
+            : List.of();
+        Component seller = Component.translatable("mineworld.trade.seller." + trade.seller().name().toLowerCase(java.util.Locale.ROOT));
+        return new RecipeView("mineworld:city_trade", Component.translatable("mineworld.lookup.trade"), new ItemStack(Items.GOLD_INGOT),
+            inputs, List.of(new RecipeView.Slot(94, 18, List.of(result), extra)), RecipeView.Decoration.ARROW, seller);
     }
 
     private static RecipeView createView() {

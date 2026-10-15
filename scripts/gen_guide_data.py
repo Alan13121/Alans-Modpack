@@ -48,6 +48,10 @@ def below_zero():
         "type": "minecraft:entity_properties", "entity": "this",
         "predicate": {"minecraft:location": {"position": {"y": {"max": -0.5}}}}}}}}, None
 
+# Every biome of a mine world: the old single biome and the four cave ecosystems.
+MINE_WORLD_BIOMES = ["mineworld:mine", "mineworld:crystal_cave", "mineworld:lush_cave", "mineworld:dripstone_cave", "mineworld:ore_nest"]
+
+
 def in_biome(biome):
     return {"enter": {"trigger": "minecraft:location", "conditions": {"player": {
         "type": "minecraft:entity_properties", "entity": "this",
@@ -95,13 +99,15 @@ TASKS = [
     ("ch3/cauldron", None, "task", "mineworld:world_cauldron", impossible(), 100, [(mc("lapis_lazuli"), 16)], False,
      "世界鍋釜", "把八種礦物各一個丟進裝水的鍋釜，做出世界鍋釜。", "World Cauldron",
      "Throw one of each of the eight ores into a water cauldron to make a world cauldron."),
-    ("ch3/enter", "ch3/cauldron", "task", mc("deepslate_diamond_ore"), in_biome("mineworld:mine"), 50, [(mc("torch"), 32)], False,
+    ("ch3/enter", "ch3/cauldron", "task", mc("deepslate_diamond_ore"), in_biome(MINE_WORLD_BIOMES), 50, [(mc("torch"), 32)], False,
      "踏入礦世界", "站在世界鍋釜上蹲下，進入你的礦世界。", "Into the Mine World", "Stand on a world cauldron and sneak to enter your mine world."),
     ("ch3/harvest", "ch3/enter", "goal", mc("diamond_block"), has((mc("diamond"), 16), (mc("emerald"), 16), (mc("redstone"), 64)), 150,
      [(mc("iron_pickaxe"), 1, {"minecraft:efficiency": 2})], False,
      "豐收", "同時持有鑽石 16、綠寶石 16、紅石 64。", "Bumper Harvest", "Hold 16 diamonds, 16 emeralds and 64 redstone at once."),
     ("ch3/second_world", "ch3/harvest", "task", "mineworld:world_cauldron", impossible(), 100, [], False,
      "第二個世界", "做出第二個世界鍋釜，每一個都是不同的世界。", "A Second World", "Make a second world cauldron. Every one is a different world."),
+    ("ch3/trade", "ch3/enter", "task", mc("gold_ingot"), impossible(), 50, [(mc("gold_ingot"), 8)], False,
+     "第一筆城市交易", "在怪物城市和居民交易一次。", "First City Trade", "Trade once with a resident of a monster city."),
 
     # Chapter 4: logistics
     ("ch4/controller", None, "task", "logistics:controller", placed(["logistics:controller"]), 50, [(mc("redstone"), 16)], False,
@@ -173,7 +179,7 @@ BOOK = [
      """# 歡迎來到 Alan's Modpack
 這本手冊介紹整合包裡有什麼，以及每個任務該怎麼完成。左邊選章節，滾輪或方向鍵捲動內容。
 # 任務書
-- 按 L 打開任務書（原版的進度畫面），有六個分頁、30 個任務。
+- 按 L 打開任務書（原版的進度畫面），有六個分頁、31 個任務。
 - 完成任務會自動發經驗和物品，不用另外領。
 - 每章的第一個任務在分頁最左邊，往右依序完成。
 # 手冊弄丟了？
@@ -182,7 +188,7 @@ BOOK = [
      """# Welcome to Alan's Modpack
 This handbook covers what the modpack adds and how to finish each quest. Pick a chapter on the left; scroll with the wheel or the arrow keys.
 # The quest book
-- Press L to open the quest book (the vanilla advancements screen): six tabs, 30 quests.
+- Press L to open the quest book (the vanilla advancements screen): six tabs, 31 quests.
 - Finishing a quest pays experience and items by itself.
 - Each chapter starts at the left of its tab; work to the right.
 # Lost this handbook?
@@ -242,7 +248,7 @@ The alchemy backpack turns items into energy, then trades energy for any item it
 Each backpack keeps its own energy and list, even if you give it away."""),
     ("mineworld:world_cauldron", "第三章 礦世界", "3 Mine World",
      """# 第三章 礦世界
-專屬的礦物世界：全是石頭和礦物，礦密度是原版的 8 倍。
+專屬的礦物世界：大多是石頭和礦物，礦密度是原版的 8 倍。
 # 做出世界鍋釜
 - 準備一個裝了水的鍋釜。
 - 把煤、銅、鐵、金（粗礦或錠）、紅石、青金石、鑽石、綠寶石各一個丟進去。
@@ -250,7 +256,13 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 # 進出
 - 站在鍋釜裡（或邊緣上）蹲下 4 秒進入。
 - 出生小房間裡有回程方塊，站在上面蹲下 4 秒回來。
-- 世界沒有天空、全黑、不會自然生成生物，記得帶火把。
+- 世界沒有天空、全黑，記得帶火把；黑暗的洞室和礦道會生怪物。
+# 洞穴與城市
+- 挖著挖著會打穿洞室：晶洞、苔蘚洞（有食物和光）、滴水石洞、富礦巢（礦物加倍，怪物也多）。
+- 出生房間有一條點燈的隧道通到第一座怪物城市；更遠處還有其他城市。
+- 城市是安全屋：不生怪、有守衛。旅店的床可以設定重生點（礦世界其他地方的床會爆炸）。
+- 居民交易：豬布林收金錠（礦工、農夫、鐵匠、酒保、牧民），殭屍雜貨商收礦物，終界使者收鑽石和綠寶石賣附魔商品。
+- 終界使者的附魔商品每次開啟都重新隨機，看到喜歡的可以按「鎖定交易」留住。
 # 其他
 - 每個世界鍋釜有自己的世界；敲掉再放回會接回同一個世界。
 - 用命名牌可以替世界鍋釜取名。
@@ -258,9 +270,10 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 - 世界鍋釜：做出一個。
 - 踏入礦世界。
 - 豐收：同時持有鑽石 16、綠寶石 16、紅石 64。
-- 第二個世界：做出第二個世界鍋釜。""",
+- 第二個世界：做出第二個世界鍋釜。
+- 第一筆城市交易：和城市居民交易一次。""",
      """# Chapter 3: Mine World
-Your own ore world: all stone and ore, with ore density 8 times vanilla.
+Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 # Making a world cauldron
 - Take a cauldron filled with water.
 - Drop in one each of coal, copper, iron, gold (raw or ingot), redstone, lapis, diamond and emerald.
@@ -268,7 +281,13 @@ Your own ore world: all stone and ore, with ore density 8 times vanilla.
 # Coming and going
 - Sneak inside the cauldron (or on its rim) for 4 seconds to enter.
 - The spawn room has a return block: sneak on it for 4 seconds to leave.
-- There is no sky, it is pitch dark and nothing spawns naturally, so bring torches.
+- There is no sky and it is pitch dark, so bring torches; monsters spawn in dark caves and tunnels.
+# Caves and cities
+- Mining breaks into caves: crystal caves, lush caves (food and light), dripstone caves, ore nests (double ores, more monsters).
+- A lit tunnel leads from the spawn room to the first monster city; more cities lie farther away.
+- Cities are safe houses: no monsters spawn and guards protect them. Inn beds set your respawn point (beds elsewhere in a mine world explode).
+- Trading: piglins take gold (miner, farmer, smith, bartender, herder), the zombie shopkeeper takes ores, the enderman takes diamonds and emeralds for enchanted gear.
+- The enderman's enchanted offers re-roll on every visit; press "Lock offer" to keep one you like.
 # Also
 - Every world cauldron is its own world; breaking and replacing it reconnects to the same one.
 - A name tag names a world cauldron.
@@ -276,7 +295,8 @@ Your own ore world: all stone and ore, with ore density 8 times vanilla.
 - World Cauldron: make one.
 - Step into the Mine World.
 - Harvest: hold 16 diamonds, 16 emeralds and 64 redstone at once.
-- Second World: make another world cauldron."""),
+- Second World: make another world cauldron.
+- First City Trade: trade once with a city resident."""),
     ("logistics:controller", "第四章 物流", "4 Logistics",
      """# 第四章 物流
 用一個終端機操作基地裡所有的箱子。
@@ -488,7 +508,7 @@ zh["guide.handbook.given"], en["guide.handbook.given"] = "已給你一本手冊�
 write(os.path.join(ROOT, "assets", "guide", "handbook.json"), json.dumps([{"icon": e[0]} for e in BOOK]) + "\n")
 write(os.path.join(ROOT, "assets", "guide", "items", "handbook.json"), json.dumps({"model": {"type": "minecraft:model", "model": "guide:item/handbook"}}) + "\n")
 write(os.path.join(ROOT, "assets", "guide", "models", "item", "handbook.json"),
-      json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:item/knowledge_book"}}) + "\n")
+      json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": "guide:item/handbook"}}) + "\n")  # art/guide/item/handbook.png
 write(os.path.join(LANG, "zh_tw.json"), json.dumps(zh, ensure_ascii=False, indent=2) + "\n")
 write(os.path.join(LANG, "en_us.json"), json.dumps(en, ensure_ascii=False, indent=2) + "\n")
 print(len(TASKS), "advancements,", BOOK_ENTRIES, "handbook entries")

@@ -15,5 +15,16 @@
   "entity.mineworld.city_captain": "衛兵隊長",
   "entity.mineworld.city_creeper": "城市苦力怕",
   "entity.mineworld.city_enderman": "終界使者商人",
-  "mineworld.inn.spawn_set": "已在旅店設定重生點"
+  "mineworld.inn.spawn_set": "已在旅店設定重生點",
+  "mineworld.trade.lock": "鎖定交易",
+  "mineworld.trade.unlock": "解除鎖定",
+  "mineworld.lookup.trade": "城市交易",
+  "mineworld.lookup.trade.enchanted": "每次開啟隨機附魔，可鎖定",
+  "mineworld.trade.seller.zombie": "殭屍雜貨商",
+  "mineworld.trade.seller.enderman": "終界使者商人",
+  "mineworld.trade.seller.miner": "豬布林礦工",
+  "mineworld.trade.seller.farmer": "豬布林農夫",
+  "mineworld.trade.seller.smith": "豬布林鐵匠",
+  "mineworld.trade.seller.bartender": "豬布林酒保（旅店）",
+  "mineworld.trade.seller.herder": "豬布林牧民"
 }
