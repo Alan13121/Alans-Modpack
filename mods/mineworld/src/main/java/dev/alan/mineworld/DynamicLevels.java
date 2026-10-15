@@ -1,7 +1,9 @@
 package dev.alan.mineworld;
 
 import dev.alan.mineworld.mixin.MinecraftServerAccessor;
+import com.mojang.datafixers.util.Pair;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,9 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.BiomeManager;
-import net.minecraft.world.level.biome.FixedBiomeSource;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.biome.MultiNoiseBiomeSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkGenerator;
@@ -73,8 +77,12 @@ public final class DynamicLevels {
 
         SEEDS.put(key, info.seed());
         var registries = server.registryAccess();
+        var biomes = registries.lookupOrThrow(Registries.BIOME);
+        List<Pair<Climate.ParameterPoint, Holder<Biome>>> caves = new ArrayList<>();
+        MineWorldMod.CAVE_BIOMES.forEach((biome, point) ->
+            caves.add(Pair.of(Climate.parameters(point[0], point[1], 0, 0, 0, 0, 0), biomes.getOrThrow(biome))));
         ChunkGenerator generator = new NoiseBasedChunkGenerator(
-            new FixedBiomeSource(registries.lookupOrThrow(Registries.BIOME).getOrThrow(MineWorldMod.BIOME)),
+            MultiNoiseBiomeSource.createFromList(new Climate.ParameterList<>(caves)),
             registries.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(MineWorldMod.NOISE_SETTINGS));
         Holder<net.minecraft.world.level.dimension.DimensionType> type =
             registries.lookupOrThrow(Registries.DIMENSION_TYPE).getOrThrow(MineWorldMod.DIMENSION_TYPE);
@@ -83,6 +91,7 @@ public final class DynamicLevels {
             new DerivedLevelData(server.getWorldData(), server.getWorldData().overworldData()), key,
             new LevelStem(type, generator), false, BiomeManager.obfuscateSeed(info.seed()), List.of(), false);
         accessor.mineworld$levels().put(key, level);
+        level.setSpawnSettings(level.isSpawningMonsters());
         level.getWorldBorder().setAbsoluteMaxSize(server.getAbsoluteMaxWorldSize());
         server.getPlayerList().addWorldborderListener(level);
         MineWorldMod.LOG.info("Created mine world {}", key.identifier());

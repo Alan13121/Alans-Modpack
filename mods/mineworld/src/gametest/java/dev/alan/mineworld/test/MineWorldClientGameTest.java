@@ -19,7 +19,8 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
     private static final BlockPos CAULDRON = new BlockPos(0, 120, 3);
 
     @Override public void runTest(ClientGameTestContext context) {
-        TestSingleplayerContext world = context.worldBuilder().create();
+        // Structures on, so the mine world gets its mineshafts (the consistent test settings turn them off).
+        TestSingleplayerContext world = context.worldBuilder().adjustSettings(s -> s.setGenerateStructures(true)).create();
         {
             net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server = world.getServer();
             net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection connection = world.getConnection();
@@ -83,6 +84,9 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
             System.out.println("MINEWORLD " + report);
             check(report.contains("room=true") && report.contains("bedrock=true"), "spawn room and bedrock: " + report);
 
+            // 3a. Caves: sparse chambers away from spawn, a solid shield around the room, four ecosystems, mob spawns.
+            checkCaves(context, server, connection, worldId);
+
             // 3b. Save and reopen the world: the mine world, its blocks and the player inside it all come back.
             server.runOnServer(s -> s.getLevel(DynamicLevels.key(worldId)).setBlockAndUpdate(new BlockPos(0, 128, 2), Blocks.DIAMOND_BLOCK.defaultBlockState()));
             context.waitTicks(5);
@@ -133,6 +137,110 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
             check(dropped.equals(worldId + "/" + worldId), "drop keeps the world id and placing restores it: " + dropped);
         }
         world.close();
+    }
+
+    /** Samples a block of generated chunks away from spawn and the biome layout of a wide area, then checks mob spawning in a chamber. */
+    private static void checkCaves(ClientGameTestContext context, net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server,
+                                   net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection connection, String worldId) {
+        String report = server.computeOnServer(s -> {
+            var level = s.getLevel(DynamicLevels.key(worldId));
+            // Spawn shield: no air within 16 blocks of the room centre except the room itself.
+            for (int cx = -2; cx <= 1; cx++) for (int cz = -2; cz <= 1; cz++) level.getChunk(cx, cz);
+            int shieldAir = 0;
+            for (int x = -16; x <= 16; x++) for (int y = 113; y <= 145; y++) for (int z = -16; z <= 16; z++) {
+                boolean inRoom = Math.abs(x) <= 2 && Math.abs(z) <= 2 && y >= DynamicLevels.FLOOR + 1 && y <= DynamicLevels.FLOOR + 3;
+                if (!inRoom && x * x + (y - 129) * (y - 129) + z * z <= 16 * 16 && level.getBlockState(new BlockPos(x, y, z)).isAir()) shieldAir++;
+            }
+            // Wide biome layout from the noise (no chunk generation needed).
+            java.util.Map<String, Integer> biomes = new java.util.TreeMap<>();
+            for (int x = -1024; x <= 1024; x += 32) for (int z = -1024; z <= 1024; z += 32) for (int y = -48; y <= 300; y += 48) {
+                String b = level.getUncachedNoiseBiome(x >> 2, y >> 2, z >> 2).unwrapKey().orElseThrow().identifier().getPath();
+                biomes.merge(b, 1, Integer::sum);
+            }
+            // Dense sample of an 8x8 chunk block.
+            int total = 0, air = 0, entries = 0, rows = 0;
+            java.util.Map<String, Integer> marks = new java.util.TreeMap<>();
+            for (int cx = 8; cx < 16; cx++) for (int cz = 8; cz < 16; cz++) level.getChunk(cx, cz);
+            for (int x = 128; x < 256; x += 4) for (int y = -60; y <= 316; y += 4) {
+                int run = 0;
+                rows++;
+                for (int z = 128; z < 256; z++) {
+                    var st = level.getBlockState(new BlockPos(x, y, z));
+                    total++;
+                    if (st.isAir()) {
+                        air++;
+                        if (++run == 3) entries++; // count each opening of at least 3 blocks once
+                    } else run = 0;
+                    String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
+                    for (String m : new String[]{"amethyst", "moss", "dripstone", "rail", "spawner", "deepslate", "clay", "azalea"}) {
+                        if (path.contains(m)) marks.merge(m, 1, Integer::sum);
+                    }
+                }
+            }
+            return "shieldAir=" + shieldAir + " air%=" + String.format("%.1f", 100.0 * air / total)
+                + " chambersPer100=" + String.format("%.2f", 100.0 * entries / (rows * 128.0)) + " biomes=" + biomes + " marks=" + marks;
+        });
+        System.out.println("MINEWORLD CAVES " + report);
+        check(report.startsWith("shieldAir=0 "), "no cave cuts into the spawn room: " + report);
+        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest"}) check(report.contains(b + "="), "biome " + b + " appears: " + report);
+        check(!report.contains("mine="), "new worlds only use the cave biomes: " + report);
+        String mineshaft = server.computeOnServer(s -> {
+            var level = s.getLevel(DynamicLevels.key(worldId));
+            var shaft = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.MINESHAFT);
+            var found = level.getChunkSource().getGenerator().findNearestMapStructure(level,
+                net.minecraft.core.HolderSet.direct(shaft), BlockPos.ZERO, 100, false);
+            return found == null ? "none" : found.getFirst().toString();
+        });
+        System.out.println("MINEWORLD MINESHAFT " + mineshaft);
+        check(!mineshaft.equals("none"), "mineshafts generate in the mine world");
+
+        // One look into a chamber of each kind, with night vision so the screenshot shows something.
+        server.runCommand("gamemode creative @p");
+        server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
+        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest"}) {
+            BlockPos spot = server.computeOnServer(s -> findChamber(s.getLevel(DynamicLevels.key(worldId)), b));
+            System.out.println("MINEWORLD CHAMBER " + b + " " + spot);
+            if (spot == null) continue;
+            server.runCommand("execute in mineworld:" + worldId + " run tp @p " + spot.getX() + " " + spot.getY() + " " + spot.getZ() + " 45 10");
+            connection.waitForChunksRender();
+            context.waitTicks(20);
+            context.takeScreenshot("04-cave-" + b);
+        }
+
+        // Monsters spawn in the dark caves.
+        BlockPos dark = server.computeOnServer(s -> findChamber(s.getLevel(DynamicLevels.key(worldId)), "dripstone_cave"));
+        if (dark == null) dark = server.computeOnServer(s -> findChamber(s.getLevel(DynamicLevels.key(worldId)), null));
+        check(dark != null, "found a chamber for the spawn check");
+        BlockPos spawnSpot = dark;
+        server.runCommand("execute in mineworld:" + worldId + " run tp @p " + spawnSpot.getX() + " " + spawnSpot.getY() + " " + spawnSpot.getZ());
+        // The per-level monster flag is only refreshed by difficulty or spawn_monsters changes, not by spawn_mobs.
+        server.runCommand("gamerule spawn_mobs true");
+        server.runCommand("gamerule spawn_monsters false");
+        server.runCommand("gamerule spawn_monsters true");
+        context.waitTicks(300);
+        int monsters = server.computeOnServer(s -> s.getLevel(DynamicLevels.key(worldId)).getEntitiesOfClass(
+            net.minecraft.world.entity.monster.Monster.class, new net.minecraft.world.phys.AABB(spawnSpot).inflate(128)).size());
+        System.out.println("MINEWORLD MONSTERS " + monsters);
+        server.runCommand("gamerule spawn_mobs false");
+        server.runCommand("kill @e[type=!player]");
+        check(monsters > 0, "monsters spawn in the caves");
+        server.runCommand("execute in mineworld:" + worldId + " run tp @p 0.5 128 0.5");
+        context.waitTicks(10);
+    }
+
+    /** A spot with a 5x5x5 box of air around it in an already generated chunk (x/z 128..255) of the given biome, or null. */
+    private static @org.jspecify.annotations.Nullable BlockPos findChamber(net.minecraft.server.level.ServerLevel level, @org.jspecify.annotations.Nullable String biome) {
+        for (int y = 300; y >= -40; y -= 4) for (int x = 132; x < 252; x += 4) for (int z = 132; z < 252; z += 4) {
+            BlockPos pos = new BlockPos(x, y, z);
+            if (biome != null && !level.getBiome(pos).unwrapKey().orElseThrow().identifier().getPath().equals(biome)) continue;
+            boolean open = true;
+            for (int dx = -2; dx <= 2 && open; dx++) for (int dy = -2; dy <= 2 && open; dy++) for (int dz = -2; dz <= 2 && open; dz++) {
+                if (!level.getBlockState(pos.offset(dx, dy, dz)).isAir()) open = false;
+            }
+            if (open) return pos;
+        }
+        return null;
     }
 
     private static void throwIn(ClientGameTestContext context, net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext server, net.minecraft.world.item.Item item) {
