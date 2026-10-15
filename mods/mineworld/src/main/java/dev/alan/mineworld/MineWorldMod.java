@@ -74,6 +74,7 @@ public final class MineWorldMod implements ModInitializer {
             entries.accept(WORLD_CAULDRON);
             entries.accept(RETURN_BLOCK);
         });
+        CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(entries -> entries.accept(dev.alan.mineworld.city.City.BOUNTY_PROOF));
         LOG.info("Mine World loaded");
     }
 }

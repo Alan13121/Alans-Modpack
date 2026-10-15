@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 public final class CityTrades {
     private CityTrades() {}
 
-    public enum Seller { ZOMBIE, ENDERMAN, MINER, FARMER, SMITH, BARTENDER, HERDER }
+    public enum Seller { ZOMBIE, ENDERMAN, MINER, FARMER, SMITH, BARTENDER, HERDER, CAPTAIN }
 
     /** How an enderman's result is enchanted each time the trading screen opens (enchanting table cost). */
     public enum Enchant {
@@ -124,6 +124,13 @@ public final class CityTrades {
         b.enchanted("diamond_leggings", Items.DIAMOND, 6, Items.EMERALD, 2, Items.DIAMOND_LEGGINGS, Enchant.HIGH);
         b.enchanted("diamond_chestplate", Items.DIAMOND, 7, Items.EMERALD, 2, Items.DIAMOND_CHESTPLATE, Enchant.HIGH);
         b.enchanted("bow", Items.DIAMOND, 3, Items.EMERALD, 1, Items.BOW, Enchant.HIGH);
+
+        // The guard captain pays for bounty proofs from wanted mobs.
+        b.seller(Seller.CAPTAIN);
+        b.add("experience", City.BOUNTY_PROOF, 1, Items.EXPERIENCE_BOTTLE, 8);
+        b.add("golden_apple", City.BOUNTY_PROOF, 2, Items.GOLDEN_APPLE, 1);
+        b.add("totem", City.BOUNTY_PROOF, 6, Items.TOTEM_OF_UNDYING, 1);
+        b.add("enchanted_golden_apple", City.BOUNTY_PROOF, 10, Items.ENCHANTED_GOLDEN_APPLE, 1);
         return List.copyOf(out);
     }
 

@@ -4,7 +4,9 @@ import dev.alan.lookup.api.LookupPlugin;
 import dev.alan.lookup.api.LookupRegistry;
 import dev.alan.lookup.api.RecipeView;
 import dev.alan.mineworld.MineWorldMod;
+import dev.alan.mineworld.city.City;
 import dev.alan.mineworld.city.CityTrades;
+import dev.alan.mineworld.city.Wanted;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -19,8 +21,24 @@ public final class MineWorldLookupPlugin implements LookupPlugin {
             var views = new java.util.ArrayList<RecipeView>();
             views.add(createView());
             for (CityTrades.Trade trade : CityTrades.ALL) views.add(tradeView(trade));
+            for (Wanted.Tier tier : Wanted.Tier.values()) views.add(wantedView(tier));
             return views;
         });
+    }
+
+    /** What a wanted mob of a tier drops; the mobs are shown as their spawn eggs. */
+    private static RecipeView wantedView(Wanted.Tier tier) {
+        List<ItemStack> mobs = switch (tier) {
+            case C -> List.of(new ItemStack(Items.ZOMBIE_SPAWN_EGG), new ItemStack(Items.SKELETON_SPAWN_EGG));
+            case B -> List.of(new ItemStack(Items.VINDICATOR_SPAWN_EGG), new ItemStack(Items.PIGLIN_BRUTE_SPAWN_EGG));
+            case A -> List.of(new ItemStack(Items.EVOKER_SPAWN_EGG));
+        };
+        List<Component> about = List.of(Component.translatable("mineworld.lookup.wanted." + tier.name().toLowerCase(java.util.Locale.ROOT))
+            .withStyle(ChatFormatting.GRAY));
+        return new RecipeView("mineworld:wanted", Component.translatable("mineworld.lookup.wanted"), new ItemStack(City.BOUNTY_PROOF),
+            List.of(new RecipeView.Slot(18, 18, mobs, about)),
+            List.of(new RecipeView.Slot(94, 18, List.of(new ItemStack(City.BOUNTY_PROOF, tier.proofs)))),
+            RecipeView.Decoration.ARROW, Component.translatable("mineworld.lookup.wanted.tier", tier.name()));
     }
 
     /** One city trade: cost(s) -> result, with the seller as the note. Enchanted results show the plain item. */

@@ -489,6 +489,8 @@ def canvas(base, seed, noise=10):
 
 def textures():
     tex = f"{ASSETS}/textures/block"
+    write(f"{ASSETS}/items/bounty_proof.json", {"model": {"type": "minecraft:model", "model": "mineworld:item/bounty_proof"}})
+    write(f"{ASSETS}/models/item/bounty_proof.json", {"parent": "minecraft:item/generated", "textures": {"layer0": "mineworld:item/bounty_proof"}})
     # glowing teal "world water"
     px = canvas((40, 190, 200), 11, 18)
     for y in range(16):
@@ -513,6 +515,22 @@ def textures():
         for x in range(6, 10):
             top[y][x] = [190, 255, 250, 255]
     png(f"{tex}/return_block_top.png", top)
+    # bounty proof: a parchment slip with a red wax seal (transparent background)
+    proof = [[[0, 0, 0, 0] for _ in range(16)] for _ in range(16)]
+    rnd = random.Random(14)
+    for y in range(2, 14):
+        for x in range(3, 13):
+            shade = rnd.randint(-12, 8)
+            proof[y][x] = [226 + shade, 204 + shade, 150 + shade, 255]
+    for x in range(3, 13):
+        proof[2][x] = [170, 140, 90, 255]; proof[13][x] = [170, 140, 90, 255]
+    for y in (5, 7, 9):
+        for x in range(5, 11):
+            proof[y][x] = [120, 96, 70, 255]
+    for y, x in ((10, 9), (10, 10), (11, 9), (11, 10), (11, 11), (12, 10), (10, 11), (12, 9), (12, 11)):
+        proof[y][x] = [180, 30, 30, 255]
+    proof[11][10] = [230, 80, 60, 255]
+    png(f"{ASSETS}/textures/item/bounty_proof.png", proof)
 
 
 if __name__ == "__main__":
