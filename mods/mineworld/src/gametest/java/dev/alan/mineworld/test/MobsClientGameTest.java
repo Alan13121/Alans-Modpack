@@ -53,6 +53,11 @@ public final class MobsClientGameTest implements FabricClientGameTest {
         server.runCommand(in + "tp @p 0.5 128 0.5");
         connection.waitForChunksRender();
         context.waitTicks(20);
+        // A fresh mine world generates slowly: force-load the room's chunks and wait for them, or the fills below are skipped.
+        server.runCommand(in + "forceload add -16 -48 16 -16");
+        for (int i = 0; i < 200 && !server.computeOnServer(s -> roomLoaded(level(s, worldId))); i++) {
+            context.waitTicks(5);
+        }
         server.runCommand(in + "fill -9 129 -41 9 138 -23 minecraft:stone");
         server.runCommand(in + "fill -8 130 -40 8 137 -24 minecraft:air");
         server.runCommand(in + "tp @p 0.5 130 -26.5 180 15");
@@ -259,6 +264,11 @@ public final class MobsClientGameTest implements FabricClientGameTest {
             if (open) return pos;
         }
         return null;
+    }
+
+    private static boolean roomLoaded(ServerLevel level) {
+        for (int cx = -1; cx <= 0; cx++) for (int cz = -3; cz <= -2; cz++) if (!level.hasChunk(cx, cz)) return false;
+        return true;
     }
 
     private static ServerLevel level(MinecraftServer s, String worldId) {
