@@ -21,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
 
 /**
  * The handbook: chapter list on the left, the chapter text on the right, wrapped to the window and scrolled with the wheel or
- * keys, so nothing is ever cut off. Text comes from lang keys handbook.guide.entry.N.title / .body (see scripts/gen_guide_data.py);
+ * keys, so nothing is ever cut off. The chapter list scrolls on its own when the wheel is over it. Text comes from lang keys handbook.guide.entry.N.title / .body (see scripts/gen_guide_data.py);
  * in a body a line starting with "# " is a heading, "- " a bullet, anything else plain text.
  */
 public final class HandbookScreen extends Screen {
@@ -34,7 +34,7 @@ public final class HandbookScreen extends Screen {
     private record Line(FormattedCharSequence text, int x, int y, int color, boolean bullet) {}
 
     private final List<Line> lines = new ArrayList<>();
-    private int left, top, panelW, panelH, textX, textW, viewTop, viewH, contentH, scroll;
+    private int left, top, panelW, panelH, textX, textW, viewTop, viewH, contentH, scroll, sideScroll;
 
     public HandbookScreen() {
         super(Component.translatable("item.guide.handbook"));
@@ -65,6 +65,7 @@ public final class HandbookScreen extends Screen {
         viewTop = top + PAD;
         viewH = panelH - PAD * 2;
         selected = Math.max(0, Math.min(selected, icons().size() - 1));
+        revealSelected();
         addRenderableWidget(Button.builder(Component.translatable("handbook.guide.close"), b -> onClose())
             .bounds(width / 2 - 40, top + panelH + 4, 80, 20).build());
         layout();
@@ -97,9 +98,20 @@ public final class HandbookScreen extends Screen {
         return Math.max(0, contentH - viewH);
     }
 
+    private int maxSideScroll() {
+        return Math.max(0, icons().size() * ROW_H - viewH);
+    }
+
+    /** Scrolls the chapter list just enough to show the selected row. */
+    private void revealSelected() {
+        int rowTop = selected * ROW_H;
+        sideScroll = Math.max(0, Math.min(maxSideScroll(), Math.max(Math.min(sideScroll, rowTop), rowTop + ROW_H - viewH)));
+    }
+
     private void select(int index) {
         if (index == selected || index < 0 || index >= icons().size()) return;
         selected = index;
+        revealSelected();
         layout();
     }
 
@@ -111,14 +123,23 @@ public final class HandbookScreen extends Screen {
         g.fill(left + SIDE_W - 1, top, left + SIDE_W, top + panelH, EDGE);
 
         var list = icons();
+        g.enableScissor(left, viewTop, left + SIDE_W, viewTop + viewH);
         for (int i = 0; i < list.size(); i++) {
-            int y = top + PAD + i * ROW_H;
-            boolean hover = mouseX >= left && mouseX < left + SIDE_W && mouseY >= y && mouseY < y + ROW_H;
+            int y = viewTop + i * ROW_H - sideScroll;
+            if (y + ROW_H < viewTop || y > viewTop + viewH) continue;
+            boolean hover = mouseX >= left && mouseX < left + SIDE_W && mouseY >= Math.max(y, viewTop) && mouseY < Math.min(y + ROW_H, viewTop + viewH);
             if (i == selected) g.fill(left + 2, y, left + SIDE_W, y + ROW_H - 2, SELECT);
             else if (hover) g.fill(left + 2, y, left + SIDE_W - 2, y + ROW_H - 2, HOVER);
             g.item(list.get(i), left + 5, y + 2);
             String title = Component.translatable("handbook.guide.entry." + (i + 1) + ".title").getString();
             g.text(font, font.plainSubstrByWidth(title, SIDE_W - 28), left + 25, y + 7, i == selected ? HEADING : INK, false);
+        }
+        g.disableScissor();
+        if (maxSideScroll() > 0) {
+            int trackX = left + SIDE_W - 4;
+            int thumbH = Math.max(16, viewH * viewH / (list.size() * ROW_H));
+            int thumbY = viewTop + (viewH - thumbH) * sideScroll / maxSideScroll();
+            g.fill(trackX, thumbY, trackX + 2, thumbY + thumbH, EDGE);
         }
 
         g.enableScissor(textX - 2, viewTop, textX + textW + 2, viewTop + viewH);
@@ -141,14 +162,19 @@ public final class HandbookScreen extends Screen {
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) return true;
-        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && event.x() >= left && event.x() < left + SIDE_W && event.y() >= top + PAD) {
-            select((int) (event.y() - top - PAD) / ROW_H);
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && event.x() >= left && event.x() < left + SIDE_W
+            && event.y() >= viewTop && event.y() < viewTop + viewH) {
+            select((int) (event.y() - viewTop + sideScroll) / ROW_H);
             return true;
         }
         return false;
     }
 
     @Override public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        if (x >= left && x < left + SIDE_W && y >= top && y < top + panelH) {
+            sideScroll = Math.max(0, Math.min(maxSideScroll(), sideScroll - (int) Math.signum(scrollY) * ROW_H));
+            return true;
+        }
         scroll = Math.max(0, Math.min(maxScroll(), scroll - (int) Math.signum(scrollY) * LINE_H * 3));
         return true;
     }

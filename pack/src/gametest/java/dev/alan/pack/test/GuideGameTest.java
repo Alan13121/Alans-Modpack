@@ -1,5 +1,6 @@
 package dev.alan.pack.test;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.alchemy.AlchemyMod;
 import dev.alchemy.BagMenu;
 import dev.alan.mineworld.CauldronRecipe;
@@ -65,6 +66,25 @@ public final class GuideGameTest implements FabricClientGameTest {
             check(books(server) == 0, "a later join does not hand out another book");
             server.runCommand("execute as @p run guidebook");
             check(books(server) == 1, "/guidebook replaces a lost book");
+
+            // 1c. The handbook screen: the first chapter, the last chapters (the chapter list scrolls to keep the selection
+            // visible), and the end of a long chapter.
+            context.setScreen(dev.alan.guide.client.HandbookScreen::new);
+            context.waitTicks(5);
+            context.takeScreenshot("guide-handbook-01-start");
+            for (int i = 0; i < 14; i++) context.getInput().pressKey(InputConstants.KEY_RIGHT);
+            context.waitTicks(2);
+            context.takeScreenshot("guide-handbook-15-form-king");
+            context.getInput().pressKey(InputConstants.KEY_END);
+            context.waitTicks(2);
+            context.takeScreenshot("guide-handbook-15-form-king-end");
+            for (int i = 0; i < 2; i++) context.getInput().pressKey(InputConstants.KEY_RIGHT);
+            context.waitTicks(2);
+            context.takeScreenshot("guide-handbook-17-faq");
+            // Back to the first chapter: the selection is remembered between openings, and HandbookClickTest expects it.
+            for (int i = 0; i < 16; i++) context.getInput().pressKey(InputConstants.KEY_LEFT);
+            context.waitTicks(2);
+            context.setScreen(() -> null);
 
             // 2. Chapter 1 with vanilla triggers: pickaxe, depth, the eight ores and the leather/chest reward.
             server.runCommand("give @p minecraft:iron_pickaxe");
