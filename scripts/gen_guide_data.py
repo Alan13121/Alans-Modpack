@@ -57,12 +57,13 @@ def in_biome(biome):
         "type": "minecraft:entity_properties", "entity": "this",
         "predicate": {"minecraft:location": {"biomes": biome}}}}}}, None
 
-def killed(*types):
+def killed(*types, any_of=False):
+    # By default every type must be killed; any_of=True is satisfied by any one of them.
     criteria = {}
     for t in types:
         criteria["killed_" + t.split(":")[1]] = {"trigger": "minecraft:player_killed_entity", "conditions": {"entity": {
             "type": "minecraft:entity_properties", "entity": "this", "predicate": {"minecraft:entity_type": t}}}}
-    return criteria, None
+    return criteria, [list(criteria)] if any_of else None
 
 # --- the task list. (id, parent, frame, icon, trigger, exp, rewards, announce, zh title, zh desc, en title, en desc)
 # rewards: list of (item, count) or (item, count, enchantments dict)
@@ -110,6 +111,10 @@ TASKS = [
      "第一筆城市交易", "在怪物城市和居民交易一次。", "First City Trade", "Trade once with a resident of a monster city."),
     ("ch3/bounty", "ch3/enter", "task", "mineworld:bounty_proof", has(("mineworld:bounty_proof", 1)), 100, [(mc("golden_apple"), 1)], False,
      "賞金獵人", "打倒通緝犯，取得第一張懸賞證明。", "Bounty Hunter", "Defeat a wanted mob and get your first bounty proof."),
+    ("ch3/creatures", "ch3/enter", "task", "mineworld:gem_slime_spawn_egg",
+     killed("mineworld:glow_bat", "mineworld:gem_slime", "mineworld:ore_golem", "mineworld:ore_worm", any_of=True), 80, [(mc("emerald"), 4)], False,
+     "礦世界的住民", "打倒任一種礦世界生物：螢光蝠、寶石史萊姆、礦石魔像或礦蟲。",
+     "Mine World Natives", "Defeat any mine world creature: a glow bat, gem slime, ore golem or ore worm."),
 
     # Chapter 4: logistics
     ("ch4/controller", None, "task", "logistics:controller", placed(["logistics:controller"]), 50, [(mc("redstone"), 16)], False,
@@ -265,6 +270,12 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 - 城市是安全屋：不生怪、有守衛。旅店的床可以設定重生點（礦世界其他地方的床會爆炸）。
 - 居民交易：豬布林收金錠（礦工、農夫、鐵匠、酒保、牧民），殭屍雜貨商收礦物，終界使者收鑽石和綠寶石賣附魔商品。
 - 終界使者的附魔商品每次開啟都重新隨機，看到喜歡的可以按「鎖定交易」留住。
+# 礦世界生物
+- 螢光蝠：晶洞裡成群飛，翅膀會發光；掉螢石粉和紫水晶碎片。
+- 寶石史萊姆：苔蘚洞，會分裂；最小隻掉青金石、綠寶石或鑽石。
+- 礦石魔像：富礦巢的稀有大塊頭，不先動手；打倒掉一大把礦（8～16 個）。
+- 礦蟲：在礦世界挖礦石偶爾會鑽出來（約 1/30），打倒掉 2 個你剛挖的那種礦。
+- 裝了變身模組時，四種都能解鎖成稀有形態。
 # 通緝犯
 - 礦世界（城市外）和主世界偶爾會出現「通緝犯」：名字上掛著等級，靠近 32 格會發光。
 - C 級是強化殭屍或骷髏，B 級是衛道士或豬布林蠻兵，A 級是帶 3 隻小弟的喚魔者頭目（有血條）。
@@ -278,7 +289,8 @@ Each backpack keeps its own energy and list, even if you give it away."""),
 - 豐收：同時持有鑽石 16、綠寶石 16、紅石 64。
 - 第二個世界：做出第二個世界鍋釜。
 - 第一筆城市交易：和城市居民交易一次。
-- 賞金獵人：取得第一張懸賞證明。""",
+- 賞金獵人：取得第一張懸賞證明。
+- 礦世界的住民：打倒任一種礦世界生物。""",
      """# Chapter 3: Mine World
 Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 # Making a world cauldron
@@ -295,6 +307,12 @@ Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 - Cities are safe houses: no monsters spawn and guards protect them. Inn beds set your respawn point (beds elsewhere in a mine world explode).
 - Trading: piglins take gold (miner, farmer, smith, bartender, herder), the zombie shopkeeper takes ores, the enderman takes diamonds and emeralds for enchanted gear.
 - The enderman's enchanted offers re-roll on every visit; press "Lock offer" to keep one you like.
+# Mine world creatures
+- Glow bat: flocks in crystal caves with glowing wings; drops glowstone dust and amethyst shards.
+- Gem slime: lush caves, splits like a slime; the smallest drop lapis, an emerald or a diamond.
+- Ore golem: a rare giant in ore nests that never strikes first; drops a pile of ores (8-16).
+- Ore worm: sometimes crawls out of an ore you mine in a mine world (about 1 in 30); drops 2 of that ore.
+- With the shapeshift mod, all four are rare forms.
 # Wanted mobs
 - Now and then a wanted mob appears in a mine world (outside cities) or the overworld. Its name shows its tier and it glows within 32 blocks.
 - Tier C is a strengthened zombie or skeleton, tier B a vindicator or piglin brute, tier A an evoker boss with 3 minions (with a boss bar).
@@ -308,7 +326,8 @@ Your own ore world: mostly stone and ore, with ore density 8 times vanilla.
 - Harvest: hold 16 diamonds, 16 emeralds and 64 redstone at once.
 - Second World: make another world cauldron.
 - First City Trade: trade once with a city resident.
-- Bounty Hunter: get your first bounty proof."""),
+- Bounty Hunter: get your first bounty proof.
+- Mine World Natives: defeat any mine world creature."""),
     ("logistics:controller", "第四章 物流", "4 Logistics",
      """# 第四章 物流
 用一個終端機操作基地裡所有的箱子。

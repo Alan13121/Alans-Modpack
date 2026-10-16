@@ -54,5 +54,18 @@
   "mineworld.wanted.alias.16": "Scarface",
   "mineworld.wanted.alias.17": "Scorpion",
   "mineworld.wanted.alias.18": "Black Smoke",
-  "mineworld.wanted.alias.19": "Hungry Wolf"
+  "mineworld.wanted.alias.19": "Hungry Wolf",
+  "entity.mineworld.glow_bat": "Glow Bat",
+  "entity.mineworld.gem_slime": "Gem Slime",
+  "entity.mineworld.ore_golem": "Ore Golem",
+  "entity.mineworld.ore_worm": "Ore Worm",
+  "item.mineworld.glow_bat_spawn_egg": "Glow Bat Spawn Egg",
+  "item.mineworld.gem_slime_spawn_egg": "Gem Slime Spawn Egg",
+  "item.mineworld.ore_golem_spawn_egg": "Ore Golem Spawn Egg",
+  "item.mineworld.ore_worm_spawn_egg": "Ore Worm Spawn Egg",
+  "mineworld.lookup.mob": "Mine World Creatures",
+  "mineworld.lookup.mob.glow_bat": "Crystal caves, in flocks of 3-5",
+  "mineworld.lookup.mob.gem_slime": "Lush caves; only the smallest drop a gem",
+  "mineworld.lookup.mob.ore_golem": "Ore nests, rare; neutral until hit",
+  "mineworld.lookup.mob.ore_worm": "1 in 30 ore blocks mined in a mine world; drops 2 of that ore"
 }

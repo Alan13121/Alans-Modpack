@@ -7,6 +7,8 @@ import dev.alan.mineworld.MineWorldMod;
 import dev.alan.mineworld.city.City;
 import dev.alan.mineworld.city.CityTrades;
 import dev.alan.mineworld.city.Wanted;
+import dev.alan.mineworld.mob.Mobs;
+import dev.alan.mineworld.mob.OreWorm;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -22,8 +24,31 @@ public final class MineWorldLookupPlugin implements LookupPlugin {
             views.add(createView());
             for (CityTrades.Trade trade : CityTrades.ALL) views.add(tradeView(trade));
             for (Wanted.Tier tier : Wanted.Tier.values()) views.add(wantedView(tier));
+            views.add(mobView(Mobs.GLOW_BAT_EGG, "glow_bat", List.of(
+                List.of(new ItemStack(Items.GLOWSTONE_DUST, 2)), List.of(new ItemStack(Items.AMETHYST_SHARD)))));
+            views.add(mobView(Mobs.GEM_SLIME_EGG, "gem_slime", List.of(
+                stacks(1, Items.LAPIS_LAZULI, Items.EMERALD, Items.DIAMOND))));
+            views.add(mobView(Mobs.ORE_GOLEM_EGG, "ore_golem", List.of(stacks(1, EIGHT_ORES))));
+            views.add(mobView(Mobs.ORE_WORM_EGG, "ore_worm", List.of(stacks(OreWorm.DROP_COUNT, EIGHT_ORES))));
             return views;
         });
+    }
+
+    private static final Item[] EIGHT_ORES = {Items.COAL, Items.RAW_COPPER, Items.RAW_IRON, Items.RAW_GOLD, Items.REDSTONE,
+        Items.LAPIS_LAZULI, Items.DIAMOND, Items.EMERALD};
+
+    private static List<ItemStack> stacks(int count, Item... items) {
+        return java.util.Arrays.stream(items).map(item -> new ItemStack(item, count)).toList();
+    }
+
+    /** A mine world creature (its spawn egg, with where it lives) -> what it drops; outputs stack vertically and each cycles its stacks. */
+    private static RecipeView mobView(Item egg, String name, List<List<ItemStack>> drops) {
+        List<Component> about = List.of(Component.translatable("mineworld.lookup.mob." + name).withStyle(ChatFormatting.GRAY));
+        var outputs = new java.util.ArrayList<RecipeView.Slot>();
+        for (int i = 0; i < drops.size(); i++) outputs.add(new RecipeView.Slot(94, 18 - 9 * (drops.size() - 1) + 18 * i, drops.get(i)));
+        return new RecipeView("mineworld:mob", Component.translatable("mineworld.lookup.mob"), new ItemStack(egg),
+            List.of(new RecipeView.Slot(18, 18, List.of(new ItemStack(egg)), about)), outputs,
+            RecipeView.Decoration.ARROW, Component.translatable("entity.mineworld." + name));
     }
 
     /** What a wanted mob of a tier drops; the mobs are shown as their spawn eggs. */

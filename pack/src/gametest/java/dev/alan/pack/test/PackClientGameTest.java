@@ -55,6 +55,29 @@ public final class PackClientGameTest implements FabricClientGameTest {
             String tooltip = context.computeOnClient(mc -> named.getTooltipLines(net.minecraft.world.item.Item.TooltipContext.EMPTY,
                 mc.player, net.minecraft.world.item.TooltipFlag.NORMAL).stream().map(c -> c.getString()).reduce("", (a, b) -> a + "|" + b));
             check(tooltip.contains("Deep Pit") && (tooltip.contains("礦世界") || tooltip.contains("Mine world")), "tooltip names the world: " + tooltip);
+
+            // Mine world creatures: a Lookup card each, and rare shapeshift forms (data only, no hard dependency).
+            check(hasUse(context, dev.alan.mineworld.mob.Mobs.ORE_GOLEM_EGG, "mineworld:mob") && context.computeOnClient(mc ->
+                RecipeIndex.producing(Items.RAW_GOLD).stream().anyMatch(v -> v.categoryKey().equals("mineworld:mob"))),
+                "creature cards show from the spawn egg and the drops");
+            check(hasUse(context, dev.alan.mineworld.mob.Mobs.GEM_SLIME_EGG, "shapeshift:form"), "shapeshift plugin lists the gem slime form");
+            show(context, dev.alan.mineworld.mob.Mobs.ORE_GOLEM_EGG, "10-mineworld-creature-card");
+            var server = world.getServer();
+            String rare = server.computeOnServer(s -> dev.alan.shapeshift.api.FormsApi.rare().stream()
+                .filter(id -> id.startsWith("mineworld:")).sorted().toList().toString());
+            check(rare.equals("[mineworld:gem_slime, mineworld:glow_bat, mineworld:ore_golem, mineworld:ore_worm]"), "rare mine world forms: " + rare);
+            context.runOnClient(mc -> mc.gui.setScreen(null));
+            server.runCommand("execute as @p run shapeshift unlock mineworld:ore_golem");
+            server.runCommand("execute as @p run shapeshift into mineworld:ore_golem");
+            context.waitTicks(10);
+            String form = server.computeOnServer(s -> dev.alan.shapeshift.Forms.current(s.getPlayerList().getPlayers().get(0))
+                .map(t -> net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(t).toString()).orElse("human"));
+            check(form.equals("mineworld:ore_golem"), "shapeshifts into an ore golem: " + form);
+            context.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT));
+            context.waitTicks(10);
+            context.takeScreenshot("11-mineworld-ore-golem-form");
+            context.runOnClient(mc -> mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON));
+            server.runCommand("execute as @p run shapeshift human");
         }
         warehouseStock(context);
         backpackCard(context);

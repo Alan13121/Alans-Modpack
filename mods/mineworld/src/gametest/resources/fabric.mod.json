@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "name": "Mine World client game tests",
   "environment": "*",
-  "entrypoints": {"fabric-client-gametest": ["dev.alan.mineworld.test.MineWorldClientGameTest", "dev.alan.mineworld.test.CityClientGameTest", "dev.alan.mineworld.test.WantedClientGameTest"]},
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.mineworld.test.MineWorldClientGameTest", "dev.alan.mineworld.test.CityClientGameTest", "dev.alan.mineworld.test.WantedClientGameTest", "dev.alan.mineworld.test.MobsClientGameTest"]},
   "depends": {"mineworld": "*"}
 }

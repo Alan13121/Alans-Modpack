@@ -54,5 +54,18 @@
   "mineworld.wanted.alias.16": "刀疤",
   "mineworld.wanted.alias.17": "蠍子",
   "mineworld.wanted.alias.18": "黑煙",
-  "mineworld.wanted.alias.19": "餓狼"
+  "mineworld.wanted.alias.19": "餓狼",
+  "entity.mineworld.glow_bat": "螢光蝠",
+  "entity.mineworld.gem_slime": "寶石史萊姆",
+  "entity.mineworld.ore_golem": "礦石魔像",
+  "entity.mineworld.ore_worm": "礦蟲",
+  "item.mineworld.glow_bat_spawn_egg": "螢光蝠生怪蛋",
+  "item.mineworld.gem_slime_spawn_egg": "寶石史萊姆生怪蛋",
+  "item.mineworld.ore_golem_spawn_egg": "礦石魔像生怪蛋",
+  "item.mineworld.ore_worm_spawn_egg": "礦蟲生怪蛋",
+  "mineworld.lookup.mob": "礦世界生物",
+  "mineworld.lookup.mob.glow_bat": "晶洞，3～5 隻一群",
+  "mineworld.lookup.mob.gem_slime": "苔蘚洞；只有最小隻會掉寶石",
+  "mineworld.lookup.mob.ore_golem": "富礦巢，稀少；被打才反擊",
+  "mineworld.lookup.mob.ore_worm": "在礦世界挖礦石，每 30 個有 1 個會鑽出；掉 2 個該種礦"
 }

@@ -25,6 +25,7 @@ public final class MineWorldClient implements ClientModInitializer {
         EntityRenderers.register(City.CAPTAIN, CaptainRenderer::new);
         EntityRenderers.register(City.CREEPER, CreeperRenderer::new);
         EntityRenderers.register(City.ENDERMAN, EndermanRenderer::new);
+        MobRenderers.register();
         TradeLockButton.register();
         // A world cauldron item names the world it leads to (its custom name, or the id when it has none).
         ItemTooltipCallback.EVENT.register((stack, context, flag, lines) -> {

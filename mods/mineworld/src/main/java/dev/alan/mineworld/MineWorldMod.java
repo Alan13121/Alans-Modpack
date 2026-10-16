@@ -67,6 +67,7 @@ public final class MineWorldMod implements ModInitializer {
 
     @Override public void onInitialize() {
         dev.alan.mineworld.city.City.init();
+        dev.alan.mineworld.mob.Mobs.init();
         ServerTickEvents.END_SERVER_TICK.register(MineTravel::tick);
         ServerLifecycleEvents.SERVER_STARTED.register(DynamicLevels::restoreAll);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> { DynamicLevels.clear(); MineTravel.forget(); });
