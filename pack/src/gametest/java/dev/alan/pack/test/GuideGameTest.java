@@ -39,7 +39,7 @@ public final class GuideGameTest implements FabricClientGameTest {
             }) server.runCommand(command);
             context.waitTicks(10);
 
-            // 1. Everything the book promises loads: 32 tasks, six tabs, and every reward table exists.
+            // 1. Everything the book promises loads: 33 tasks, six tabs, and every reward table exists.
             check(server.computeOnServer(s -> {
                 var all = s.getAdvancements().getAllAdvancements().stream().filter(h -> h.id().getNamespace().equals("guide")).toList();
                 long roots = all.stream().filter(h -> h.value().parent().isEmpty()).count();
@@ -53,8 +53,8 @@ public final class GuideGameTest implements FabricClientGameTest {
                         }
                     }
                 System.out.println("[guide-test] advancements=" + all.size() + " roots=" + roots + " missingTables=" + missingTables);
-                return all.size() == 37 && roots == 6 && missingTables == 0;
-            }), "37 advancements (32 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
+                return all.size() == 38 && roots == 6 && missingTables == 0;
+            }), "38 advancements (33 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
 
             // 1b. The handbook: one on first join, never a second, /guidebook only when none is carried, and no re-issue on rejoin.
             check(books(server) == 1, "the first join handed out exactly one handbook");
@@ -231,6 +231,14 @@ public final class GuideGameTest implements FabricClientGameTest {
             }), "a killed wanted mob drops a bounty proof");
             context.waitTicks(3);
             check(done(server, "ch3/bounty"), "the bounty hunter quest is noticed");
+
+            // 9d. Killing any one mine world creature (here an ore worm) completes the natives quest.
+            check(!done(server, "ch3/creatures"), "the natives quest starts open");
+            server.runOnServer(s -> {
+                var victim = dev.alan.mineworld.mob.Mobs.ORE_WORM.create(s.overworld(), net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+                CriteriaTriggers.PLAYER_KILLED_ENTITY.trigger(player(s), victim, s.overworld().damageSources().playerAttack(player(s)));
+            });
+            check(done(server, "ch3/creatures"), "one mine world creature is enough for the natives quest");
 
             // 10. Beating the Form King awards its entry and pays 10 to 20 form shards (the unlockall above satisfied the altar).
             check(server.computeOnServer(s -> {

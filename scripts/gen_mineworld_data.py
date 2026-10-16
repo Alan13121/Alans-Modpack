@@ -92,19 +92,25 @@ EXTRA = [
 ]
 
 
+def group(n):
+    # A fixed group size, or a (min, max) tuple for a uniform one.
+    return n if isinstance(n, int) else {"type": "minecraft:uniform", "min_inclusive": n[0], "max_inclusive": n[1]}
+
+
 def spawns(**categories):
     cats = {c: [] for c in ["ambient", "axolotls", "creature", "misc", "monster",
                             "underground_water_creature", "water_ambient", "water_creature"]}
     for cat, entries in categories.items():
-        cats[cat] = [{"type": f"minecraft:{t}", "count": n, "weight": w} for t, w, n in entries]
+        cats[cat] = [{"type": t if ":" in t else f"minecraft:{t}", "count": group(n), "weight": w} for t, w, n in entries]
     return {"argument": {"spawn_costs": {}, "spawns_by_category": cats}, "modifier": "overlay"}
 
 
 BIOME_SPAWNS = {
-    "crystal_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS),
-    "lush_cave": spawns(ambient=[("bat", 10, 8)], axolotls=[("axolotl", 10, 4)], monster=MONSTERS),
+    "crystal_cave": spawns(ambient=[("bat", 5, 8), ("mineworld:glow_bat", 10, (3, 5))], monster=MONSTERS),
+    "lush_cave": spawns(ambient=[("bat", 10, 8)], axolotls=[("axolotl", 10, 4)], monster=MONSTERS + [("mineworld:gem_slime", 80, 2)]),
     "dripstone_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("cave_spider", 60, 2)]),
-    "ore_nest": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1)]),
+    "ore_nest": spawns(ambient=[("bat", 10, 8)],
+                       monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1), ("mineworld:ore_golem", 5, 1)]),
 }
 
 
@@ -476,7 +482,7 @@ def png(path, px):
     def chunk(t, d):
         c = struct.pack(">I", len(d)) + t + d
         return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
-    data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 16, 16, 8, 6, 0, 0, 0)) \
+    data = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", len(px[0]), len(px), 8, 6, 0, 0, 0)) \
         + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "wb").write(data)
@@ -533,9 +539,174 @@ def textures():
     png(f"{ASSETS}/textures/item/bounty_proof.png", proof)
 
 
+# --- mine world creatures (phase 3): loot tables, shapeshift forms, spawn egg models and recoloured vanilla textures.
+MOBS = ["glow_bat", "gem_slime", "ore_golem", "ore_worm"]
+# The vanilla mob each creature is drawn as (texture and spawn egg) and the vanilla form file it copies.
+LOOKS = {"glow_bat": ("bat/bat", "bat"), "gem_slime": ("slime/slime", "slime"),
+         "ore_golem": ("iron_golem/iron_golem", "iron_golem"), "ore_worm": ("silverfish/silverfish", "silverfish")}
+FORMS = {
+    "glow_bat": {"flying_speed": 0.06, "abilities": ["flight", "night_vision", "no_fall_damage"]},
+    "gem_slime": {"abilities": ["no_fall_damage"], "attributes": {"jump_strength": {"amount": 0.3}}},
+    "ore_golem": {"attributes": {"movement_speed": {"amount": -0.25, "operation": "add_multiplied_base"},
+                                 "explosion_knockback_resistance": {"amount": 1}}},
+    "ore_worm": {},
+}
+# Raw ores an ore golem drops, with weights: (item, weight).
+GOLEM_ORES = [("coal", 4), ("raw_copper", 4), ("raw_iron", 4), ("raw_gold", 3), ("redstone", 3), ("lapis_lazuli", 3),
+              ("diamond", 1), ("emerald", 1)]
+ORE_COLOURS = [(34, 34, 38), (200, 110, 70), (216, 175, 147), (250, 220, 60), (210, 25, 25), (40, 70, 200),
+               (100, 232, 226), (30, 200, 90)]
+
+
+def item(name, count=None, weight=None):
+    entry = {"type": "minecraft:item", "name": f"minecraft:{name}"}
+    if count is not None:
+        entry["modifier"] = {"type": "minecraft:set_count", "count": count if isinstance(count, int) else
+                             {"type": "minecraft:uniform", "min": count[0], "max": count[1]}}
+    if weight is not None:
+        entry["weight"] = weight
+    return entry
+
+
+def mob_data():
+    loot = f"{DATA}/loot_table/entities"
+    write(f"{loot}/glow_bat.json", {"type": "minecraft:entity", "pools": [
+        {"rolls": 1, "entries": [item("glowstone_dust", (1, 2))]},
+        {"rolls": 1, "entries": [item("amethyst_shard", (0, 1))]}], "random_sequence": "mineworld:entities/glow_bat"})
+    write(f"{loot}/gem_slime.json", {"type": "minecraft:entity", "pools": [{
+        "rolls": 1, "condition": {"type": "minecraft:entity_properties", "entity": "this",
+                                  "predicate": {"minecraft:type_specific/cube_mob": {"size": 1}}},
+        "entries": [item("lapis_lazuli", weight=60), item("emerald", weight=30), item("diamond", weight=10)]}],
+        "random_sequence": "mineworld:entities/gem_slime"})
+    write(f"{loot}/ore_golem.json", {"type": "minecraft:entity", "pools": [{
+        "rolls": {"type": "minecraft:uniform", "min": 8, "max": 16},
+        "entries": [item(name, weight=w) for name, w in GOLEM_ORES]}], "random_sequence": "mineworld:entities/ore_golem"})
+    for mob in MOBS:
+        # Rare: not required by the Form King altar; only read when the shapeshift mod is installed.
+        write(f"{DATA}/shapeshift/forms/{mob}.json", {**FORMS[mob], "rare": True})
+        egg = f"{mob}_spawn_egg"
+        write(f"{ASSETS}/items/{egg}.json", {"model": {"type": "minecraft:model", "model": f"mineworld:item/{egg}"}})
+        write(f"{ASSETS}/models/item/{egg}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"mineworld:item/{egg}"}})
+
+
+def read_png(data):
+    """Decodes an 8-bit-or-less PNG (palette, grey, RGB or RGBA) into rows of [r, g, b, a]."""
+    pos, chunks = 8, {}
+    while pos < len(data):
+        n, = struct.unpack(">I", data[pos:pos + 4])
+        t = data[pos + 4:pos + 8]
+        chunks[t] = chunks.get(t, b"") + data[pos + 8:pos + 8 + n]
+        pos += 12 + n
+    w, h, depth, ctype = struct.unpack(">IIBB", chunks[b"IHDR"][:10])
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[ctype]
+    bpp = max(1, depth * channels // 8)
+    stride = (w * channels * depth + 7) // 8
+    raw, rows, prev = zlib.decompress(chunks[b"IDAT"]), [], bytearray(stride)
+    for y in range(h):
+        f, line = raw[y * (stride + 1)], bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride):
+            a = line[i - bpp] if i >= bpp else 0
+            b, c = prev[i], prev[i - bpp] if i >= bpp else 0
+            line[i] = (line[i] + [0, a, b, (a + b) // 2,
+                                  a if abs(b - c) <= abs(a - c) and abs(a + b - 2 * c) >= abs(b - c) and abs(a + b - 2 * c) >= abs(a - c)
+                                  else (b if abs(a - c) <= abs(a + b - 2 * c) else c)][f]) & 255
+        rows.append(line)
+        prev = line
+    palette = chunks.get(b"PLTE", b"")
+    alpha = chunks.get(b"tRNS", b"")
+    out = []
+    for line in rows:
+        if depth < 8:
+            values = [(line[i * depth // 8] >> (8 - depth - (i * depth) % 8)) & ((1 << depth) - 1) for i in range(w * channels)]
+        else:
+            values = list(line)
+        px = []
+        for x in range(w):
+            v = values[x * channels:(x + 1) * channels]
+            if ctype == 3:
+                i = v[0]
+                px.append([palette[i * 3], palette[i * 3 + 1], palette[i * 3 + 2], alpha[i] if i < len(alpha) else 255])
+            elif ctype == 0:
+                px.append([v[0]] * 3 + [255])
+            elif ctype == 4:
+                px.append([v[0]] * 3 + [v[1]])
+            elif ctype == 2:
+                px.append(v + [255])
+            else:
+                px.append(v)
+        out.append(px)
+    return out
+
+
+def speck(x, y, seed, every):
+    return ((x * 73856093) ^ (y * 19349663) ^ (seed * 83492791)) % every == 0
+
+
+def lum(p):
+    return (p[0] + p[1] + p[2]) / 3
+
+
+def clamp(v):
+    return max(0, min(255, int(v)))
+
+
+def recolour(px, fn):
+    return [[(fn(x, y, p) if p[3] else [0, 0, 0, 0]) for x, p in enumerate(row)] for y, row in enumerate(px)]
+
+
+def glow_bat(x, y, p):
+    l = lum(p)
+    return [clamp(l * 0.55 + 20), clamp(l * 0.4 + 14), clamp(l * 0.9 + 46), p[3]]
+
+
+def glow_bat_glow(x, y, p):
+    # Additive layer: black is invisible, so only the specks and the bright eyes light up.
+    if speck(x, y, 3, 6):
+        return [120, 255, 240, 255] if speck(x, y, 5, 2) else [210, 140, 255, 255]
+    return [0, 0, 0, 255]
+
+
+def gem_slime(x, y, p):
+    if p[3] > 200 and speck(x, y, 7, 9):
+        return list(ORE_COLOURS[[5, 7, 6][(x + y) % 3]]) + [p[3]]
+    l = lum(p)
+    return [clamp(l * 0.35), clamp(l * 0.85 + 20), clamp(l * 0.95 + 30), p[3]]
+
+
+def ore_stone(cluster):
+    def fn(x, y, p):
+        cx, cy = x // cluster, y // cluster
+        if p[3] == 255 and speck(cx, cy, 11, 13):
+            return list(ORE_COLOURS[(cx * 3 + cy * 5) % len(ORE_COLOURS)]) + [255]
+        g = clamp(lum(p) * 0.8 + 18)
+        return [g, g, clamp(g * 1.04), p[3]]
+    return fn
+
+
+def mob_textures():
+    textures = {"glow_bat": glow_bat, "gem_slime": gem_slime, "ore_golem": ore_stone(2), "ore_worm": ore_stone(1)}
+    wanted = [f"{ASSETS}/textures/entity/{m}.png" for m in MOBS] + [f"{ASSETS}/textures/entity/glow_bat_glow.png"] \
+        + [f"{ASSETS}/textures/item/{m}_spawn_egg.png" for m in MOBS]
+    if all(os.path.exists(p) for p in wanted) and "--force" not in sys.argv:
+        return
+    # Recoloured from the vanilla textures so the UV layout matches the vanilla models.
+    import zipfile
+    jar = os.environ.get("MC_CLIENT_JAR", os.path.expanduser("~/.gradle/caches/fabric-loom/26.3/minecraft-client.jar"))
+    with zipfile.ZipFile(jar) as z:
+        vanilla = lambda path: read_png(z.read(f"assets/minecraft/textures/{path}.png"))
+        for mob in MOBS:
+            look, egg = LOOKS[mob]
+            png(f"{ASSETS}/textures/entity/{mob}.png", recolour(vanilla(f"entity/{look}"), textures[mob]))
+            egg_fn = ore_stone(1) if mob.startswith("ore") else textures[mob]
+            png(f"{ASSETS}/textures/item/{mob}_spawn_egg.png", recolour(vanilla(f"item/{egg}_spawn_egg"), egg_fn))
+        png(f"{ASSETS}/textures/entity/glow_bat_glow.png", recolour(vanilla("entity/bat/bat"), glow_bat_glow))
+
+
 if __name__ == "__main__":
     shutil.rmtree(f"{DATA}/worldgen", ignore_errors=True)
     worldgen()
     city_templates()
     textures()
+    mob_data()
+    mob_textures()
     print("done")

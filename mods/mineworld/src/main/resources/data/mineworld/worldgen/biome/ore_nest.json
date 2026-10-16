@@ -59,6 +59,11 @@
               "type": "minecraft:witch",
               "count": 1,
               "weight": 20
+            },
+            {
+              "type": "mineworld:ore_golem",
+              "count": 1,
+              "weight": 5
             }
           ],
           "underground_water_creature": [],

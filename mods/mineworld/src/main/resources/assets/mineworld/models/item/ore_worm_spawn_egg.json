@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "mineworld:item/ore_worm_spawn_egg"
+  }
+}
