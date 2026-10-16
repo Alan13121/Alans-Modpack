@@ -5,3 +5,12 @@ run/
 *.iml
 .DS_Store
 ref-alchemy-backpack/
+
+# Dev-only files live in the private Alans-Modpack-dev repository, cloned to dev/ and linked here by scripts/setup-dev.sh
+/dev/
+/CLAUDE.md
+/docs
+/art
+
+# Game logs from local runs
+mods/*/logs/
