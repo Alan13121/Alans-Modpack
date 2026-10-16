@@ -45,6 +45,18 @@ public final class HandbookClickTest implements FabricClientGameTest {
                 } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
             });
             if (next != 3) throw new AssertionError("FAILED: the right arrow went to " + next);
+            // The wheel over the chapter list scrolls the list (17 chapters do not fit), not the text.
+            context.getInput().scroll(-3);
+            context.waitTicks(2);
+            int sideScroll = context.computeOnClient(mc -> {
+                try {
+                    var f = Class.forName("dev.alan.guide.client.HandbookScreen").getDeclaredField("sideScroll");
+                    f.setAccessible(true);
+                    return f.getInt(mc.gui.screen());
+                } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
+            });
+            context.takeScreenshot("handbook-list-scrolled");
+            if (sideScroll <= 0) throw new AssertionError("FAILED: the wheel over the chapter list did not scroll it");
         }
     }
 }
