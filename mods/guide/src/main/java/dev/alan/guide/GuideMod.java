@@ -2,6 +2,7 @@ package dev.alan.guide;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.commands.Commands;
@@ -29,6 +30,7 @@ public final class GuideMod implements ModInitializer {
     @Override public void onInitialize() {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> entries.accept(HANDBOOK));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> Handbook.onJoin(handler.getPlayer()));
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> Handbook.onRespawn(newPlayer));
         CommandRegistrationCallback.EVENT.register((dispatcher, context, environment) ->
             dispatcher.register(Commands.literal("guidebook").executes(c -> {
                 var player = c.getSource().getPlayerOrException();
