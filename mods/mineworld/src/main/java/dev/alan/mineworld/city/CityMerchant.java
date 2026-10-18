@@ -56,6 +56,11 @@ public final class CityMerchant {
     /** An unlocked offer and the result rolled for it this time. */
     private record Trade(CityTrades.Trade trade, ItemStack result) {}
 
+    /** Debug-level trace lines for finding why a resident does not trade (turn on debug logging); every line starts with [city-trade]. */
+    private static void trace(String message, Object... args) {
+        MineWorldMod.LOG.debug("[city-trade] " + message, args);
+    }
+
     public CityMerchant(Mob owner, SoundEvent tradeSound) {
         this.owner = owner;
         this.tradeSound = tradeSound;
@@ -63,9 +68,24 @@ public final class CityMerchant {
 
     /** Opens the trading screen when this resident sells something; busy merchants wave other players off. */
     public InteractionResult interact(Player player, CityTrades.@Nullable Seller seller, boolean lockable) {
-        if (seller == null || !this.owner.isAlive()) return InteractionResult.PASS;
+        trace("interact: {} on {} side, seller={}, lockable={}, alive={}, current trader={}", this.owner.getType(),
+            this.owner.level().isClientSide() ? "client" : "server", seller, lockable, this.owner.isAlive(),
+            this.trader == null ? "none" : this.trader.getName().getString());
+        if (seller == null || !this.owner.isAlive()) {
+            trace("  ignored: no seller or not alive (seller={}, alive={})", seller, this.owner.isAlive());
+            return InteractionResult.PASS;
+        }
         if (this.owner.level().isClientSide()) return InteractionResult.SUCCESS;
-        if (this.trader != null && this.trader != player && this.trader.isAlive()) return InteractionResult.SUCCESS;
+        if (this.trader != null && this.trader != player && this.trader.isAlive()) {
+            trace("  ignored: busy with {}", this.trader.getName().getString());
+            return InteractionResult.SUCCESS;
+        }
+        if (this.trader == player) {
+            // A resident whose profession the client does not know makes the client try the off hand too, which arrives as a second
+            // interaction right after the one that opened the screen. Opening again would close the screen it just opened.
+            trace("  ignored: already trading with this player (the second hand's interaction)");
+            return InteractionResult.SUCCESS_SERVER;
+        }
         ServerPlayer serverPlayer = (ServerPlayer) player;
         this.locked.clear();
         this.unlocked.clear();
@@ -78,14 +98,18 @@ public final class CityMerchant {
             this.unlocked.add(new Trade(trade, roll(trade, this.owner.getRandom(), serverPlayer)));
         }
         this.rebuild();
+        trace("  built {} offers: {}", this.offers.size(), this.offers.stream()
+            .map(o -> o.getCostA().getCount() + "x" + o.getCostA().getItem() + " -> " + o.getResult()).toList());
         this.trader = player;
         this.owner.getNavigation().stop();
         ((Merchant) this.owner).openTradingScreen(player, this.owner.getDisplayName(), 0);
+        trace("  openTradingScreen done, player menu is {}", player.containerMenu.getClass().getSimpleName());
         return InteractionResult.SUCCESS_SERVER;
     }
 
     /** Locks the offer at index (or unlocks a locked one) and resends the list; false when nothing changed. */
     public boolean toggleLock(ServerPlayer player, int index) {
+        trace("toggleLock: index={}, offers={}, is trader={}", index, this.offers.size(), player == this.trader);
         if (player != this.trader || index < 0 || index >= this.offers.size()) return false;
         if (index < this.locked.size()) {
             LockedTrade lock = this.locked.remove(index);
@@ -142,13 +166,20 @@ public final class CityMerchant {
 
     public @Nullable Player trader() { return this.trader; }
 
-    public void setTrader(@Nullable Player player) { this.trader = player; }
+    public void setTrader(@Nullable Player player) {
+        trace("setTrader: {} -> {}", this.trader == null ? "none" : this.trader.getName().getString(), player == null ? "none" : player.getName().getString());
+        this.trader = player;
+    }
 
-    public MerchantOffers offers() { return this.offers; }
+    public MerchantOffers offers() {
+        if (this.offers.isEmpty()) trace("offers requested but the list is empty");
+        return this.offers;
+    }
 
     public void overrideOffers(MerchantOffers offers) { this.offers = offers; }
 
     public void notifyTrade(MerchantOffer offer) {
+        trace("notifyTrade: {} for {}", offer.getCostA().getItem(), offer.getResult());
         offer.increaseUses();
         this.owner.playSound(this.tradeSound);
         if (this.trader instanceof ServerPlayer player) Guide.grant(player, "ch3/trade");
@@ -157,6 +188,8 @@ public final class CityMerchant {
     public SoundEvent sound() { return this.tradeSound; }
 
     public boolean stillValid(Player player) {
-        return this.trader == player && this.owner.isAlive() && player.distanceToSqr(this.owner) < 64.0;
+        boolean valid = this.trader == player && this.owner.isAlive() && player.distanceToSqr(this.owner) < 64.0;
+        if (!valid) trace("stillValid false: trader is player={}, alive={}, distance^2={}", this.trader == player, this.owner.isAlive(), player.distanceToSqr(this.owner));
+        return valid;
     }
 }

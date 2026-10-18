@@ -24,6 +24,7 @@ abstract class MerchantMenuMixin extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int buttonId) {
+        dev.alan.mineworld.MineWorldMod.LOG.debug("[city-trade] menu button {} from {} (trader {})", buttonId, player.getName().getString(), this.trader.getClass().getSimpleName());
         if (buttonId >= CityMerchant.LOCK_BUTTON && this.trader instanceof TradingResident resident && resident.lockable()
             && player instanceof ServerPlayer serverPlayer) {
             return resident.merchant().toggleLock(serverPlayer, buttonId - CityMerchant.LOCK_BUTTON);
