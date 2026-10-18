@@ -291,6 +291,17 @@ public final class GuideGameTest implements FabricClientGameTest {
                 var holder = s.getAdvancements().get(Identifier.fromNamespaceAndPath("guide", "ch6/form_king"));
                 return holder != null && holder.value().display().isPresent() && holder.value().display().get().announceToChat();
             }), "the Form King entry announces itself");
+
+            // 12. Last, because a respawn resets the player: dying without the book gives a new one, keeping the inventory keeps the one held.
+            server.runOnServer(s -> {
+                player(s).getInventory().clearContent();
+                s.getPlayerList().respawn(player(s), false, net.minecraft.world.entity.Entity.RemovalReason.KILLED);
+            });
+            context.waitTicks(10);
+            check(books(server) == 1, "respawning without the book hands out a new one");
+            server.runOnServer(s -> s.getPlayerList().respawn(player(s), true, net.minecraft.world.entity.Entity.RemovalReason.KILLED));
+            context.waitTicks(10);
+            check(books(server) == 1, "respawning with the book in the inventory does not add a second");
         }
     }
 
