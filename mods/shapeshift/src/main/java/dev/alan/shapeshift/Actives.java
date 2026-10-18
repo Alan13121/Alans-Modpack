@@ -13,7 +13,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.LlamaSpit;
@@ -142,8 +145,171 @@ final class Actives {
                 sound(player, SoundEvents.WITHER_SHOOT, 1f);
             }
             case SOOTHE -> soothe(player, power);
+            case POUNCE -> {
+                player.setDeltaMovement(look.x * power, 0.55, look.z * power);
+                launched(player, SoundEvents.OCELOT_HURT);
+            }
+            case BOUNCE -> {
+                bounceShock(player);
+                player.setDeltaMovement(look.x * 0.3, power, look.z * 0.3);
+                launched(player, SoundEvents.SLIME_JUMP);
+            }
+            case SING -> sing(player, power);
+            case GALLOP -> {
+                int ticks = Math.max(1, Math.round(power * 20));
+                player.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 2));
+                player.addEffect(new MobEffectInstance(MobEffects.JUMP_BOOST, ticks, 1));
+                sound(player, SoundEvents.HORSE_GALLOP, 1f);
+            }
+            case TRAMPLE -> trample(player, power);
+            case INK_CLOUD -> inkCloud(player, power);
+            case SPLASH -> splash(player, power);
+            case BUBBLES -> bubbles(player, power);
+            case FLASH -> flash(player, power);
+            case TUNNEL -> {
+                return tunnel(player, Math.max(1, Math.round(power)));
+            }
         }
         return true;
+    }
+
+    private static final float TRAMPLE_DAMAGE = 5f;
+
+    private static void launched(ServerPlayer player, SoundEvent sound) {
+        player.syncVelocity = true;
+        player.resetFallDistance();
+        sound(player, sound, 1f);
+    }
+
+    /** The slime's stomp as it leaves the ground: everything next to it is knocked back. */
+    private static void bounceShock(ServerPlayer player) {
+        ServerLevel level = player.level();
+        for (var target : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(3, 1, 3),
+                e -> e != player && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player))) {
+            target.knockback(1.2, player.getX() - target.getX(), player.getZ() - target.getZ(), level.damageSources().playerAttack(player), 0f);
+        }
+        level.sendParticles(ParticleTypes.ITEM_SLIME, player.getX(), player.getY() + 0.1, player.getZ(), 20, 0.8, 0.1, 0.8, 0.05);
+    }
+
+    /** Speed and haste for the user and the players within eight blocks. */
+    private static void sing(ServerPlayer player, float seconds) {
+        ServerLevel level = player.level();
+        int ticks = Math.max(1, Math.round(seconds * 20));
+        for (var friend : level.getEntitiesOfClass(net.minecraft.world.entity.player.Player.class, player.getBoundingBox().inflate(8), e -> e.isAlive() && !e.isSpectator())) {
+            friend.addEffect(new MobEffectInstance(MobEffects.SPEED, ticks, 1));
+            friend.addEffect(new MobEffectInstance(MobEffects.HASTE, ticks, 1));
+            level.sendParticles(ParticleTypes.NOTE, friend.getX(), friend.getY(1.2), friend.getZ(), 3, 0.3, 0.3, 0.3, 1.0);
+        }
+        sound(player, SoundEvents.NOTE_BLOCK_CHIME.value(), 1f);
+    }
+
+    /** A cone in front of the user, {@code range} blocks long and about ninety degrees wide. */
+    private static void trample(ServerPlayer player, float range) {
+        ServerLevel level = player.level();
+        Vec3 look = player.getLookAngle();
+        Vec3 dir = new Vec3(look.x, 0, look.z);
+        if (dir.lengthSqr() < 1.0E-4) dir = new Vec3(0, 0, 1);
+        dir = dir.normalize();
+        Vec3 forward = dir;
+        var box = player.getBoundingBox().inflate(range, 1.0, range);
+        for (var target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player))) {
+            Vec3 to = new Vec3(target.getX() - player.getX(), 0, target.getZ() - player.getZ());
+            double distance = to.length();
+            if (distance > range || distance < 1.0E-4 || to.scale(1 / distance).dot(forward) < 0.7) continue;
+            target.hurtServer(level, level.damageSources().playerAttack(player), TRAMPLE_DAMAGE);
+            target.knockback(1.4, -forward.x, -forward.z, level.damageSources().playerAttack(player), 0f);
+        }
+        level.sendParticles(ParticleTypes.POOF, player.getX() + dir.x * 2, player.getY() + 0.2, player.getZ() + dir.z * 2, 20, 1.0, 0.1, 1.0, 0.05);
+        sound(player, SoundEvents.ZOMBIE_HORSE_ANGRY, 1f);
+    }
+
+    /** Blinds and lights up every creature but the players within {@code radius} blocks. */
+    private static void inkCloud(ServerPlayer player, float radius) {
+        ServerLevel level = player.level();
+        for (var target : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(radius),
+                e -> e != player && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player))) {
+            target.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
+            target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 160, 0));
+        }
+        level.sendParticles(ParticleTypes.GLOW_SQUID_INK, player.getX(), player.getY(0.5), player.getZ(), 60, radius / 3, 0.8, radius / 3, 0.05);
+        sound(player, SoundEvents.GLOW_SQUID_SQUIRT, 1f);
+    }
+
+    /** Puts out fire within four blocks and gives water breathing to the user and the players within six blocks. */
+    private static void splash(ServerPlayer player, float seconds) {
+        ServerLevel level = player.level();
+        int ticks = Math.max(1, Math.round(seconds * 20));
+        for (var friend : level.getEntitiesOfClass(net.minecraft.world.entity.player.Player.class, player.getBoundingBox().inflate(6), e -> e.isAlive() && !e.isSpectator())) {
+            friend.clearFire();
+            friend.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, ticks, 0));
+        }
+        BlockPos center = player.blockPosition();
+        for (BlockPos pos : BlockPos.betweenClosed(center.offset(-4, -2, -4), center.offset(4, 3, 4))) {
+            if (level.getBlockState(pos).is(net.minecraft.tags.BlockTags.FIRE)) level.removeBlock(pos, false);
+        }
+        level.sendParticles(ParticleTypes.SPLASH, player.getX(), player.getY(0.5), player.getZ(), 40, 1.0, 0.6, 1.0, 0.1);
+        sound(player, SoundEvents.PLAYER_SPLASH, 1f);
+    }
+
+    /** A line of bubbles in front of the user: everything inside is pushed along it, unhurt. */
+    private static void bubbles(ServerPlayer player, float length) {
+        ServerLevel level = player.level();
+        Vec3 dir = player.getLookAngle().normalize();
+        Vec3 start = player.getEyePosition(), end = start.add(dir.scale(length));
+        for (int i = 1; i <= length; i++) {
+            Vec3 p = start.add(dir.scale(i));
+            level.sendParticles(ParticleTypes.BUBBLE, p.x, p.y, p.z, 3, 0.2, 0.2, 0.2, 0.02);
+        }
+        var path = new net.minecraft.world.phys.AABB(start, end).inflate(1.5);
+        for (var target : level.getEntitiesOfClass(LivingEntity.class, path, e -> e != player && e.isAlive() && !e.isSpectator())) {
+            if (distanceToSegment(target.position().add(0, target.getBbHeight() / 2, 0), start, end) > 1.8) continue;
+            target.setDeltaMovement(target.getDeltaMovement().add(dir.x * 1.2, dir.y * 1.2 + 0.2, dir.z * 1.2));
+            target.syncVelocity = true;
+        }
+        sound(player, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 1f);
+    }
+
+    /** Every creature but the players within {@code radius} blocks glows for ten seconds, and the user sees in the dark. */
+    private static void flash(ServerPlayer player, float radius) {
+        ServerLevel level = player.level();
+        for (var target : level.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(radius),
+                e -> e != player && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player))) {
+            target.addEffect(new MobEffectInstance(MobEffects.GLOWING, 200, 0));
+        }
+        player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 300, 0));
+        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY(0.6), player.getZ(), 40, 1.0, 0.8, 1.0, 0.15);
+        sound(player, SoundEvents.BEACON_ACTIVATE, 1f);
+    }
+
+    /** Digs a one wide, two high tunnel straight ahead; false (no cooldown) when there was nothing to dig. */
+    private static boolean tunnel(ServerPlayer player, int length) {
+        ServerLevel level = player.level();
+        net.minecraft.core.Direction dir = player.getDirection();
+        BlockPos feet = player.blockPosition();
+        int dug = 0;
+        for (int i = 1; i <= length; i++) {
+            BlockPos base = feet.relative(dir, i);
+            for (BlockPos pos : new BlockPos[] {base, base.above()}) {
+                if (diggable(level, pos) && level.destroyBlock(pos, true, player)) dug++;
+            }
+        }
+        if (dug == 0) {
+            player.sendOverlayMessage(Component.translatable("shapeshift.tunnel_miss"));
+            return false;
+        }
+        player.setDeltaMovement(dir.getStepX() * 0.35, player.getDeltaMovement().y, dir.getStepZ() * 0.35);
+        player.syncVelocity = true;
+        sound(player, SoundEvents.GRAVEL_BREAK, 1f);
+        return true;
+    }
+
+    /** Stone, dirt, sand, gravel and ore, but nothing with an inventory, nothing unbreakable, nothing harder than ore. */
+    private static boolean diggable(ServerLevel level, BlockPos pos) {
+        var state = level.getBlockState(pos);
+        if (state.isAir() || !state.getFluidState().isEmpty() || level.getBlockEntity(pos) != null) return false;
+        float hardness = state.getDestroySpeed(level, pos);
+        return hardness >= 0 && hardness <= 5
+            && (state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_PICKAXE) || state.is(net.minecraft.tags.BlockTags.MINEABLE_WITH_SHOVEL));
     }
 
     private static final float DIVE_DAMAGE = 6f, SLAM_DAMAGE = 4f;

@@ -39,7 +39,27 @@ public enum ActiveType implements StringRepresentable {
     /** Wither skeleton: a wither skull. */
     WITHER_SKULL(40, 0),
     /** Happy ghast: hostile mobs around you forget about you for a while. power = seconds; range is 16. */
-    SOOTHE(200, 10);
+    SOOTHE(200, 10),
+    /** Ocelot: a long, low leap forward. power = speed. */
+    POUNCE(40, 1.1f),
+    /** Parrot: a song that speeds up and hastens you and the players within 8 blocks. power = seconds. */
+    SING(200, 10),
+    /** Skeleton horse: a burst of speed and jump height for yourself. power = seconds. */
+    GALLOP(100, 5),
+    /** Zombie horse: stamps everything in a wide cone in front: hurts and throws it back. power = range in blocks. */
+    TRAMPLE(60, 6),
+    /** Glow squid: an ink cloud that blinds and lights up every creature around. power = radius in blocks. */
+    INK_CLOUD(120, 8),
+    /** Tadpole: puts out fire around you and lets you and the players near you breathe underwater. power = seconds. */
+    SPLASH(100, 8),
+    /** Tropical fish: a stream of bubbles that pushes everything in a line away without hurting it. power = length in blocks. */
+    BUBBLES(40, 8),
+    /** Glow bat: a flash that makes every creature around you glow, and lets you see in the dark. power = radius in blocks. */
+    FLASH(120, 16),
+    /** Gem slime: a high bounce that knocks back whatever is next to you. power = launch speed. */
+    BOUNCE(60, 0.9f),
+    /** Ore worm: digs a tunnel two blocks high straight ahead through stone, dirt and ore. power = length in blocks. */
+    TUNNEL(30, 6);
 
     public static final Codec<ActiveType> CODEC = StringRepresentable.fromEnum(ActiveType::values);
     public final int defaultCooldown;

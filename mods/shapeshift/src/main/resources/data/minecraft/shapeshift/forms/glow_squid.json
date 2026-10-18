@@ -5,5 +5,8 @@
   ],
   "weaknesses": [
     "needs_water"
-  ]
+  ],
+  "active": {
+    "type": "ink_cloud"
+  }
 }

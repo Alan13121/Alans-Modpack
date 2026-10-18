@@ -8,5 +8,9 @@
       "amount": 1
     }
   },
-  "rare": true
+  "rare": true,
+  "active": {
+    "type": "slam",
+    "power": 5
+  }
 }

@@ -2,5 +2,8 @@
   "rare": true,
   "weaknesses": [
     "needs_water"
-  ]
+  ],
+  "active": {
+    "type": "splash"
+  }
 }
