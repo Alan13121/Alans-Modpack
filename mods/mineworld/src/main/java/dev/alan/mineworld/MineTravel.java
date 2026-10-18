@@ -31,6 +31,7 @@ public final class MineTravel {
 
     public static void tick(MinecraftServer server) {
         DynamicLevels.processQueue(server);
+        DynamicLevels.tickTunnels(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) tickPlayer(server, player);
     }
 
@@ -52,6 +53,8 @@ public final class MineTravel {
         }
         int ticks = COUNTDOWN.merge(id, 1, Integer::sum);
         if (ticks == 1) {
+            // The four seconds of waiting are used to generate the chunks around the other side's room.
+            if (level.getBlockEntity(standingPos(player)) instanceof WorldCauldronBlockEntity be) DynamicLevels.prewarm(server, be.assignWorld());
             player.addEffect(new MobEffectInstance(MobEffects.NAUSEA, DELAY_TICKS + 20, 0, false, false));
             level.playSound(null, player.blockPosition(), SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.3F, 1.0F);
         }

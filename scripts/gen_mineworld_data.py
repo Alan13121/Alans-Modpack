@@ -110,7 +110,7 @@ BIOME_SPAWNS = {
     "lush_cave": spawns(ambient=[("bat", 10, 8)], axolotls=[("axolotl", 10, 4)], monster=MONSTERS + [("mineworld:gem_slime", 80, 2)]),
     "dripstone_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("cave_spider", 60, 2)]),
     "ore_nest": spawns(ambient=[("bat", 10, 8)],
-                       monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1), ("mineworld:ore_golem", 5, 1)]),
+                       monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1), ("mineworld:ore_golem", 40, 1)]),
 }
 
 

@@ -17,11 +17,14 @@ import org.jspecify.annotations.Nullable;
 
 /** Every mine world (id, seed, where its cauldron is) and the ore progress of cauldrons that are still filling up. */
 public final class MineWorldData extends SavedData {
-    public record WorldInfo(long seed, Optional<GlobalPos> origin, boolean roomBuilt) {
+    /** {@code tunnelNext} is the z of the next slice of the tunnel to the first city still to dig; worlds saved before the tunnel was dug in steps count as finished. */
+    public record WorldInfo(long seed, Optional<GlobalPos> origin, boolean roomBuilt, int tunnelNext) {
+        public static final int TUNNEL_FINISHED = Integer.MAX_VALUE;
         static final Codec<WorldInfo> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.LONG.fieldOf("seed").forGetter(WorldInfo::seed),
             GlobalPos.CODEC.optionalFieldOf("origin").forGetter(WorldInfo::origin),
-            Codec.BOOL.optionalFieldOf("room_built", false).forGetter(WorldInfo::roomBuilt)
+            Codec.BOOL.optionalFieldOf("room_built", false).forGetter(WorldInfo::roomBuilt),
+            Codec.INT.optionalFieldOf("tunnel_next", TUNNEL_FINISHED).forGetter(WorldInfo::tunnelNext)
         ).apply(i, WorldInfo::new));
     }
 
@@ -64,7 +67,7 @@ public final class MineWorldData extends SavedData {
     /** Registers a brand new world with its own seed and returns its id ("w1", "w2", ...). */
     public String createWorld() {
         String id = "w" + nextId++;
-        worlds.put(id, new WorldInfo(new java.util.Random().nextLong(), Optional.empty(), false));
+        worlds.put(id, new WorldInfo(new java.util.Random().nextLong(), Optional.empty(), false, DynamicLevels.TUNNEL_START));
         setDirty();
         return id;
     }
@@ -74,12 +77,17 @@ public final class MineWorldData extends SavedData {
 
     public void setOrigin(String id, GlobalPos origin) {
         WorldInfo w = worlds.get(id);
-        if (w != null) { worlds.put(id, new WorldInfo(w.seed(), Optional.of(origin), w.roomBuilt())); setDirty(); }
+        if (w != null) { worlds.put(id, new WorldInfo(w.seed(), Optional.of(origin), w.roomBuilt(), w.tunnelNext())); setDirty(); }
     }
 
     public void setRoomBuilt(String id) {
         WorldInfo w = worlds.get(id);
-        if (w != null) { worlds.put(id, new WorldInfo(w.seed(), w.origin(), true)); setDirty(); }
+        if (w != null) { worlds.put(id, new WorldInfo(w.seed(), w.origin(), true, w.tunnelNext())); setDirty(); }
+    }
+
+    public void setTunnelNext(String id, int z) {
+        WorldInfo w = worlds.get(id);
+        if (w != null) { worlds.put(id, new WorldInfo(w.seed(), w.origin(), w.roomBuilt(), z)); setDirty(); }
     }
 
     public int progress(GlobalPos pos) { return progress.getOrDefault(pos, 0); }

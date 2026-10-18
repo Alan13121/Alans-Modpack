@@ -63,7 +63,7 @@
             {
               "type": "mineworld:ore_golem",
               "count": 1,
-              "weight": 5
+              "weight": 40
             }
           ],
           "underground_water_creature": [],

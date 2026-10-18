@@ -1,6 +1,7 @@
 package dev.alan.mineworld.test;
 
 import dev.alan.mineworld.DynamicLevels;
+import dev.alan.mineworld.MineWorldData;
 import dev.alan.mineworld.MineWorldMod;
 import dev.alan.mineworld.WorldCauldronBlockEntity;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -63,6 +64,22 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
             context.waitTicks(20);
             check(server.computeOnServer(s -> worldId.equals(DynamicLevels.worldId(s.getPlayerList().getPlayers().get(0).level()))),
                 "player is in the mine world");
+
+            // The tunnel to the first city is not dug while the player enters; it is dug a few slices per tick afterwards, once the chunks are
+            // loaded, and the progress is saved.
+            int waited = 0;
+            while (waited < 600 && !server.computeOnServer(s -> MineWorldData.get(s).world(worldId).tunnelNext() == MineWorldData.WorldInfo.TUNNEL_FINISHED)) {
+                context.waitTicks(10);
+                waited += 10;
+            }
+            check(waited < 600, "the tunnel to the first city is dug by itself (" + waited + " ticks)");
+            check(server.computeOnServer(s -> {
+                var level = s.getLevel(DynamicLevels.key(worldId));
+                return level.getBlockState(new BlockPos(0, DynamicLevels.FLOOR + 1, 3)).isAir()
+                    && level.getBlockState(new BlockPos(0, DynamicLevels.FLOOR + 2, 40)).isAir()
+                    && level.getBlockState(new BlockPos(0, DynamicLevels.FLOOR + 2, DynamicLevels.tunnelEnd())).isAir()
+                    && level.getBlockState(new BlockPos(0, DynamicLevels.FLOOR, 40)).is(net.minecraft.world.level.block.Blocks.POLISHED_ANDESITE);
+            }), "the dug tunnel is open from the room to the gate passage and has its floor");
             context.takeScreenshot("02-spawn-room");
 
             // 3. The room, the return block, and solid ore-rich stone all around.
