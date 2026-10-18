@@ -182,7 +182,9 @@ final class BossSkills {
         if (target == null || now < fight.nextSkill) return;
         Vec3 d = target.position().subtract(boss.position());
         double length = Math.max(0.1, Math.sqrt(d.x * d.x + d.z * d.z));
-        boss.setDeltaMovement(d.x / length * 0.9, 0.45, d.z / length * 0.9);
+        double speed = Math.max(0.3, Math.min(0.9, length / 12));
+        fight.leapVelocity = new Vec3(d.x / length * speed, 0, d.z / length * speed);
+        fight.leapPending = true;
         fight.leapUntil = now + LEAP_TICKS;
         fight.leapHit = false;
         fight.nextSkill = now + fight.paced(fight.form.interval);

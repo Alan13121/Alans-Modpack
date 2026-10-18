@@ -60,7 +60,12 @@ public final class FormKingFight {
     int strikeState;
     long strikeAt, leapUntil;
     Vec3 strikeDestination = Vec3.ZERO;
-    boolean leapHit;
+    boolean leapHit, leapPending;
+    // Movement state (see BossMovement).
+    Vec3 leapVelocity = Vec3.ZERO;
+    double fallSpeed;
+    boolean blocked;
+    int orbitDirection = 1;
     private int absent, deadFor;
     private boolean over;
 
@@ -145,6 +150,7 @@ public final class FormKingFight {
             boss = boss();
             if (boss == null) return;
         }
+        BossMovement.tick(this, boss, BossSkills.nearest(boss, fighters), now);
         BossSkills.tick(this, boss, fighters, now);
         keepInArena(boss);
         if (boss.isOnFire() && form != BossForm.BLAZE && form != BossForm.BLAZE_FAST) boss.clearFire();
@@ -189,6 +195,10 @@ public final class FormKingFight {
         nextSkill = now + 20;
         strikeState = 0;
         leapUntil = 0;
+        leapPending = false;
+        fallSpeed = 0;
+        blocked = false;
+        orbitDirection = level.getRandom().nextBoolean() ? 1 : -1;
         if (old != null) staggerUntil = now + STAGGER_TICKS;
         if (next == BossForm.WEAK) weakUntil = now + WEAK_TICKS;
         if (next == BossForm.CREEPER) BossSkills.prime(body);
