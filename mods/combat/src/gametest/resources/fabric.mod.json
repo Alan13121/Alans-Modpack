@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "name": "Combat client game tests",
   "environment": "*",
-  "entrypoints": {"fabric-client-gametest": ["dev.alan.combat.test.CombatClientGameTest", "dev.alan.combat.test.BossClientGameTest", "dev.alan.combat.test.BossMovementGameTest"]},
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.combat.test.CombatClientGameTest", "dev.alan.combat.test.BossClientGameTest", "dev.alan.combat.test.BossMovementGameTest", "dev.alan.combat.test.BossSecondaryGameTest"]},
   "depends": {"combat": "*"}
 }

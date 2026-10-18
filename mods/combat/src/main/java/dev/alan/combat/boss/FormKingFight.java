@@ -55,7 +55,7 @@ public final class FormKingFight {
     BossForm form = BossForm.SKELETON;
     int stage = 1;
     int formIndex = -1;
-    long formStart, nextSkill, staggerUntil, weakUntil;
+    long formStart, nextSkill, nextSecondary, staggerUntil, weakUntil;
     // Skill state (see BossSkills).
     int strikeState;
     long strikeAt, leapUntil;
@@ -193,6 +193,7 @@ public final class FormKingFight {
         form = next;
         formStart = now;
         nextSkill = now + 20;
+        nextSecondary = now + 50;
         strikeState = 0;
         leapUntil = 0;
         leapPending = false;

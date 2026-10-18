@@ -10,28 +10,46 @@ import net.minecraft.world.entity.Mob;
  * (0 = the form has no repeating skill), {@code hovers} places the body above the ground.
  */
 public enum BossForm {
-    SKELETON(EntityTypes.SKELETON, 30, false),
-    BLAZE(EntityTypes.BLAZE, 25, true),
-    BREEZE(EntityTypes.BREEZE, 40, true),
-    EVOKER(EntityTypes.EVOKER, 60, false),
-    ENDERMAN(EntityTypes.ENDERMAN, 70, false),
-    SPIDER(EntityTypes.SPIDER, 40, false),
-    GHAST(EntityTypes.GHAST, 50, true),
+    SKELETON(EntityTypes.SKELETON, 30, false, null),
+    BLAZE(EntityTypes.BLAZE, 25, true, null),
+    BREEZE(EntityTypes.BREEZE, 40, true, null),
+    EVOKER(EntityTypes.EVOKER, 60, false, Secondary.ARROW),
+    ENDERMAN(EntityTypes.ENDERMAN, 70, false, Secondary.WIND_CHARGE),
+    SPIDER(EntityTypes.SPIDER, 40, false, Secondary.SMALL_FIREBALL),
+    GHAST(EntityTypes.GHAST, 50, true, Secondary.FANGS),
     /** The blaze again, but quicker; phase three. */
-    BLAZE_FAST(EntityTypes.BLAZE, 15, true),
+    BLAZE_FAST(EntityTypes.BLAZE, 15, true, Secondary.ARROW),
     /** Primes a fuse and blows up; see {@link BossSkills}. */
-    CREEPER(EntityTypes.CREEPER, 0, false),
+    CREEPER(EntityTypes.CREEPER, 0, false, null),
     /** What is left after the creeper blast: standing still and taking extra damage. */
-    WEAK(EntityTypes.ZOMBIE, 0, false);
+    WEAK(EntityTypes.ZOMBIE, 0, false, null);
+
+    /**
+     * A skill a form borrows from another form, used on its own timer next to the form's own skill. Only the forms of phases two and
+     * three have one, so phase one stays simple. {@code interval} is the borrowed skill's own pace; the borrower uses it at half rate.
+     */
+    public enum Secondary {
+        ARROW(30), SMALL_FIREBALL(25), WIND_CHARGE(40), FANGS(60);
+
+        public final int interval;
+
+        Secondary(int interval) { this.interval = interval; }
+
+        /** Ticks between two uses when borrowed. */
+        public int borrowedInterval() { return interval * 2; }
+    }
 
     public final EntityType<? extends Mob> type;
     public final int interval;
     public final boolean hovers;
+    /** The borrowed skill, or null. */
+    public final Secondary secondary;
 
-    BossForm(EntityType<? extends Mob> type, int interval, boolean hovers) {
+    BossForm(EntityType<? extends Mob> type, int interval, boolean hovers, Secondary secondary) {
         this.type = type;
         this.interval = interval;
         this.hovers = hovers;
+        this.secondary = secondary;
     }
 
     /** A phase: how long each form lasts and in which order they come. */
