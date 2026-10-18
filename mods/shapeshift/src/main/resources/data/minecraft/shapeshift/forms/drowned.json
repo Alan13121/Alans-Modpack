@@ -6,5 +6,6 @@
   "scares": [
     "minecraft:villager",
     "minecraft:wandering_trader"
-  ]
+  ],
+  "infects_villagers": true
 }

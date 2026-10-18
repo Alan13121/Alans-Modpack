@@ -156,6 +156,34 @@ public final class RareSkillsGameTest implements FabricClientGameTest {
             use(context, world);
             context.waitTicks(10);
             check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.ARMOR_STAND, e -> true).get(0).getZ()) < -5, "the bubble stream pushes the armor stand away");
+            // Zombie forms: a villager they kill rises as a zombie villager with its profession; other forms just kill it.
+            reset(server, context);
+            server.runCommand("summon minecraft:villager 0 120 -2 {NoAI:1b,VillagerData:{type:\"minecraft:plains\",profession:\"minecraft:farmer\",level:2}}");
+            become(context, world, "minecraft:zombie");
+            server.runCommand("damage @e[type=minecraft:villager,limit=1] 100 minecraft:player_attack by @p");
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.VILLAGER, e -> e.isAlive()).isEmpty()
+                && s.overworld().getEntities(EntityTypes.ZOMBIE_VILLAGER, e -> e.isAlive()).size() == 1
+                && ((net.minecraft.world.entity.monster.zombie.ZombieVillager) s.overworld().getEntities(EntityTypes.ZOMBIE_VILLAGER, e -> e.isAlive()).get(0))
+                    .getVillagerData().toString().contains("farmer")), "a zombie kills a villager and it rises as a zombie villager farmer");
+
+            reset(server, context);
+            server.runCommand("summon minecraft:villager 0 120 -2 {NoAI:1b}");
+            become(context, world, "minecraft:pig");
+            server.runCommand("damage @e[type=minecraft:villager,limit=1] 100 minecraft:player_attack by @p");
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.ZOMBIE_VILLAGER, e -> e.isAlive()).isEmpty()),
+                "a pig does not infect a villager");
+
+            reset(server, context);
+            server.runCommand("difficulty peaceful");
+            server.runCommand("summon minecraft:villager 0 120 -2 {NoAI:1b}");
+            become(context, world, "minecraft:husk");
+            server.runCommand("damage @e[type=minecraft:villager,limit=1] 100 minecraft:player_attack by @p");
+            context.waitTicks(5);
+            check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.ZOMBIE_VILLAGER, e -> e.isAlive()).isEmpty()),
+                "in peaceful a villager is not turned into a zombie that would vanish");
+            server.runCommand("difficulty normal");
             // Happy ghast: hostile mobs leave the user alone for a while, unless the user hits them.
             reset(server, context);
             server.runCommand("summon minecraft:zombie 4 120 0 {NoAI:1b}");

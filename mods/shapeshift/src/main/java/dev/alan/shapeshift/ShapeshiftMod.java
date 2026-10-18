@@ -59,6 +59,7 @@ public final class ShapeshiftMod implements ModInitializer {
             Shapeshifter.refresh(player);
         });
         ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> Reactions.onEntityLoad(entity));
+        Infection.register();
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) Shapeshifter.tick(player, server.getTickCount());
         });

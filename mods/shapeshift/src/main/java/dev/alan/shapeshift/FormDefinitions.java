@@ -48,7 +48,8 @@ public final class FormDefinitions {
 
     /** Everything a form grants, combining the entity's own stats, automatic traits and its data file. */
     public record Resolved(Set<Ability> abilities, float flyingSpeed, Map<String, ModifierSpec> modifiers, double maxHealth,
-                           Optional<ActiveAbility> active, Set<Weakness> weaknesses, List<String> scares, List<String> huntedBy) {
+                           Optional<ActiveAbility> active, Set<Weakness> weaknesses, List<String> scares, List<String> huntedBy,
+                           boolean infectsVillagers) {
         public boolean has(Ability ability) { return abilities.contains(ability); }
         public boolean has(Weakness weakness) { return weaknesses.contains(weakness); }
     }
@@ -74,7 +75,7 @@ public final class FormDefinitions {
         weaknesses.addAll(def.weaknesses());
         if (BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).is(EntityTypeTags.BURN_IN_DAYLIGHT)) weaknesses.add(Weakness.BURNS_IN_DAYLIGHT);
         return new Resolved(Set.copyOf(abilities), def.flyingSpeed().orElse(0.05f), modifiers, FormPlan.maxHealth(mobBase, def),
-            def.active(), Set.copyOf(weaknesses), def.scares(), def.huntedBy());
+            def.active(), Set.copyOf(weaknesses), def.scares(), def.huntedBy(), def.infectsVillagers());
     }
 
     /** Whether {@code type} is named by one of the selectors ("minecraft:wolf" or "#minecraft:skeletons"). */
