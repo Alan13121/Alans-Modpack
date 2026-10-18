@@ -5,5 +5,8 @@
     "flight",
     "night_vision",
     "no_fall_damage"
-  ]
+  ],
+  "active": {
+    "type": "dive"
+  }
 }

@@ -42,6 +42,8 @@ public final class ShapeshiftMod implements ModInitializer {
     /** Game time a creeper-form player lit their fuse; absent when not fusing. Synced so everyone sees the swelling. */
     public static final AttachmentType<Long> FUSE = AttachmentRegistry.create(id("fuse"), b -> b
         .syncWith(ByteBufCodecs.VAR_LONG, AttachmentSyncPredicate.all()));
+    /** Game time until which hostile mobs leave this player alone (the happy ghast's soothe); server side only. */
+    public static final AttachmentType<Long> CALM_UNTIL = AttachmentRegistry.create(id("calm_until"));
 
     @Override public void onInitialize() {
         ShapeshiftConfig.load();

@@ -22,6 +22,8 @@ public final class Reactions {
 
     /** Mob will not pick (or keep) this player as a target. Hitting the mob always lets it fight back. */
     public static boolean friendly(Mob mob, Player player) {
+        if (mob instanceof Enemy && mob.getLastHurtByMob() != player
+            && player.getAttachedOrElse(ShapeshiftMod.CALM_UNTIL, 0L) > mob.level().getGameTime()) return true;   // soothed
         var form = Forms.current(player).orElse(null);
         if (form == null || mob.getLastHurtByMob() == player || hunts(mob, player)) return false;
         if (mob.getType() == form || scares(mob, player)) return true;   // a mob that fears you does not also attack you

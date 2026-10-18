@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "name": "Shapeshift client game tests",
   "environment": "*",
-  "entrypoints": {"fabric-client-gametest": ["dev.alan.shapeshift.test.ShapeshiftClientGameTest"]},
+  "entrypoints": {"fabric-client-gametest": ["dev.alan.shapeshift.test.ShapeshiftClientGameTest", "dev.alan.shapeshift.test.RareSkillsGameTest"]},
   "depends": {"shapeshift": "*"}
 }

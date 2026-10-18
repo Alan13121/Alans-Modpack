@@ -22,6 +22,7 @@ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.entity.projectile.arrow.Arrow;
 import net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball;
 import net.minecraft.world.entity.projectile.hurtingprojectile.SmallFireball;
+import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
 import net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.WindCharge;
 import net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball;
 import net.minecraft.world.item.ItemStack;
@@ -127,8 +128,132 @@ final class Actives {
                 return teleport(player, power);
             }
             case FANGS -> fangs(player, Math.max(1, Math.round(power)));
+            case DIVE -> rush(player, look, power, DIVE_DAMAGE, SoundEvents.PHANTOM_SWOOP);
+            case DASH -> rush(player, new Vec3(look.x, 0, look.z), power, 0f, SoundEvents.CAMEL_DASH);
+            case HEAL_PULSE -> healPulse(player, power);
+            case TONGUE -> {
+                return tongue(player, power);
+            }
+            case SLAM -> slam(player, power);
+            case SHELL -> shell(player, power);
+            case WITHER_SKULL -> {
+                var skull = new WitherSkull(level, player, look);
+                launchFromEyes(player, skull, look.scale(2));
+                sound(player, SoundEvents.WITHER_SHOOT, 1f);
+            }
+            case SOOTHE -> soothe(player, power);
         }
         return true;
+    }
+
+    private static final float DIVE_DAMAGE = 6f, SLAM_DAMAGE = 4f;
+    private static final double HEAL_RADIUS = 6, SOOTHE_RADIUS = 16;
+
+    /** Throws the player along {@code direction}; living things within reach of the path are hit and thrown ahead of the rush. */
+    private static void rush(ServerPlayer player, Vec3 direction, double speed, float damage, SoundEvent sound) {
+        if (direction.lengthSqr() < 1.0E-4) return;
+        ServerLevel level = player.level();
+        Vec3 dir = direction.normalize();
+        Vec3 start = player.position(), end = start.add(dir.scale(speed * 5));
+        var path = new net.minecraft.world.phys.AABB(start, end).inflate(1.5, 1.0, 1.5);
+        for (var target : level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, path, e -> e != player && e.isAlive() && !e.isSpectator())) {
+            if (distanceToSegment(target.position().add(0, target.getBbHeight() / 2, 0), start, end) > 1.8) continue;
+            if (damage > 0) target.hurtServer(level, level.damageSources().playerAttack(player), damage);
+            target.setDeltaMovement(target.getDeltaMovement().add(dir.x * 0.9, 0.3, dir.z * 0.9));
+            target.syncVelocity = true;
+        }
+        player.setDeltaMovement(dir.scale(speed).add(0, direction.y == 0 ? 0.2 : 0, 0));
+        player.syncVelocity = true;
+        player.resetFallDistance();
+        level.sendParticles(ParticleTypes.CLOUD, start.x, start.y + 1, start.z, 12, 0.3, 0.4, 0.3, 0.05);
+        sound(player, sound, 1f);
+    }
+
+    private static double distanceToSegment(Vec3 point, Vec3 a, Vec3 b) {
+        Vec3 ab = b.subtract(a);
+        double t = Mth.clamp(point.subtract(a).dot(ab) / Math.max(1.0E-6, ab.lengthSqr()), 0, 1);
+        return point.distanceTo(a.add(ab.scale(t)));
+    }
+
+    /** Heals the user and every player and animal within six blocks. */
+    private static void healPulse(ServerPlayer player, float amount) {
+        ServerLevel level = player.level();
+        player.heal(amount);
+        var around = level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, player.getBoundingBox().inflate(HEAL_RADIUS),
+            e -> e != player && e.isAlive() && (e instanceof net.minecraft.world.entity.player.Player || e instanceof net.minecraft.world.entity.animal.Animal));
+        for (var target : around) {
+            target.heal(amount);
+            level.sendParticles(ParticleTypes.HEART, target.getX(), target.getY(0.8), target.getZ(), 4, 0.3, 0.3, 0.3, 0.02);
+        }
+        level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY(0.8), player.getZ(), 6, 0.4, 0.4, 0.4, 0.02);
+        sound(player, SoundEvents.ALLAY_ITEM_GIVEN, 1f);
+    }
+
+    /** Pulls the creature or item in the crosshair toward the user; false (no cooldown) when there is nothing to grab. */
+    private static boolean tongue(ServerPlayer player, float range) {
+        Vec3 eye = player.getEyePosition(), look = player.getLookAngle();
+        Entity best = null;
+        double bestDistance = Double.MAX_VALUE;
+        var box = player.getBoundingBox().expandTowards(look.scale(range)).inflate(1.5);
+        for (Entity e : player.level().getEntities(player, box, x -> x.isAlive() && !x.isSpectator()
+                && (x instanceof net.minecraft.world.entity.LivingEntity || x instanceof net.minecraft.world.entity.item.ItemEntity))) {
+            Vec3 to = e.getBoundingBox().getCenter().subtract(eye);
+            double distance = to.length();
+            if (distance > range || distance < 1.5 || to.normalize().dot(look) < 0.96 || !player.hasLineOfSight(e)) continue;
+            if (distance < bestDistance) {
+                best = e;
+                bestDistance = distance;
+            }
+        }
+        if (best == null) {
+            player.sendOverlayMessage(Component.translatable("shapeshift.tongue_miss"));
+            return false;
+        }
+        // Snatched to a spot in front of the user (a velocity would overshoot: items and mobs have very different drag).
+        for (double reach : new double[] {1.8, 2.6}) {
+            Vec3 spot = eye.add(look.scale(reach));
+            Vec3 feet = new Vec3(spot.x, spot.y - best.getBbHeight() / 2, spot.z);
+            if (!best.level().noCollision(best, best.getDimensions(best.getPose()).makeBoundingBox(feet).deflate(1.0E-7))) continue;
+            best.teleportTo(feet.x, feet.y, feet.z);
+            best.setDeltaMovement(Vec3.ZERO);
+            player.level().sendParticles(ParticleTypes.SPLASH, feet.x, feet.y + 0.5, feet.z, 10, 0.2, 0.2, 0.2, 0.05);
+            sound(player, SoundEvents.FROG_TONGUE, 1f);
+            return true;
+        }
+        player.sendOverlayMessage(Component.translatable("shapeshift.no_space"));
+        return false;
+    }
+
+    /** Hurts, shoves and slows every creature (but not other players) within {@code radius} blocks. */
+    private static void slam(ServerPlayer player, float radius) {
+        ServerLevel level = player.level();
+        var box = player.getBoundingBox().inflate(radius, 1.0, radius);
+        for (var target : level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, box,
+                e -> e != player && e.isAlive() && !(e instanceof net.minecraft.world.entity.player.Player) && e.distanceToSqr(player) <= radius * radius)) {
+            target.hurtServer(level, level.damageSources().playerAttack(player), SLAM_DAMAGE);
+            target.knockback(1.0, player.getX() - target.getX(), player.getZ() - target.getZ(), level.damageSources().playerAttack(player), 0f);
+            target.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOWNESS, 60, 1));
+        }
+        level.sendParticles(ParticleTypes.POOF, player.getX(), player.getY() + 0.1, player.getZ(), 40, radius / 2, 0.1, radius / 2, 0.05);
+        sound(player, SoundEvents.POLAR_BEAR_WARNING, 1f);
+    }
+
+    /** Heavy damage reduction, almost no movement. */
+    private static void shell(ServerPlayer player, float seconds) {
+        int ticks = Math.max(1, Math.round(seconds * 20));
+        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.RESISTANCE, ticks, 3));
+        player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOWNESS, ticks, 5));
+        sound(player, SoundEvents.SHIELD_BLOCK.value(), 1f);
+    }
+
+    /** Hostile mobs stop targeting the user for {@code seconds}; see {@link Reactions#friendly}. */
+    private static void soothe(ServerPlayer player, float seconds) {
+        ServerLevel level = player.level();
+        player.setAttached(ShapeshiftMod.CALM_UNTIL, level.getGameTime() + Math.max(1, Math.round(seconds * 20)));
+        for (var mob : level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class, player.getBoundingBox().inflate(SOOTHE_RADIUS),
+                e -> e instanceof net.minecraft.world.entity.monster.Enemy && e.getTarget() == player)) mob.setTarget(null);
+        level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY(0.6), player.getZ(), 20, 1.5, 1.0, 1.5, 0.02);
+        sound(player, SoundEvents.AMETHYST_BLOCK_CHIME, 1f);
     }
 
     private static void launchFromEyes(ServerPlayer player, Entity projectile, Vec3 offset) {

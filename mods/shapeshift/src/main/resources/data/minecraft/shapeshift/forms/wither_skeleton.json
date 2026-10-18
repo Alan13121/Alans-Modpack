@@ -2,5 +2,8 @@
   "rare": true,
   "hunted_by": [
     "minecraft:wolf"
-  ]
+  ],
+  "active": {
+    "type": "wither_skull"
+  }
 }
