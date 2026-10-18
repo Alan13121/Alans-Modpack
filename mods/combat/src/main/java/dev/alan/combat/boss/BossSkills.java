@@ -56,6 +56,21 @@ final class BossSkills {
             }
             case WEAK -> { }
         }
+        secondary(fight, boss, target, now);
+    }
+
+    /** The skill the form borrows from another form, on its own timer; it never delays the form's own skill. */
+    private static void secondary(FormKingFight fight, Mob boss, ServerPlayer target, long now) {
+        BossForm.Secondary borrowed = fight.form.secondary;
+        if (borrowed == null || target == null || now < fight.nextSecondary) return;
+        ServerLevel level = fight.level;
+        switch (borrowed) {
+            case ARROW -> arrow(fight, level, boss, target);
+            case SMALL_FIREBALL -> fireball(level, boss, target);
+            case WIND_CHARGE -> windCharge(level, boss, target);
+            case FANGS -> fangs(level, boss, target);
+        }
+        fight.nextSecondary = now + fight.paced(borrowed.borrowedInterval());
     }
 
     static ServerPlayer nearest(Mob boss, List<ServerPlayer> players) {
