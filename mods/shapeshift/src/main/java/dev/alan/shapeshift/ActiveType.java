@@ -23,7 +23,23 @@ public enum ActiveType implements StringRepresentable {
     /** Snow golem: snowball. */
     SNOWBALL(4, 0),
     /** Evoker: a line of fangs. power = number of fangs. */
-    FANGS(40, 12);
+    FANGS(40, 12),
+    /** Phantom: a rush along the look direction; everything on the way is hit and thrown aside. power = speed. */
+    DIVE(60, 1.6f),
+    /** Allay: heals you and the players and animals around you. power = hearts-worth of health (half hearts), radius is 6. */
+    HEAL_PULSE(100, 4),
+    /** Frog: pulls the creature or item you look at toward you. power = range in blocks. */
+    TONGUE(40, 12),
+    /** Camel: a flat rush that shoves aside whatever is in the way, without hurting it. power = speed. */
+    DASH(60, 1.4f),
+    /** Polar bear: a ground slam that hurts, shoves and slows everything around you. power = radius in blocks. */
+    SLAM(80, 4),
+    /** Turtle: withdraw into the shell, taking much less damage but barely able to move. power = seconds. */
+    SHELL(160, 4),
+    /** Wither skeleton: a wither skull. */
+    WITHER_SKULL(40, 0),
+    /** Happy ghast: hostile mobs around you forget about you for a while. power = seconds; range is 16. */
+    SOOTHE(200, 10);
 
     public static final Codec<ActiveType> CODEC = StringRepresentable.fromEnum(ActiveType::values);
     public final int defaultCooldown;
