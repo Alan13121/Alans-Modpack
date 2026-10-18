@@ -102,6 +102,60 @@ public final class RareSkillsGameTest implements FabricClientGameTest {
             context.waitTicks(2);
             check(server.computeOnServer(s -> !s.overworld().getEntities(EntityTypes.WITHER_SKULL, e -> true).isEmpty()), "the wither skeleton shoots a skull");
 
+            // Ocelot: a long low leap.
+            reset(server, context);
+            become(context, world, "minecraft:ocelot");
+            place(server, context);
+            use(context, world);
+            context.waitTicks(10);
+            check(server.computeOnServer(s -> player(s).getZ()) < -2, "the ocelot pounces forward");
+
+            // Parrot: speed and haste, for the user.
+            reset(server, context);
+            become(context, world, "minecraft:parrot");
+            use(context, world);
+            check(server.computeOnServer(s -> player(s).hasEffect(MobEffects.SPEED) && player(s).hasEffect(MobEffects.HASTE)), "the parrot sings speed and haste");
+
+            // Skeleton horse: speed and jump boost.
+            reset(server, context);
+            become(context, world, "minecraft:skeleton_horse");
+            use(context, world);
+            check(server.computeOnServer(s -> player(s).hasEffect(MobEffects.SPEED) && player(s).hasEffect(MobEffects.JUMP_BOOST)), "the skeleton horse gallops");
+
+            // Zombie horse: the cone in front is hurt, what is behind is not.
+            reset(server, context);
+            server.runCommand("summon minecraft:pig 0 120 -3 {NoAI:1b,Tags:[\"front\"]}");
+            server.runCommand("summon minecraft:pig 0 120 3 {NoAI:1b,Tags:[\"back\"]}");
+            become(context, world, "minecraft:zombie_horse");
+            place(server, context);
+            use(context, world);
+            check(server.computeOnServer(s -> hp(s, "front") < 10 && hp(s, "back") >= 10), "the zombie horse tramples what is in front, not behind");
+
+            // Glow squid: the ink blinds and lights up the pig next to it.
+            reset(server, context);
+            server.runCommand("summon minecraft:pig 3 120 0 {NoAI:1b}");
+            become(context, world, "minecraft:glow_squid");
+            use(context, world);
+            check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.PIG, e -> e.isAlive()).stream()
+                .allMatch(p -> p.hasEffect(MobEffects.BLINDNESS) && p.hasEffect(MobEffects.GLOWING))), "the ink cloud blinds and lights up the pig");
+
+            // Tadpole: the splash puts out the user and a fire block, and gives water breathing.
+            reset(server, context);
+            server.runCommand("setblock 2 120 0 minecraft:fire");
+            become(context, world, "minecraft:tadpole");
+            server.runOnServer(s -> player(s).setRemainingFireTicks(100));
+            use(context, world);
+            check(server.computeOnServer(s -> !player(s).isOnFire() && player(s).hasEffect(MobEffects.WATER_BREATHING)), "the splash puts the user out and gives water breathing");
+            check(server.computeOnServer(s -> s.overworld().getBlockState(new net.minecraft.core.BlockPos(2, 120, 0)).isAir()), "the splash puts a fire out");
+
+            // Tropical fish: an armor stand in the line is pushed away, along the line.
+            reset(server, context);
+            server.runCommand("summon minecraft:armor_stand 0 120 -4");
+            become(context, world, "minecraft:tropical_fish");
+            place(server, context);
+            use(context, world);
+            context.waitTicks(10);
+            check(server.computeOnServer(s -> s.overworld().getEntities(EntityTypes.ARMOR_STAND, e -> true).get(0).getZ()) < -5, "the bubble stream pushes the armor stand away");
             // Happy ghast: hostile mobs leave the user alone for a while, unless the user hits them.
             reset(server, context);
             server.runCommand("summon minecraft:zombie 4 120 0 {NoAI:1b}");
@@ -117,6 +171,10 @@ public final class RareSkillsGameTest implements FabricClientGameTest {
             });
             check(!server.computeOnServer(s -> Reactions.friendly(zombie(s), player(s))), "the calm wears off");
         }
+    }
+
+    private static float hp(net.minecraft.server.MinecraftServer s, String tag) {
+        return s.overworld().getEntities(EntityTypes.PIG, e -> e.isAlive() && e.entityTags().contains(tag)).get(0).getHealth();
     }
 
     private static ServerPlayer player(net.minecraft.server.MinecraftServer s) { return s.getPlayerList().getPlayers().get(0); }

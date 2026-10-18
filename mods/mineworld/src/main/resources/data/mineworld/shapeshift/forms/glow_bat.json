@@ -5,5 +5,8 @@
     "night_vision",
     "no_fall_damage"
   ],
-  "rare": true
+  "rare": true,
+  "active": {
+    "type": "flash"
+  }
 }

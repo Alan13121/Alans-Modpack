@@ -1,3 +1,6 @@
 {
-  "rare": true
+  "rare": true,
+  "active": {
+    "type": "tunnel"
+  }
 }

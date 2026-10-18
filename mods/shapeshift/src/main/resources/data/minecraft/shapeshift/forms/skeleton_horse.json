@@ -11,5 +11,8 @@
     "jump_strength": {
       "amount": 0.3
     }
+  },
+  "active": {
+    "type": "gallop"
   }
 }

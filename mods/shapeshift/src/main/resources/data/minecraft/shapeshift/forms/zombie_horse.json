@@ -8,5 +8,8 @@
     "jump_strength": {
       "amount": 0.2
     }
+  },
+  "active": {
+    "type": "trample"
   }
 }

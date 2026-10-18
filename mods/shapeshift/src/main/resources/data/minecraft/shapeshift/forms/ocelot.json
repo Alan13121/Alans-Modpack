@@ -11,5 +11,8 @@
   },
   "scares": [
     "minecraft:creeper"
-  ]
+  ],
+  "active": {
+    "type": "pounce"
+  }
 }
