@@ -1,7 +1,9 @@
 package dev.alchemy;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -12,6 +14,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
@@ -29,7 +32,15 @@ public final class AlchemyMod implements ModInitializer {
         EnergyValues.load();
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> entries.accept(BACKPACK));
         PayloadTypeRegistry.clientboundPlay().register(EnergySync.TYPE, EnergySync.CODEC);
-        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-            ServerPlayNetworking.send(handler.getPlayer(), new EnergySync(EnergyValues.defaultValue(), EnergyValues.values())));
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> sync(handler.getPlayer()));
+        ServerLifecycleEvents.SERVER_STARTED.register(EnergyValues::recompute);
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> {
+            EnergyValues.recompute(server);
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) sync(player);
+        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, context, environment) -> EmcCommand.register(dispatcher));
+    }
+    private static void sync(ServerPlayer player) {
+        ServerPlayNetworking.send(player, new EnergySync(EnergyValues.defaultValue(), EnergyValues.values()));
     }
 }

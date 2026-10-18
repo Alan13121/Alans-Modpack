@@ -1,0 +1,12 @@
+// 共用設定在根目錄 build.gradle；這裡只放本模組額外的設定。
+
+// 自動化遊戲內測試：./gradlew :mods:alchemy-backpack:runClientGameTest
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'alchemy-test'
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
