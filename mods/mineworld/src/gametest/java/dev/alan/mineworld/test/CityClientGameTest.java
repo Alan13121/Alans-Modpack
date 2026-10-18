@@ -202,6 +202,34 @@ public final class CityClientGameTest implements FabricClientGameTest {
         System.out.println("MINEWORLD TRADE PIGLIN " + piglin);
         check(piglin.matches("offers=(\\d+)/\\1 bought=true result=true unlimited=true"), "piglin trade: " + piglin);
 
+        // A real right-click on a piglin: the client does not know its profession, so it also tries the off hand and sends a second
+        // interaction. The screen the first one opened must survive that.
+        int sellerId = server.computeOnServer(s -> {
+            ServerLevel level = level(s, worldId);
+            var player = s.getPlayerList().getPlayers().get(0);
+            CityPiglin seller = level.getEntitiesOfClass(CityPiglin.class, new AABB(C).inflate(70, 40, 70), p -> p.seller() != null).getFirst();
+            player.closeContainer();
+            player.teleportTo(level, seller.getX() + 1.5, seller.getY(), seller.getZ(), java.util.Set.of(), 90, 0, false);
+            return seller.getId();
+        });
+        connection.waitForClientboundPackets();
+        context.waitTicks(20);
+        context.runOnClient(mc -> {
+            var target = mc.level.getEntity(sellerId);
+            for (var hand : net.minecraft.world.InteractionHand.values()) {
+                var result = mc.gameMode.interact(mc.player, target, new net.minecraft.world.phys.EntityHitResult(target), hand);
+                if (result.consumesAction()) break;
+            }
+        });
+        connection.waitForServerboundPackets();
+        connection.waitForClientboundPackets();
+        context.waitTicks(10);
+        boolean serverOpen = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).containerMenu instanceof net.minecraft.world.inventory.MerchantMenu);
+        boolean clientOpen = context.computeOnClient(mc -> mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.MerchantScreen);
+        System.out.println("MINEWORLD REAL CLICK server=" + serverOpen + " client=" + clientOpen);
+        check(serverOpen && clientOpen, "a real right-click on a piglin keeps the trading screen open (server=" + serverOpen + ", client=" + clientOpen + ")");
+        server.runOnServer(s -> s.getPlayerList().getPlayers().get(0).closeContainer());
+        context.waitTicks(5);
         // The enderman: open its screen for real so the client draws the lock button.
         int ender = server.computeOnServer(s -> {
             ServerLevel level = level(s, worldId);
