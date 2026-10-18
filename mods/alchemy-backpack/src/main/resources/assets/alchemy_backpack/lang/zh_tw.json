@@ -18,5 +18,7 @@
   "alchemy.redeem_stack": "兌換一組（依能量與空間）",
   "alchemy_backpack.lookup.category": "煉金背包",
   "alchemy_backpack.lookup.value": "能量：%s",
-  "alchemy_backpack.lookup.stack": "x%s = %s"
+  "alchemy_backpack.lookup.stack": "x%s = %s",
+  "alchemy.dump.done": "已輸出 EMC 清單：%s 個基底物品，檔案 %s",
+  "alchemy.dump.failed": "無法輸出 EMC 清單：%s"
 }

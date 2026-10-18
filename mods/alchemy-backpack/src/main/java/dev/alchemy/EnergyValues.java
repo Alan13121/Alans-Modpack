@@ -1,21 +1,22 @@
 package dev.alchemy;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.Set;
 
 public final class EnergyValues {
     public static final long MAX_VALUE = 1_000_000_000L;
+    private static Map<String, Long> explicit = Map.of();
     private static Map<String, Long> serverValues = Map.of();
     private static Map<String, Long> clientValues = Map.of();
-    private static long serverDefault = 64, clientDefault = 64;
+    private static Set<String> baseItems = Set.of(), loopItems = Set.of();
+    private static java.util.List<String> profitable = java.util.List.of();
+    private static long serverDefault = EnergyConfig.BASE_DEFAULT, clientDefault = EnergyConfig.BASE_DEFAULT;
     public static String id(Item item) { return BuiltInRegistries.ITEM.getKey(item).toString(); }
     public static long value(Item item, boolean client) {
         if (item == AlchemyMod.BACKPACK) return 0;
@@ -27,46 +28,42 @@ public final class EnergyValues {
     }
     public static Map<String, Long> values() { return serverValues; }
     public static long defaultValue() { return serverDefault; }
+    /** Items nothing can craft and the config does not list; they are worth {@link #defaultValue()}. */
+    public static Set<String> baseItems() { return baseItems; }
+    /** Items whose only recipes need themselves (ingot and block with neither listed); one of them got the default value. */
+    public static Set<String> loopItems() { return loopItems; }
+    /** Recipes whose result is worth more than their ingredients because of an explicit value; see {@link EmcSolver#profitable}. */
+    public static java.util.List<String> profitable() { return profitable; }
     public static void sync(long fallback, Map<String, Long> values) {
         clientDefault = fallback;
         clientValues = Map.copyOf(values);
     }
+
+    /** Reads the config, upgrading an older file in place (the old one is kept as .bak). Until recipes load only listed items have values. */
     public static void load() {
         var path = FabricLoader.getInstance().getConfigDir().resolve("alchemy-backpack-energy.json");
         try {
-            if (!Files.exists(path)) {
-                var root = new JsonObject();
-                root.addProperty("default", 64);
-                var values = new JsonObject();
-                add(values, 1, "dirt", "cobblestone", "stone", "sand", "gravel", "netherrack");
-                add(values, 8, "oak_planks", "spruce_planks", "birch_planks");
-                add(values, 4, "stick");
-                add(values, 32, "oak_log", "spruce_log", "birch_log", "coal", "charcoal", "wheat");
-                add(values, 256, "iron_ingot"); add(values, 2304, "iron_block");
-                add(values, 2048, "gold_ingot"); add(values, 18432, "gold_block");
-                add(values, 8192, "diamond"); add(values, 73728, "diamond_block");
-                add(values, 16384, "emerald"); add(values, 147456, "emerald_block");
-                add(values, 65536, "netherite_ingot");
-                add(values, 0, "air", "barrier", "bedrock", "command_block", "chain_command_block", "repeating_command_block", "structure_block", "structure_void", "jigsaw", "light", "debug_stick", "spawner", "trial_spawner", "vault", "knowledge_book", "end_portal_frame", "reinforced_deepslate");
-                root.add("values", values);
-                Files.createDirectories(path.getParent());
-                Files.writeString(path, new GsonBuilder().setPrettyPrinting().create().toJson(root));
-            }
-            var root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
-            long fallback = root.get("default").getAsLong();
-            if (fallback < 1 || fallback > MAX_VALUE) throw new IllegalArgumentException("default must be 1.." + MAX_VALUE);
-            var loaded = new HashMap<String, Long>();
-            for (var e : root.getAsJsonObject("values").entrySet()) {
-                long value = e.getValue().getAsLong();
-                if (value < 0 || value > MAX_VALUE) throw new IllegalArgumentException("Invalid value for " + e.getKey());
-                loaded.put(e.getKey(), value);
-            }
-            serverDefault = fallback; serverValues = Map.copyOf(loaded);
+            var loaded = EnergyConfig.loadFrom(path);
+            explicit = loaded.values();
+            serverDefault = loaded.base();
+            serverValues = explicit;
+            baseItems = Set.of();
+            loopItems = Set.of();
         } catch (Exception e) {
             throw new IllegalStateException("Cannot load " + path + "; fix the energy configuration", e);
         }
     }
-    private static void add(JsonObject o, long value, String... names) {
-        for (String name : names) o.addProperty("minecraft:" + name, value);
+
+    /** Derives every item's value from the server's recipes. Run after the recipes load, and again on every data pack reload. */
+    public static void recompute(MinecraftServer server) {
+        var items = new ArrayList<String>();
+        for (Item item : BuiltInRegistries.ITEM) items.add(id(item));
+        var recipes = RecipeEmc.extract(server.getRecipeManager());
+        var solution = EmcSolver.solve(items, explicit, recipes, serverDefault);
+        serverValues = Map.copyOf(solution.values());
+        profitable = EmcSolver.profitable(serverValues, explicit, recipes);
+        baseItems = Set.copyOf(solution.baseItems());
+        loopItems = Set.copyOf(solution.loopItems());
     }
+
 }

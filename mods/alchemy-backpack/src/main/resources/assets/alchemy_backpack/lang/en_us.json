@@ -18,5 +18,7 @@
   "alchemy.redeem_stack": "Redeem a stack (as affordable)",
   "alchemy_backpack.lookup.category": "Alchemy Backpack",
   "alchemy_backpack.lookup.value": "Energy: %s",
-  "alchemy_backpack.lookup.stack": "x%s = %s"
+  "alchemy_backpack.lookup.stack": "x%s = %s",
+  "alchemy.dump.done": "EMC dump written: %s base items listed in %s",
+  "alchemy.dump.failed": "Could not write the EMC dump: %s"
 }
