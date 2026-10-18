@@ -30,6 +30,7 @@
   "item.mineworld.bounty_proof": "Bounty Proof",
   "mineworld.wanted.name": "Wanted: %s [%s]",
   "mineworld.trade.seller.captain": "Guard Captain",
+  "mineworld.trade.seller.dealer": "Black Market Dealer (plaza)",
   "mineworld.lookup.wanted": "Wanted Mobs",
   "mineworld.lookup.wanted.tier": "Tier %s wanted",
   "mineworld.lookup.wanted.c": "Double health, iron armor",
