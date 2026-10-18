@@ -99,12 +99,13 @@ public final class City {
         return mob;
     }
 
-    /** Spawns the resident a template's data marker asks for ("bartender", "merchant", ...); unknown markers spawn nothing. */
+    /** Spawns the resident a template's data marker asks for ("bartender", "dealer", "merchant", ...); unknown markers spawn nothing. */
     public static void spawnMarker(ServerLevelAccessor level, String marker, BlockPos pos, BlockPos centre, RandomSource random) {
         switch (marker) {
             case "civilian" -> spawn(level, PIGLIN, pos, centre, 44, random, p -> p.setup(CityPiglin.Role.CIVILIAN,
                 CityPiglin.Profession.RANDOM[random.nextInt(CityPiglin.Profession.RANDOM.length)]));
             case "bartender" -> spawn(level, PIGLIN, pos, pos, 5, random, p -> p.setup(CityPiglin.Role.CIVILIAN, CityPiglin.Profession.BARTENDER));
+            case "dealer" -> spawn(level, PIGLIN, pos, pos, 3, random, p -> p.setup(CityPiglin.Role.CIVILIAN, CityPiglin.Profession.DEALER));
             case "captain" -> spawn(level, CAPTAIN, pos, pos, 5, random, p -> p.setup(CityPiglin.Role.CAPTAIN, CityPiglin.Profession.IDLER));
             case "merchant" -> spawn(level, ZOMBIE, pos, pos, 6, random, z -> {});
             case "enderman" -> spawn(level, ENDERMAN, pos, pos, 6, random, e -> {});

@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 public final class CityTrades {
     private CityTrades() {}
 
-    public enum Seller { ZOMBIE, ENDERMAN, MINER, FARMER, SMITH, BARTENDER, HERDER, CAPTAIN }
+    public enum Seller { ZOMBIE, ENDERMAN, MINER, FARMER, SMITH, BARTENDER, HERDER, CAPTAIN, DEALER }
 
     /** How an enderman's result is enchanted each time the trading screen opens (enchanting table cost). */
     public enum Enchant {
@@ -54,6 +54,7 @@ public final class CityTrades {
             case SMITH -> Seller.SMITH;
             case BARTENDER -> Seller.BARTENDER;
             case HERDER -> Seller.HERDER;
+            case DEALER -> Seller.DEALER;
             case IDLER -> null;
         };
     }
@@ -131,6 +132,18 @@ public final class CityTrades {
         b.add("golden_apple", City.BOUNTY_PROOF, 2, Items.GOLDEN_APPLE, 1);
         b.add("totem", City.BOUNTY_PROOF, 6, Items.TOTEM_OF_UNDYING, 1);
         b.add("enchanted_golden_apple", City.BOUNTY_PROOF, 10, Items.ENCHANTED_GOLDEN_APPLE, 1);
+
+        // The black market: the rarest things in the mine world, for a great deal of diamonds and emeralds. Never the items that gate
+        // progress (nether star, dragon breath, eyes of ender, form items).
+        b.seller(Seller.DEALER);
+        b.pay("netherite_ingot", Items.DIAMOND, 24, Items.EMERALD, 8, Items.NETHERITE_INGOT);
+        b.pay("ancient_debris", Items.DIAMOND, 12, null, 0, Items.ANCIENT_DEBRIS);
+        b.pay("elytra", Items.DIAMOND, 64, Items.EMERALD, 16, Items.ELYTRA);
+        b.pay("totem", Items.DIAMOND, 16, Items.EMERALD, 4, Items.TOTEM_OF_UNDYING);
+        b.pay("enchanted_golden_apple", Items.DIAMOND, 16, Items.EMERALD, 4, Items.ENCHANTED_GOLDEN_APPLE);
+        b.pay("trident", Items.DIAMOND, 24, null, 0, Items.TRIDENT);
+        b.pay("heart_of_the_sea", Items.EMERALD, 32, null, 0, Items.HEART_OF_THE_SEA);
+        b.pay("shulker_shell", Items.EMERALD, 8, null, 0, Items.SHULKER_SHELL);
         return List.copyOf(out);
     }
 
@@ -149,6 +162,12 @@ public final class CityTrades {
         }
 
         void gold(String name, int gold, Item result, int count) { add(name, Items.GOLD_INGOT, gold, result, count); }
+
+        /** One item for up to two kinds of payment ({@code costB} may be null). */
+        void pay(String name, Item costA, int countA, @Nullable Item costB, int countB, Item result) {
+            this.out.add(new Trade(id(name), this.seller, new ItemStack(costA, countA),
+                costB == null ? Optional.empty() : Optional.of(new ItemStack(costB, countB)), new ItemStack(result), Enchant.NONE));
+        }
 
         void potion(String name, int gold, Holder<Potion> potion) {
             this.out.add(new Trade(id(name), this.seller, new ItemStack(Items.GOLD_INGOT, gold), Optional.empty(),

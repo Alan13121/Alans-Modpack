@@ -30,9 +30,9 @@ public class CityPiglin extends Piglin implements TradingResident {
     public enum Role { CIVILIAN, MELEE, RANGED, CAPTAIN }
 
     public enum Profession {
-        MINER, FARMER, SMITH, BARTENDER, HERDER, IDLER;
+        MINER, FARMER, SMITH, BARTENDER, HERDER, DEALER, IDLER;
 
-        /** Professions a civilian marker can roll (the bartender is placed on purpose in the inn). */
+        /** Professions a civilian marker can roll (the bartender and the black market dealer are placed on purpose). */
         public static final Profession[] RANDOM = {MINER, FARMER, SMITH, HERDER, IDLER};
 
         public String id() { return this.name().toLowerCase(Locale.ROOT); }
@@ -44,6 +44,7 @@ public class CityPiglin extends Piglin implements TradingResident {
                 case SMITH -> new ItemStack(Items.ANVIL);
                 case BARTENDER -> new ItemStack(Items.POTION);
                 case HERDER -> new ItemStack(Items.WHEAT);
+                case DEALER -> new ItemStack(Items.NETHERITE_INGOT);
                 case IDLER -> ItemStack.EMPTY;
             };
         }

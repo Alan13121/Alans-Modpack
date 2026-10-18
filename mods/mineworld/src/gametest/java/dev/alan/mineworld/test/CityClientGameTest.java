@@ -231,6 +231,33 @@ public final class CityClientGameTest implements FabricClientGameTest {
         check(serverOpen && clientOpen, "a real right-click on a piglin keeps the trading screen open (server=" + serverOpen + ", client=" + clientOpen + ")");
         server.runOnServer(s -> s.getPlayerList().getPlayers().get(0).closeContainer());
         context.waitTicks(5);
+        // The black market dealer on the plaza: one per city, a counter in front of him, eight rare goods paid in diamonds and emeralds.
+        String dealer = server.computeOnServer(s -> {
+            ServerLevel level = level(s, worldId);
+            var player = s.getPlayerList().getPlayers().get(0);
+            var dealers = level.getEntitiesOfClass(CityPiglin.class, new AABB(C).inflate(70, 40, 70), p -> p.profession() == CityPiglin.Profession.DEALER);
+            if (dealers.size() != 1) return "dealers=" + dealers.size();
+            CityPiglin d = dealers.getFirst();
+            boolean counter = level.getBlockState(C.offset(-9 + 11, 1, -9 + 14)).is(net.minecraft.world.level.block.Blocks.POLISHED_BLACKSTONE_SLAB)
+                && level.getBlockState(C.offset(-9 + 8, 2, -9 + 14)).is(net.minecraft.world.level.block.Blocks.SOUL_LANTERN);
+            player.closeContainer();
+            player.teleportTo(level, d.getX(), d.getY(), d.getZ(), java.util.Set.of(), 0, 0, false);
+            player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND, 64));
+            player.getInventory().add(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD, 64));
+            int diamondsBefore = player.getInventory().countItem(net.minecraft.world.item.Items.DIAMOND);
+            d.mobInteract(player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            if (!(player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu menu)) return "no menu";
+            int expected = dev.alan.mineworld.city.CityTrades.of(d.seller()).size();
+            int offers = menu.getOffers().size();
+            menu.setSelectionHint(1);   // the second offer: ancient debris for 12 diamonds
+            menu.tryMoveItems(1);
+            var bought = menu.quickMoveStack(player, 2);
+            player.closeContainer();
+            return "dealers=1 counter=" + counter + " offers=" + offers + "/" + expected + " debris=" + bought.is(net.minecraft.world.item.Items.ANCIENT_DEBRIS)
+                + " diamondsPaid=" + (diamondsBefore - player.getInventory().countItem(net.minecraft.world.item.Items.DIAMOND));
+        });
+        System.out.println("MINEWORLD DEALER " + dealer);
+        check(dealer.equals("dealers=1 counter=true offers=8/8 debris=true diamondsPaid=12"), "black market dealer: " + dealer);
         // The enderman: open its screen for real so the client draws the lock button.
         int ender = server.computeOnServer(s -> {
             ServerLevel level = level(s, worldId);
