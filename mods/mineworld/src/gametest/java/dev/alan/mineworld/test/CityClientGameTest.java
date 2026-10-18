@@ -47,6 +47,7 @@ public final class CityClientGameTest implements FabricClientGameTest {
             String id = MineWorldData.get(s).createWorld();
             MineWorldData.get(s).setOrigin(id, GlobalPos.of(Level.OVERWORLD, new BlockPos(0, 120, 3)));
             DynamicLevels.ensure(s, id);
+            DynamicLevels.finishTunnelNow(s, id);   // these tests walk the tunnel at once; the real one is dug in steps
             return id;
         });
         String in = "execute in mineworld:" + worldId + " run ";
