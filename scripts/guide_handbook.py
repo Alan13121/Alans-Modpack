@@ -129,7 +129,8 @@ Every path in the modpack starts with ores. Chapter 1 asks for one of each of th
 - 右邊清單列出所有學會的物品，可以搜尋、翻頁。
 - 按 1 兌換一個，按 + 最多兌換一組；能量不夠或物品欄滿了會提示。
 # 能量值
-- 沒特別設定的物品是 64。
+- 做得出來的東西，能量是用配方推算的：取最便宜的配方，材料的能量加總後除以產出數量，所以成品不會比材料便宜或貴得離譜。
+- 做不出來的原料（礦石、怪物掉落、植物…）各有自己的值，沒特別設定的是 50。
 - 例：泥土、圓石 1；木板 8；原木、煤炭 32；鐵錠 256；鐵磚 2304；金錠 2048；鑽石 8192；綠寶石 16384；獄髓錠 65536。
 - 空氣、基岩、屏障、指令方塊、生怪磚等是 0，不能轉化。
 - 在查詢清單裡指著物品，提示框會顯示它的能量值。
@@ -152,7 +153,8 @@ It turns any item into energy (EMC) and stores it, then turns energy back into a
 - The list on the right shows every learned item, with search and pages.
 - Press 1 for one item, + for up to a stack. You get a message if energy or inventory space runs out.
 # Energy values
-- Items without their own value are worth 64.
+- Anything you can craft is worth what its cheapest recipe costs: the ingredients' energy added up and divided by the number made.
+- Raw materials that cannot be crafted (ores, mob drops, plants...) have values of their own, and anything unlisted is worth 50.
 - Examples: dirt, cobblestone 1; planks 8; logs, coal 32; iron ingot 256; iron block 2304; gold ingot 2048; diamond 8192; emerald 16384; netherite ingot 65536.
 - Air, bedrock, barriers, command blocks, spawners and the like are 0 and cannot be converted.
 - Point at an item in the lookup list and its tooltip shows its energy value.
@@ -266,6 +268,8 @@ A mine world is mostly solid rock, but mining breaks into large caves now and th
 - 空手的豬布林是閒人，不交易。
 - 殭屍雜貨商（廣場，收礦物）：終界珍珠 4 鐵錠、火把 ×32 4 煤炭、梯子 ×16 4 銅錠、箭 ×16 3 銅錠、水桶 3 鐵錠、盾牌 4 鐵錠、營火 3 煤炭、紅石火把 ×8 4 紅石。
 - 終界使者商人（廣場，收鑽石和綠寶石）：附魔書 3 鑽石；高等附魔書 4 鑽石＋2 青金石；附魔鑽石劍／鎬／斧／頭盔／靴子各 5 鑽石＋2 綠寶石；附魔鑽石護腿 6＋2；附魔鑽石胸甲 7＋2；附魔弓 3 鑽石＋1 綠寶石。
+- 黑市商人（廣場南側的小攤位，豬布林外觀、手持獄髓錠，收鑽石和綠寶石）：賣很難拿到的稀有物品，價格很高。獄髓錠 24 鑽石＋8 綠寶石；遠古殘骸 12 鑽石；鞘翅 64 鑽石＋16 綠寶石；不死圖騰、附魔金蘋果各 16 鑽石＋4 綠寶石；三叉戟 24 鑽石；海洋之心 32 綠寶石；界伏殼 8 綠寶石。
+- 黑市只出現在新生成的城市，舊的城市不會補。
 # 鎖定附魔
 - 終界使者的附魔商品每次打開都重新隨機（含經驗修補等寶藏附魔，不會有詛咒）。
 - 看到喜歡的附魔，選中那筆交易後按畫面下方的「鎖定交易」，它就固定下來、排在最前面並標上星號，之後可以一直買。
@@ -294,6 +298,8 @@ Right-click a resident to trade. Trades never run out, prices never change and r
 - Empty-handed piglins are idlers and do not trade.
 - Zombie shopkeeper (the square, takes ores): ender pearl for 4 iron, 32 torches for 4 coal, 16 ladders for 4 copper, 16 arrows for 3 copper, water bucket for 3 iron, shield for 4 iron, campfire for 3 coal, 8 redstone torches for 4 redstone.
 - Enderman merchant (the square, takes diamonds and emeralds): enchanted book 3 diamonds; high-level book 4 diamonds + 2 lapis; enchanted diamond sword, pickaxe, axe, helmet or boots 5 diamonds + 2 emeralds each; leggings 6 + 2; chestplate 7 + 2; enchanted bow 3 diamonds + 1 emerald.
+- Black market dealer (small stall south of the square, a piglin holding a netherite ingot, takes diamonds and emeralds): rare items that are hard to get, at high prices. Netherite ingot 24 diamonds + 8 emeralds; ancient debris 12 diamonds; elytra 64 diamonds + 16 emeralds; totem of undying or enchanted golden apple 16 diamonds + 4 emeralds each; trident 24 diamonds; heart of the sea 32 emeralds; shulker shell 8 emeralds.
+- The black market only appears in newly generated cities; existing cities do not get one.
 # Locking an enchantment
 - The enderman's enchanted offers re-roll every time you open the screen (treasure enchantments like Mending included, never curses).
 - When you like one, select that trade and press "Lock offer" at the bottom: it stays fixed, moves to the top with a star, and you can buy it forever.
@@ -553,6 +559,7 @@ The same energy as the alchemy backpack. Teleporters use it; terminals do not. T
 - 變成任何怪物形態時，其他怪物也不會攻擊你。
 - 但天敵會找上門：鐵魔像會追打怪物形態，狼會追骷髏形態，狼和狐狸會追兔子形態。
 - 有些形態會嚇跑別的生物：貓形態嚇跑苦力怕，殭屍形態嚇跑村民。
+- 殭屍、屍殼、溺屍、殭屍村民形態殺死村民時，村民不會死，而是變成殭屍村民（保留職業和交易），可以用虛弱藥水加金蘋果治好。和平難度除外。
 - 換形態時，中立生物（例如被你惹毛的豬布林）的仇恨會清除。""",
      """# Unlocking forms
 - Kill a kind of mob yourself and you unlock its form for good. Each player has their own list, and death never takes it away.
@@ -573,6 +580,7 @@ The same energy as the alchemy backpack. Teleporters use it; terminals do not. T
 - In any monster form, other monsters ignore you too.
 - Natural enemies come for you, though: iron golems chase monster forms, wolves chase skeleton forms, wolves and foxes chase rabbit forms.
 - Some forms scare other mobs: a cat form scares creepers off, a zombie form scares villagers.
+- When a zombie, husk, drowned or zombie villager form kills a villager, it does not die: it turns into a zombie villager that keeps its profession and trades, and a weakness potion plus a golden apple cures it. Not on Peaceful.
 - Changing form clears the anger of neutral mobs (such as piglins you upset).""",
      ["ch5/first_form", "ch5/first_transform", "ch5/ten_forms", "ch5/thirty_forms", "ch5/all_forms"]),
 
@@ -588,6 +596,24 @@ The same energy as the alchemy backpack. Teleporters use it; terminals do not. T
 - 雪人：雪球，冷卻 0.2 秒。
 - 駱馬、商人駱馬：吐口水，冷卻 0.5 秒。
 - 喚魔者：一排 12 隻尖牙，冷卻 2 秒。
+- 幻翼：俯衝，冷卻 3 秒；沿視線衝約 8 格，路上的生物受 6 點傷害並被撞開。
+- 駱駝：衝刺，冷卻 3 秒；水平衝刺，把路上的生物推開，不傷害。
+- 悅靈：治癒脈衝，冷卻 5 秒；回 2 顆心給自己和 6 格內的玩家與動物。
+- 青蛙：舌頭，冷卻 2 秒；把準心上的生物或掉落物拉到面前，範圍 12 格。
+- 北極熊：重擊，冷卻 4 秒；周圍 4 格的生物受 4 點傷害、被擊退並緩速。
+- 海龜：縮殼，冷卻 8 秒；4 秒內幾乎不受傷，但也幾乎不能動。
+- 凋零骷髏：射出凋零頭顱，冷卻 2 秒。
+- 快樂惡魂：安撫，冷卻 10 秒；10 秒內 16 格內的敵對生物放掉目標，不再選你當目標（打牠們會反擊）。
+- 豹貓：撲躍，冷卻 2 秒；向前低跳。
+- 鸚鵡：歌唱，冷卻 10 秒；10 秒內自己和 8 格內玩家速度 II、挖掘加速 II。
+- 骷髏馬：疾馳，冷卻 5 秒；5 秒內速度 III、跳躍提升 II。
+- 殭屍馬：踐踏，冷卻 3 秒；前方 6 格扇形內的生物受 5 點傷害並被撞飛。
+- 發光魷魚：墨雲，冷卻 6 秒；8 格內的生物失明 5 秒、發光 8 秒。
+- 蝌蚪：水花，冷卻 5 秒；8 秒內 6 格內的玩家不著火、可水下呼吸，附近的火會熄滅。
+- 熱帶魚：水泡，冷卻 2 秒；把視線前方 8 格內的生物推走，不傷害。
+- 螢光蝠（礦世界）：閃光，冷卻 6 秒；16 格內的生物發光 10 秒，自己夜視 15 秒。
+- 寶石史萊姆（礦世界）：彈跳，冷卻 3 秒；跳得很高，起跳時 3 格內的生物被擊退。
+- 礦蟲（礦世界）：鑽地，冷卻 1.5 秒；沿面向挖一條 1 寬 2 高、6 格長的隧道（石頭、泥土、礦石）。
 - 技能護符、終局護符、綠寶石盔甲強化會影響冷卻和威力（第十三、十四章）。
 # 被動能力
 - 飛行（連按兩下跳躍起飛）：蝙蝠、蜜蜂、悅靈、鸚鵡、幻翼、惱鬼、烈焰人、惡魂、快樂惡魂。
@@ -614,6 +640,24 @@ In a form with a skill, press R in the world. Cooldowns are in seconds and reset
 - Snow golem: snowball, 0.2 s cooldown.
 - Llama, trader llama: spit, 0.5 s cooldown.
 - Evoker: a line of 12 fangs, 2 s cooldown.
+- Phantom: dive, 3 s cooldown; charges about 8 blocks along your view, hurting (6) and knocking back what it hits.
+- Camel: dash, 3 s cooldown; a horizontal charge that shoves creatures aside without hurting them.
+- Allay: heal pulse, 5 s cooldown; heals you and the players and animals within 6 blocks by 2 hearts.
+- Frog: tongue, 2 s cooldown; pulls the creature or item under your crosshair to you, up to 12 blocks.
+- Polar bear: slam, 4 s cooldown; creatures within 4 blocks take 4 damage, are knocked back and slowed.
+- Turtle: shell, 8 s cooldown; for 4 seconds you are nearly invulnerable and nearly unable to move.
+- Wither skeleton: wither skull, 2 s cooldown.
+- Happy ghast: soothe, 10 s cooldown; for 10 seconds hostile mobs within 16 blocks drop their target and stop picking you (hit one and it fights back).
+- Ocelot: pounce, 2 s cooldown; a low leap forward.
+- Parrot: sing, 10 s cooldown; for 10 seconds you and players within 8 blocks get Speed II and Haste II.
+- Skeleton horse: gallop, 5 s cooldown; 5 seconds of Speed III and Jump Boost II.
+- Zombie horse: trample, 3 s cooldown; creatures in a 6-block cone take 5 damage and are thrown.
+- Glow squid: ink cloud, 6 s cooldown; creatures within 8 blocks are blinded for 5 seconds and glow for 8.
+- Tadpole: splash, 5 s cooldown; for 8 seconds players within 6 blocks are put out and can breathe underwater, and fires nearby go out.
+- Tropical fish: bubbles, 2 s cooldown; pushes creatures in an 8-block line away without hurting them.
+- Glow bat (mine world): flash, 6 s cooldown; creatures within 16 blocks glow for 10 seconds, and you get night vision for 15.
+- Gem slime (mine world): bounce, 3 s cooldown; a high jump that knocks back creatures within 3 blocks as you leave the ground.
+- Ore worm (mine world): tunnel, 1.5 s cooldown; digs a 1-wide, 2-high, 6-long tunnel in the direction you face (stone, dirt, ores).
 - The skill charm, the master's charm and emerald armour upgrades change cooldown and power (chapters 13 and 14).
 # Passive abilities
 - Flight (double-tap jump to take off): bat, bee, allay, parrot, phantom, vex, blaze, ghast, happy ghast.
@@ -756,6 +800,8 @@ Most are a cross: one item in the middle with four of another above, below and t
 - 階段一：骷髏（射箭）、烈焰人（小火球）、微風使者（風彈），每 20 秒換一次。多移動、找掩體。
 - 階段二：喚魔者（一排尖牙）、終界使者（傳送到你身後，出現前 0.5 秒有粒子預警）、蜘蛛（撲擊），每 15 秒換一次。
 - 階段三：惡魂（大火球）、苦力怕、快速烈焰人，每 10 秒換一次。苦力怕形態會發出引信聲並膨脹，爆炸範圍很大；爆炸後牠虛弱 5 秒（受傷 +50%），是最大的輸出機會。
+- 牠會走動：骷髏和喚魔者與你保持距離並左右橫移，蜘蛛走近再撲，苦力怕點著引信朝你衝，烈焰人、微風使者和惡魂在你頭上繞圈。
+- 階段二、三的形態還會借用另一個形態的技能（例如喚魔者會同時射箭、惡魂會同時召尖牙），不過間隔比本技能長。
 - 戰鬥不會破壞方塊，爆炸不傷地形，火球不會點火。
 # 輸了怎麼辦
 - 戰場內玩家全部倒下超過 3 秒，或所有人離開祭壇 40 格超過 10 秒，就算失敗。
@@ -792,6 +838,8 @@ The modpack's final boss: it cycles through forms and attacks with each form's s
 - Phase one: skeleton (arrows), blaze (small fireballs), breeze (wind charges), changing every 20 seconds. Keep moving and use cover.
 - Phase two: evoker (a line of fangs), enderman (teleports behind you, with particles 0.5 seconds before), spider (pounces), every 15 seconds.
 - Phase three: ghast (fireballs), creeper, fast blaze, every 10 seconds. The creeper hisses and swells and its blast is huge; afterwards the boss is weakened for 5 seconds (+50% damage taken), the best window of the fight.
+- It moves: skeleton and evoker keep their distance and strafe, the spider walks in and pounces, the creeper charges you with its fuse lit, and the blaze, breeze and ghast circle above you.
+- In phases two and three each form also borrows another form's skill (the evoker shoots arrows too, the ghast raises fangs), on a longer interval than its own skill.
 - The fight never breaks blocks: explosions spare the ground and fireballs light nothing.
 # If you lose
 - If every player in the arena is down for 3 seconds, or everyone is more than 40 blocks from the altar for 10 seconds, the fight is lost.
