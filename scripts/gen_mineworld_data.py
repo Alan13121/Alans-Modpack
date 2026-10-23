@@ -45,7 +45,7 @@ SPAWN_POINT, SPAWN_RADIUS = [0, 129, 0], 20
 # Cave ecosystems, picked by two climate noises: (temperature, humidity) of each biome.
 CAVE_BIOMES = {"crystal_cave": (-0.3, -0.3), "lush_cave": (-0.3, 0.3),
                "dripstone_cave": (0.3, -0.3), "ore_nest": (0.3, 0.3),
-               "sulfur_cave": (0.0, 0.0)}
+               "sulfur_cave": (0.0, 0.0), "deep_dark": (0.6, 0.0)}
 
 MONSTERS = [("spider", 100, 4), ("zombie", 95, 4), ("zombie_villager", 5, 1), ("skeleton", 100, 4),
             ("creeper", 100, 4), ("enderman", 10, 2), ("witch", 5, 1)]
@@ -97,6 +97,8 @@ VANILLA_FEATURES = [
     (1, "minecraft:sulfur_pool", ["sulfur_cave"]),
     (7, "minecraft:sulfur_spike_cluster", ["sulfur_cave"]),
     (7, "minecraft:sulfur_spike", ["sulfur_cave"]),
+    (7, "minecraft:sculk_vein", ["deep_dark"]),
+    (7, "minecraft:sculk_patch_deep_dark", ["deep_dark"]),
 ]
 
 
@@ -120,6 +122,7 @@ BIOME_SPAWNS = {
     "ore_nest": spawns(ambient=[("bat", 10, 8)],
                        monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1), ("mineworld:ore_golem", 40, 1)]),
     "sulfur_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("sulfur_cube", 100, (2, 4))]),
+    "deep_dark": spawns(),  # wardens only come from sculk shriekers
 }
 
 
@@ -181,7 +184,7 @@ def worldgen():
         "disable_mob_generation": True, "legacy_random_source": False,
         "material_rule": {"type": "minecraft:sequence", "sequence": [
             "minecraft:bedrock_floor", "minecraft:bedrock_roof",
-            {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:ore_nest"]},
+            {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:ore_nest", "mineworld:deep_dark"]},
              "then_run": {"type": "minecraft:block", "result_state": "minecraft:deepslate"}},
             {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:sulfur_cave"]},
              "then_run": "minecraft:overworld/sulfur_cave_bands"},
@@ -231,7 +234,7 @@ def city_worldgen():
     overrides = {"monster": {"bounding_box": "full", "spawns": []}}
     for name, first in (("monster_city_first", True), ("monster_city", False)):
         write(f"{DATA}/worldgen/structure/{name}.json", {
-            "type": "mineworld:monster_city", "biomes": "#mineworld:has_monster_city",
+            "type": "mineworld:monster_city", "biomes": "#mineworld:has_monster_city_first" if first else "#mineworld:has_monster_city",
             "spawn_overrides": overrides, "step": "top_layer_modification", "first": first})
     write(f"{DATA}/worldgen/structure_set/monster_city_first.json", {
         "structures": [{"structure": "mineworld:monster_city_first", "weight": 1}],
@@ -240,7 +243,9 @@ def city_worldgen():
         "structures": [{"structure": "mineworld:monster_city", "weight": 1}],
         "placement": {"type": "minecraft:random_spread", "spacing": CITY_SPACING,
                       "separation": CITY_SEPARATION, "salt": CITY_SALT}})
-    write(f"{DATA}/tags/worldgen/biome/has_monster_city.json", {"values": [f"mineworld:{b}" for b in CAVE_BIOMES]})
+    write(f"{DATA}/tags/worldgen/biome/has_monster_city.json", {"values": [f"mineworld:{b}" for b in CAVE_BIOMES if b != "deep_dark"]})
+    # The fixed first city must always be placeable, so it also accepts the deep dark (rare, ~7% of the world).
+    write(f"{DATA}/tags/worldgen/biome/has_monster_city_first.json", {"values": [f"mineworld:{b}" for b in CAVE_BIOMES]})
     write(f"{DATA}/tags/worldgen/structure/monster_city.json",
           {"values": ["mineworld:monster_city_first", "mineworld:monster_city"]})
 

@@ -1,6 +1,6 @@
 {
   "type": "mineworld:monster_city",
-  "biomes": "#mineworld:has_monster_city",
+  "biomes": "#mineworld:has_monster_city_first",
   "spawn_overrides": {
     "monster": {
       "bounding_box": "full",

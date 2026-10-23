@@ -191,7 +191,7 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
                         if (++run == 3) entries++; // count each opening of at least 3 blocks once
                     } else run = 0;
                     String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
-                    for (String m : new String[]{"amethyst", "moss", "dripstone", "rail", "spawner", "deepslate", "clay", "azalea", "sulfur", "cinnabar"}) {
+                    for (String m : new String[]{"amethyst", "moss", "dripstone", "rail", "spawner", "deepslate", "clay", "azalea", "sulfur", "cinnabar", "sculk", "shrieker", "sculk_sensor", "catalyst"}) {
                         if (path.contains(m)) marks.merge(m, 1, Integer::sum);
                     }
                 }
@@ -201,7 +201,8 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
         });
         System.out.println("MINEWORLD CAVES " + report);
         check(report.startsWith("shieldAir=0 "), "no cave opens into the spawn room or tunnel: " + report);
-        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest", "sulfur_cave"}) check(report.contains(b + "="), "biome " + b + " appears: " + report);
+        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest", "sulfur_cave", "deep_dark"}) check(report.contains(b + "="), "biome " + b + " appears: " + report);
+        check(report.contains("sculk="), "deep dark has sculk" + report);
         check(!report.contains("mine="), "new worlds only use the cave biomes: " + report);
         String mineshaft = server.computeOnServer(s -> {
             var level = s.getLevel(DynamicLevels.key(worldId));
@@ -217,7 +218,7 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
         // One look into a chamber of each kind, with night vision so the screenshot shows something.
         server.runCommand("gamemode creative @p");
         server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
-        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest", "sulfur_cave"}) {
+        for (String b : new String[]{"crystal_cave", "lush_cave", "dripstone_cave", "ore_nest", "sulfur_cave", "deep_dark"}) {
             BlockPos spot = server.computeOnServer(s -> findChamber(s.getLevel(DynamicLevels.key(worldId)), b));
             System.out.println("MINEWORLD CHAMBER " + b + " " + spot);
             if (spot == null) continue;
