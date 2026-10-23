@@ -48,8 +48,8 @@ def below_zero():
         "type": "minecraft:entity_properties", "entity": "this",
         "predicate": {"minecraft:location": {"position": {"y": {"max": -0.5}}}}}}}}, None
 
-# Every biome of a mine world: the old single biome and the four cave ecosystems.
-MINE_WORLD_BIOMES = ["mineworld:mine", "mineworld:crystal_cave", "mineworld:lush_cave", "mineworld:dripstone_cave", "mineworld:ore_nest"]
+# Every biome of a mine world: the old single biome and the five cave ecosystems.
+MINE_WORLD_BIOMES = ["mineworld:mine", "mineworld:crystal_cave", "mineworld:lush_cave", "mineworld:dripstone_cave", "mineworld:ore_nest", "mineworld:sulfur_cave"]
 
 
 def in_biome(biome):

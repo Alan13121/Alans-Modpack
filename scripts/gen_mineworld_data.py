@@ -44,7 +44,8 @@ SPAWN_POINT, SPAWN_RADIUS = [0, 129, 0], 20
 
 # Cave ecosystems, picked by two climate noises: (temperature, humidity) of each biome.
 CAVE_BIOMES = {"crystal_cave": (-0.3, -0.3), "lush_cave": (-0.3, 0.3),
-               "dripstone_cave": (0.3, -0.3), "ore_nest": (0.3, 0.3)}
+               "dripstone_cave": (0.3, -0.3), "ore_nest": (0.3, 0.3),
+               "sulfur_cave": (0.0, 0.0)}
 
 MONSTERS = [("spider", 100, 4), ("zombie", 95, 4), ("zombie_villager", 5, 1), ("skeleton", 100, 4),
             ("creeper", 100, 4), ("enderman", 10, 2), ("witch", 5, 1)]
@@ -91,6 +92,13 @@ EXTRA = [
     (9, "spore_blossom", scanned("minecraft:spore_blossom", 50, "up", SOLID, -1), ["lush_cave"]),
 ]
 
+# Vanilla placed features reused as they are: (step, id, biomes).
+VANILLA_FEATURES = [
+    (1, "minecraft:sulfur_pool", ["sulfur_cave"]),
+    (7, "minecraft:sulfur_spike_cluster", ["sulfur_cave"]),
+    (7, "minecraft:sulfur_spike", ["sulfur_cave"]),
+]
+
 
 def group(n):
     # A fixed group size, or a (min, max) tuple for a uniform one.
@@ -111,13 +119,14 @@ BIOME_SPAWNS = {
     "dripstone_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("cave_spider", 60, 2)]),
     "ore_nest": spawns(ambient=[("bat", 10, 8)],
                        monster=MONSTERS + [("cave_spider", 30, 2), ("witch", 20, 1), ("mineworld:ore_golem", 40, 1)]),
+    "sulfur_cave": spawns(ambient=[("bat", 10, 8)], monster=MONSTERS + [("sulfur_cube", 100, (2, 4))]),
 }
 
 
 def biome(features, spawn_attr):
     steps = [[] for _ in range(11)]
     for step, name in features:
-        steps[step].append(f"mineworld:{name}")
+        steps[step].append(name if ":" in name else f"mineworld:{name}")
     return {"attributes": {"minecraft:gameplay/natural_mob_spawns": spawn_attr,
                            "minecraft:visual/sky_color": "#000000"},
             "carvers": [], "downfall": 0.0, "effects": {"water_color": "#3f76e4"},
@@ -148,6 +157,7 @@ def worldgen():
     write(f"{DATA}/worldgen/biome/mine.json", biome(ores, spawns()))
     for b in CAVE_BIOMES:
         features = ores + (rich if b == "ore_nest" else []) + [(s, n) for s, n, _, bs in EXTRA if b in bs]
+        features += [(s, n) for s, n, bs in VANILLA_FEATURES if b in bs]
         features.sort(key=lambda f: f[0])  # stable: keeps the global order inside each step
         write(f"{DATA}/worldgen/biome/{b}.json", biome(features, BIOME_SPAWNS[b]))
 
@@ -173,6 +183,8 @@ def worldgen():
             "minecraft:bedrock_floor", "minecraft:bedrock_roof",
             {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:ore_nest"]},
              "then_run": {"type": "minecraft:block", "result_state": "minecraft:deepslate"}},
+            {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:sulfur_cave"]},
+             "then_run": "minecraft:overworld/sulfur_cave_bands"},
             {"type": "minecraft:condition", "if_true": {"type": "minecraft:vertical_gradient",
                 "false_at_and_above": {"absolute": 8}, "random_name": "minecraft:deepslate",
                 "true_at_and_below": {"absolute": 0}},

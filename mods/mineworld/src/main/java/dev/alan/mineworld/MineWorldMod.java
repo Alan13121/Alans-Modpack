@@ -40,7 +40,8 @@ public final class MineWorldMod implements ModInitializer {
         ResourceKey.create(Registries.BIOME, id("crystal_cave")), new float[]{-0.3F, -0.3F},
         ResourceKey.create(Registries.BIOME, id("lush_cave")), new float[]{-0.3F, 0.3F},
         ResourceKey.create(Registries.BIOME, id("dripstone_cave")), new float[]{0.3F, -0.3F},
-        ResourceKey.create(Registries.BIOME, id("ore_nest")), new float[]{0.3F, 0.3F});
+        ResourceKey.create(Registries.BIOME, id("ore_nest")), new float[]{0.3F, 0.3F},
+        ResourceKey.create(Registries.BIOME, id("sulfur_cave")), new float[]{0.0F, 0.0F});
     public static final ResourceKey<NoiseGeneratorSettings> NOISE_SETTINGS = ResourceKey.create(Registries.NOISE_SETTINGS, id("mine"));
     public static final ResourceKey<DimensionType> DIMENSION_TYPE = ResourceKey.create(Registries.DIMENSION_TYPE, id("mine"));
 
