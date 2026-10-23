@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "mineworld:ancient_cavern",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 20083232,
+    "separation": 8,
+    "spacing": 24
+  }
+}

@@ -218,6 +218,7 @@ Your own ore world: almost all stone and ore, with every one of the eight ores a
 - 富礦巢：深板岩，礦物再多生成一次（等於原版的 16 倍），還有地城（生怪磚）；洞穴蜘蛛、女巫比較多，也有礦石魔像。
 - 硫磺洞：硫磺與硃砂的條紋岩壁、硫磺池（池底的烈性硫磺會冒煙，泡進去會噁心）和硫磺尖錐；住著硫磺立方怪。
 - 深淵：整片幽匿方塊，幾乎全黑，沒有一般怪物；有幽匿感測體、幽匿尖嘯體和幽匿催生體。**踩到尖嘯體會召喚伏守者**，聽覺極好、一擊致命等級的傷害，能躲就躲。
+- 古城：深淵裡偶爾有一座巨大的洞窟，裡面是原版的遠古城市，有靈魂火、強化深板岩傳送門、戰利品箱和尖嘯體。從出生點走很遠才找得到，約 1000 格外。
 # 其他地形
 - 出生房間周圍 20 格內都是實心的，不會一出門就掉進洞裡。
 - 世界底部附近有廢棄礦坑（鐵軌、礦車箱子、蜘蛛網和洞穴蜘蛛生怪磚）。
@@ -236,6 +237,7 @@ A mine world is mostly solid rock, but mining breaks into large caves now and th
 - Ore nest: deepslate with every ore generated twice (16 times vanilla) and dungeons with spawners. More cave spiders and witches, and ore golems.
 - Sulfur cave: banded walls of sulfur and cinnabar, sulfur pools (the potent sulfur at the bottom smokes and makes you nauseous) and sulfur spikes; sulfur cubes live here.
 - Deep dark: sculk everywhere, nearly pitch black, with no ordinary monsters; sculk sensors, shriekers and catalysts. **A shrieker can summon a warden**, which hears everything and hits extremely hard; avoid it.
+- Ancient city: now and then a deep dark holds a huge cavern with the vanilla ancient city inside: soul fire, a reinforced deepslate portal, loot chests and shriekers. Expect to walk far, about 1000 blocks from the start.
 # Other terrain
 - The rock within 20 blocks of the spawn room is solid, so you never fall into a cave at the door.
 - Abandoned mineshafts sit near the bottom of the world (rails, minecart chests, cobwebs and cave spider spawners).

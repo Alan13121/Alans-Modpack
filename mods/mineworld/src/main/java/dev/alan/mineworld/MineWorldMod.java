@@ -68,6 +68,7 @@ public final class MineWorldMod implements ModInitializer {
         new BlockEntityType<>(WorldCauldronBlockEntity::new, java.util.Set.of(WORLD_CAULDRON)));
 
     @Override public void onInitialize() {
+        AncientCavern.init();
         dev.alan.mineworld.city.City.init();
         dev.alan.mineworld.mob.Mobs.init();
         ServerTickEvents.END_SERVER_TICK.register(MineTravel::tick);
