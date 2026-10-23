@@ -222,6 +222,7 @@ Your own ore world: almost all stone and ore, with every one of the eight ores a
 # 其他地形
 - 出生房間周圍 20 格內都是實心的，不會一出門就掉進洞裡。
 - 世界底部附近有廢棄礦坑（鐵軌、礦車箱子、蜘蛛網和洞穴蜘蛛生怪磚）。
+- 岩層裡埋著骨頭化石（部分骨頭是煤礦，深處的是鑽石礦），還有鐵和銅的巨型礦脈：整塊的粗鐵塊、粗銅塊夾在花崗岩和凝灰岩裡。
 - 一般怪物和原版一樣：殭屍、骷髏、蜘蛛、苦力怕、終界使者、女巫。
 # 礦世界生物
 - 螢光蝠：晶洞裡 3～5 隻成群飛，翅膀會發光，全黑也看得到，無害。掉螢石粉 1～2、紫水晶碎片 0～1。
@@ -241,6 +242,7 @@ A mine world is mostly solid rock, but mining breaks into large caves now and th
 # Other terrain
 - The rock within 20 blocks of the spawn room is solid, so you never fall into a cave at the door.
 - Abandoned mineshafts sit near the bottom of the world (rails, minecart chests, cobwebs and cave spider spawners).
+- Bone fossils are buried in the rock (some bones are coal ore, deep ones are diamond ore), and giant iron and copper veins hold whole raw iron and raw copper blocks among granite and tuff.
 - Ordinary monsters are as in vanilla: zombies, skeletons, spiders, creepers, endermen, witches.
 # Mine world creatures
 - Glow bat: flocks of 3-5 in crystal caves with glowing wings you can see in the dark. Harmless. Drops 1-2 glowstone dust and 0-1 amethyst shard.

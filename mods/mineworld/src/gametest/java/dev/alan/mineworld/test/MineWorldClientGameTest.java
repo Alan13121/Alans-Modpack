@@ -191,7 +191,7 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
                         if (++run == 3) entries++; // count each opening of at least 3 blocks once
                     } else run = 0;
                     String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(st.getBlock()).getPath();
-                    for (String m : new String[]{"amethyst", "moss", "dripstone", "rail", "spawner", "deepslate", "clay", "azalea", "sulfur", "cinnabar", "sculk", "shrieker", "sculk_sensor", "catalyst"}) {
+                    for (String m : new String[]{"amethyst", "moss", "dripstone", "rail", "spawner", "deepslate", "clay", "azalea", "sulfur", "cinnabar", "sculk", "shrieker", "sculk_sensor", "catalyst", "raw_copper_block", "raw_iron_block", "bone_block", "coal_ore", "diamond_ore", "granite", "tuff"}) {
                         if (path.contains(m)) marks.merge(m, 1, Integer::sum);
                     }
                 }
@@ -212,6 +212,19 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
                 net.minecraft.core.HolderSet.direct(shaft), BlockPos.ZERO, 100, false);
             return found == null ? "none" : found.getFirst().toString();
         });
+
+        // Giant ore veins (raw ore blocks) and fossils (bone blocks) in the generated area, counted block by block.
+        String extras = server.computeOnServer(s -> {
+            var level = s.getLevel(DynamicLevels.key(worldId));
+            java.util.Map<String, Integer> found = new java.util.TreeMap<>();
+            for (int x = 128; x < 256; x++) for (int z = 128; z < 256; z++) for (int y = -62; y < 320; y++) {
+                String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(new BlockPos(x, y, z)).getBlock()).getPath();
+                if (path.equals("raw_iron_block") || path.equals("raw_copper_block") || path.equals("bone_block")) found.merge(path, 1, Integer::sum);
+            }
+            return found.toString();
+        });
+        System.out.println("MINEWORLD VEINS AND FOSSILS " + extras);
+
         System.out.println("MINEWORLD MINESHAFT " + mineshaft);
         check(!mineshaft.equals("none"), "mineshafts generate in the mine world");
 
