@@ -679,7 +679,7 @@ In a form with a skill, press R in the world. Cooldowns are in seconds and reset
      """# 飾品欄
 - 按 K 打開飾品欄，預設 3 格。
 - 飾品背包放在身上任何位置（物品欄、快捷欄、副手都算），每個多 1 格，可以疊加，最多 13 格。
-- 飾品背包配方：上排線、鐵錠、線；中排皮革、空、皮革；下排皮革 ×3。
+- 飾品背包配方：上排線、鐵錠、線；中排皮革 ×3；下排皮革 ×3。
 - 同一種飾品只能裝一個。變身後也有效，死亡不會掉。
 - 如果形態本身就有同樣的效果（例如蝙蝠的夜視），以形態為準，不會疊加。
 # 十三種飾品
@@ -704,7 +704,7 @@ In a form with a skill, press R in the world. Cooldowns are in seconds and reset
      """# Trinket slots
 - Press K for your trinket slots: 3 to start.
 - Each trinket bag you carry anywhere (inventory, hotbar or offhand) adds a slot; they stack, up to 13 slots.
-- Trinket bag recipe: top string, iron ingot, string; middle leather, empty, leather; bottom 3 leather.
+- Trinket bag recipe: top string, iron ingot, string; middle 3 leather; bottom 3 leather.
 - You can wear only one of each trinket. They work while transformed and stay with you when you die.
 - If your form already has the same effect (such as a bat's night vision), the form wins and they do not stack.
 # The thirteen trinkets

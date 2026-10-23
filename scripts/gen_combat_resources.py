@@ -263,7 +263,7 @@ ITEMS = {
     "form_core": (form_core, None, None),
     "form_shard": (form_shard, None, None),
     "master_charm": (master_charm, [" E ", "GCG", " E "], {"E": "minecraft:ender_eye", "G": "minecraft:gold_ingot", "C": "combat:form_core"}),
-    "trinket_bag": (bag, ["SIS", "L L", "LLL"], {"S": "minecraft:string", "I": "minecraft:iron_ingot", "L": "minecraft:leather"}),
+    "trinket_bag": (bag, ["SIS", "LLL", "LLL"], {"S": "minecraft:string", "I": "minecraft:iron_ingot", "L": "minecraft:leather"}),
 }
 
 # Shapeless recipes: result -> ingredients.
