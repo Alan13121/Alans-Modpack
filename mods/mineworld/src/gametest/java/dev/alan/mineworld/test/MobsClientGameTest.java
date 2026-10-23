@@ -192,8 +192,18 @@ public final class MobsClientGameTest implements FabricClientGameTest {
 
     /** "listed/ok" when the biome's spawn list has the type and its spawn rule passes somewhere dark in a chamber of that biome. */
     private static String spawnCheck(ServerLevel level, String biome, EntityType<? extends Mob> type, MobCategory category) {
-        BlockPos chamber = findChamber(level, biome);
-        if (chamber == null) return "no chamber";
+        java.util.List<BlockPos> chambers = findChambers(level, biome, 6);
+        if (chambers.isEmpty()) return "no chamber";
+        // A chamber can be lit by glow berries or other light sources, so try several before calling the rule failed.
+        String result = "";
+        for (BlockPos chamber : chambers) {
+            result = spawnCheckAt(level, chamber, type, category);
+            if (result.startsWith("listed/ok") || result.equals("unlisted")) return result;
+        }
+        return result;
+    }
+
+    private static String spawnCheckAt(ServerLevel level, BlockPos chamber, EntityType<? extends Mob> type, MobCategory category) {
         var list = level.getChunkSource().getGenerator().getMobsAt(level, level.structureManager(), category, chamber);
         boolean listed = list.unwrap().stream().anyMatch(w -> w.value().type() == type);
         if (!listed) return "unlisted";
@@ -251,6 +261,22 @@ public final class MobsClientGameTest implements FabricClientGameTest {
     private static int number(String report, String key) {
         var m = java.util.regex.Pattern.compile("\\b" + key + "=(\\d+)").matcher(report);
         return m.find() ? Integer.parseInt(m.group(1)) : -1;
+    }
+
+    /** Up to {@code max} such spots, at least 12 blocks apart. */
+    private static java.util.List<BlockPos> findChambers(ServerLevel level, String biome, int max) {
+        java.util.List<BlockPos> found = new java.util.ArrayList<>();
+        for (int y = 300; y >= -40 && found.size() < max; y -= 4) for (int x = 132; x < 252 && found.size() < max; x += 4) for (int z = 132; z < 252 && found.size() < max; z += 4) {
+            BlockPos pos = new BlockPos(x, y, z);
+            if (!level.getBiome(pos).unwrapKey().orElseThrow().identifier().getPath().equals(biome)) continue;
+            if (found.stream().anyMatch(p -> p.distManhattan(pos) < 12)) continue;
+            boolean open = true;
+            for (int dx = -2; dx <= 2 && open; dx++) for (int dy = -2; dy <= 2 && open; dy++) for (int dz = -2; dz <= 2 && open; dz++) {
+                if (!level.getBlockState(pos.offset(dx, dy, dz)).isAir()) open = false;
+            }
+            if (open) found.add(pos);
+        }
+        return found;
     }
 
     /** A spot with a 5x5x5 box of air around it in an already generated chunk (x/z 128..255) of the given biome, or null. */

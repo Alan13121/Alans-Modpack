@@ -81,7 +81,10 @@
       "mineworld:amethyst_geode"
     ],
     [],
-    [],
+    [
+      "mineworld:fossil_coal",
+      "mineworld:fossil_diamond"
+    ],
     [],
     [
       "mineworld:granite",

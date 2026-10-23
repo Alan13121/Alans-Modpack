@@ -59,6 +59,15 @@ def placed(feature, count):
         {"type": "minecraft:biome"}]}
 
 
+def rarity(feature, chance, low, high):
+    return {"feature": feature, "placement": [
+        {"type": "minecraft:rarity_filter", "chance": chance},
+        {"type": "minecraft:in_square"},
+        {"type": "minecraft:height_range", "height": {
+            "type": "minecraft:uniform", "min_inclusive": {"absolute": low}, "max_inclusive": {"absolute": high}}},
+        {"type": "minecraft:biome"}]}
+
+
 def scanned(feature, count, direction, target, offset):
     """Like vanilla lush/dripstone placements: scan up or down from a random air block to a surface."""
     return {"feature": feature, "placement": [
@@ -80,6 +89,9 @@ EXTRA = [
     (2, "amethyst_geode", placed("minecraft:amethyst_geode", 1), ["crystal_cave"]),
     (2, "large_dripstone", placed("minecraft:large_dripstone", 30), ["dripstone_cave"]),
     (3, "monster_room", placed("minecraft:monster_room", 8), ["ore_nest"]),
+    # Vanilla fossils (a coal one at any height, a diamond one near the bottom), about one per 24 chunks each.
+    (4, "fossil_coal", rarity("minecraft:fossil_coal", 24, -8, 319), list(CAVE_BIOMES)),
+    (4, "fossil_diamond", rarity("minecraft:fossil_diamonds", 24, -64, -9), list(CAVE_BIOMES)),
     (6, "ore_clay", placed("minecraft:ore_clay", 46), ["lush_cave"]),
     (7, "dripstone_cluster", placed("minecraft:dripstone_cluster", 72), ["dripstone_cave"]),
     (7, "pointed_dripstone", placed("minecraft:pointed_dripstone", 224), ["dripstone_cave"]),
@@ -184,6 +196,8 @@ def worldgen():
         "disable_mob_generation": True, "legacy_random_source": False,
         "material_rule": {"type": "minecraft:sequence", "sequence": [
             "minecraft:bedrock_floor", "minecraft:bedrock_roof",
+            # Vanilla giant copper (granite) and iron (tuff) veins with raw ore blocks; they set their own height range.
+            "minecraft:overworld/copper_ore_vein", "minecraft:overworld/iron_ore_vein",
             {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:ore_nest", "mineworld:deep_dark"]},
              "then_run": {"type": "minecraft:block", "result_state": "minecraft:deepslate"}},
             {"type": "minecraft:condition", "if_true": {"type": "minecraft:biome", "biome_is": ["mineworld:sulfur_cave"]},
