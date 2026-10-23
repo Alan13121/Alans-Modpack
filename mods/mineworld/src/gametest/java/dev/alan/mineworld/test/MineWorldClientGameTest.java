@@ -215,6 +215,54 @@ public final class MineWorldClientGameTest implements FabricClientGameTest {
         System.out.println("MINEWORLD MINESHAFT " + mineshaft);
         check(!mineshaft.equals("none"), "mineshafts generate in the mine world");
 
+        // Ancient cities generate inside the deep dark: find one, fly there and count its signature blocks.
+        BlockPos city = server.computeOnServer(s -> {
+            var level = s.getLevel(DynamicLevels.key(worldId));
+            var set = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.ANCIENT_CITY);
+            var found = level.getChunkSource().getGenerator().findNearestMapStructure(level,
+                net.minecraft.core.HolderSet.direct(set), BlockPos.ZERO, 200, false);
+            return found == null ? null : found.getFirst();
+        });
+        System.out.println("MINEWORLD ANCIENT CITY " + city);
+        check(city != null, "an ancient city exists within 200 chunks");
+        server.runCommand("gamemode creative @p");
+        server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
+        server.runCommand("execute in mineworld:" + worldId + " run tp @p " + city.getX() + " -20 " + city.getZ());
+        context.waitTicks(100);
+        connection.waitForChunksRender();
+        BlockPos[] lantern = new BlockPos[1];
+        String cityBlocks = server.computeOnServer(s -> {
+            var level = s.getLevel(DynamicLevels.key(worldId));
+            java.util.Map<String, Integer> found = new java.util.TreeMap<>();
+            for (int x = city.getX() - 48; x <= city.getX() + 48; x += 2) for (int z = city.getZ() - 48; z <= city.getZ() + 48; z += 2) for (int y = -62; y <= 20; y++) {
+                String path = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(new BlockPos(x, y, z)).getBlock()).getPath();
+                for (String m : new String[]{"reinforced_deepslate", "soul_lantern", "sculk_shrieker", "chest", "deepslate_tiles", "air", "sculk"}) if (path.contains(m)) found.merge(m, 1, Integer::sum);
+                if (path.equals("soul_lantern") && lantern[0] == null) lantern[0] = new BlockPos(x, y, z);
+            }
+            return found.toString();
+        });
+        System.out.println("MINEWORLD ANCIENT CITY BLOCKS " + cityBlocks);
+        if (lantern[0] != null) {
+            String box = server.computeOnServer(s -> {
+                var level = s.getLevel(DynamicLevels.key(worldId));
+                var structure = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.STRUCTURE)
+                    .getOrThrow(net.minecraft.world.level.levelgen.structure.BuiltinStructures.ANCIENT_CITY).value();
+                var start = level.structureManager().getStructureWithPieceAt(lantern[0].getX(), lantern[0].getY(), lantern[0].getZ(), structure);
+                return start.isValid() ? start.getBoundingBox().toString() + " pieces=" + start.getPieces().size() : "invalid";
+            });
+            System.out.println("MINEWORLD ANCIENT CITY BOX " + box + " lantern=" + lantern[0]);
+        }
+        check(cityBlocks.contains("soul_lantern") || cityBlocks.contains("deepslate_tiles"), "the ancient city is built: " + cityBlocks);
+        if (lantern[0] != null) {
+            server.runCommand("execute in mineworld:" + worldId + " run tp @p " + lantern[0].getX() + " " + (lantern[0].getY() - 1) + " " + lantern[0].getZ() + " 30 15");
+            connection.waitForChunksRender();
+            context.waitTicks(40);
+        }
+        context.takeScreenshot("05-ancient-city");
+        server.runCommand("execute in mineworld:" + worldId + " run tp @p 0.5 128 0.5");
+        context.waitTicks(10);
+
         // One look into a chamber of each kind, with night vision so the screenshot shows something.
         server.runCommand("gamemode creative @p");
         server.runCommand("effect give @p minecraft:night_vision infinite 0 true");

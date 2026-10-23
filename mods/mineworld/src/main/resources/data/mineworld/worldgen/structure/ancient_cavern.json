@@ -1,0 +1,7 @@
+{
+  "type": "mineworld:ancient_cavern",
+  "biomes": "#minecraft:has_structure/ancient_city",
+  "spawn_overrides": {},
+  "step": "underground_structures",
+  "terrain_adaptation": "none"
+}

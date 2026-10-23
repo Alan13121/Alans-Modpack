@@ -202,6 +202,16 @@ def worldgen():
     # Vanilla mineshafts (placed near the world bottom because the sea level is the bottom).
     write(f"{ROOT}/data/minecraft/tags/worldgen/biome/has_structure/mineshaft.json",
           {"replace": False, "values": [f"mineworld:{b}" for b in CAVE_BIOMES]})
+    # Vanilla ancient cities, only inside the deep dark (vanilla structure set: spacing 24, separation 8).
+    write(f"{ROOT}/data/minecraft/tags/worldgen/biome/has_structure/ancient_city.json",
+          {"replace": False, "values": ["mineworld:deep_dark"]})
+    # The cavern the city sits in: same placement as the vanilla set, one generation step earlier (see AncientCavern.java).
+    write(f"{DATA}/worldgen/structure/ancient_cavern.json", {
+        "type": "mineworld:ancient_cavern", "biomes": "#minecraft:has_structure/ancient_city",
+        "spawn_overrides": {}, "step": "underground_structures", "terrain_adaptation": "none"})
+    write(f"{DATA}/worldgen/structure_set/ancient_cavern.json", {
+        "structures": [{"structure": "mineworld:ancient_cavern", "weight": 1}],
+        "placement": {"type": "minecraft:random_spread", "salt": 20083232, "separation": 8, "spacing": 24}})
     city_worldgen()
     write(f"{DATA}/dimension_type/mine.json", {
         "ambient_light": 0.0,
