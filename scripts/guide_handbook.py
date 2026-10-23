@@ -211,11 +211,12 @@ Your own ore world: almost all stone and ore, with every one of the eight ores a
 
     ("mineworld:gem_slime_spawn_egg", "洞室與生物", "Caves & mobs",
      """# 洞室
-礦世界大多是實心的石頭，但挖著挖著會打穿大型洞室，直線挖礦平均每 100～150 格會遇到一個。洞室有四種：
+礦世界大多是實心的石頭，但挖著挖著會打穿大型洞室，直線挖礦平均每 100～150 格會遇到一個。洞室有五種：
 - 晶洞：紫水晶晶洞和發光地衣，有蝙蝠和螢光蝠。
 - 苔蘚洞：苔蘚、會結發光漿果的洞穴藤蔓、黏土水池、杜鵑。可以補充食物，也比較亮；有美西螈和寶石史萊姆。
 - 滴水石洞：大型滴水石和鐘乳石，小心頭頂掉下來的鐘乳石；有洞穴蜘蛛。
 - 富礦巢：深板岩，礦物再多生成一次（等於原版的 16 倍），還有地城（生怪磚）；洞穴蜘蛛、女巫比較多，也有礦石魔像。
+- 硫磺洞：硫磺與硃砂的條紋岩壁、硫磺池（池底的烈性硫磺會冒煙，泡進去會噁心）和硫磺尖錐；住著硫磺立方怪。
 # 其他地形
 - 出生房間周圍 20 格內都是實心的，不會一出門就掉進洞裡。
 - 世界底部附近有廢棄礦坑（鐵軌、礦車箱子、蜘蛛網和洞穴蜘蛛生怪磚）。
@@ -227,11 +228,12 @@ Your own ore world: almost all stone and ore, with every one of the eight ores a
 - 礦蟲：只在礦世界、生存模式挖礦石時，約 1/30 的機率從那格鑽出來，會攻擊你。打倒掉 2 個你剛挖的那種礦（粗礦或寶石）。
 - 有裝變身模組時，擊殺這四種都能解鎖對應的稀有形態（第十一章）。""",
      """# Caves
-A mine world is mostly solid rock, but mining breaks into large caves now and then: about one every 100-150 blocks of straight tunnel. There are four kinds:
+A mine world is mostly solid rock, but mining breaks into large caves now and then: about one every 100-150 blocks of straight tunnel. There are five kinds:
 - Crystal cave: amethyst geodes and glow lichen, with bats and glow bats.
 - Lush cave: moss, cave vines with glow berries, clay pools and azaleas. Food and some light; axolotls and gem slimes live here.
 - Dripstone cave: big dripstone and stalactites; watch for falling stalactites. Cave spiders live here.
 - Ore nest: deepslate with every ore generated twice (16 times vanilla) and dungeons with spawners. More cave spiders and witches, and ore golems.
+- Sulfur cave: banded walls of sulfur and cinnabar, sulfur pools (the potent sulfur at the bottom smokes and makes you nauseous) and sulfur spikes; sulfur cubes live here.
 # Other terrain
 - The rock within 20 blocks of the spawn room is solid, so you never fall into a cave at the door.
 - Abandoned mineshafts sit near the bottom of the world (rails, minecart chests, cobwebs and cave spider spawners).
