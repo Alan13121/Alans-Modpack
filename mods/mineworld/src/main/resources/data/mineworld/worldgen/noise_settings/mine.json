@@ -13,7 +13,8 @@
         "if_true": {
           "type": "minecraft:biome",
           "biome_is": [
-            "mineworld:ore_nest"
+            "mineworld:ore_nest",
+            "mineworld:deep_dark"
           ]
         },
         "then_run": {
