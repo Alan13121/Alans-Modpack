@@ -248,8 +248,8 @@ for i, (icon, zt, et, zb, eb) in enumerate(BOOK, 1):
     zh["handbook.guide.entry.%d.body" % i], en["handbook.guide.entry.%d.body" % i] = zb, eb
 zh["item.guide.handbook"], en["item.guide.handbook"] = "Alan's Modpack 手冊", "Alan's Modpack Handbook"
 zh["handbook.guide.close"], en["handbook.guide.close"] = "關閉", "Close"
-zh["guide.handbook.have"], en["guide.handbook.have"] = "你身上已經有一本手冊了。", "You already carry a handbook."
-zh["guide.handbook.given"], en["guide.handbook.given"] = "已給你一本手冊。", "Here is a handbook."
+zh["guide.handbook.button"], en["guide.handbook.button"] = "手冊", "Handbook"
+zh["guide.handbook.hint"], en["guide.handbook.hint"] = "按背包左上角的「手冊」按鈕可以打開使用手冊（也可以輸入 /guidebook）。", "Open your inventory and click the Handbook button in the top-left corner for the manual (or type /guidebook)."
 write(os.path.join(ROOT, "assets", "guide", "handbook.json"), json.dumps([{"icon": e[0]} for e in BOOK]) + "\n")
 write(os.path.join(ROOT, "assets", "guide", "items", "handbook.json"), json.dumps({"model": {"type": "minecraft:model", "model": "guide:item/handbook"}}) + "\n")
 write(os.path.join(ROOT, "assets", "guide", "models", "item", "handbook.json"),

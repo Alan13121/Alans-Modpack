@@ -1,13 +1,13 @@
 package dev.alan.guide;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
-/** The handbook item: handed out once on first join, again after a respawn without it and by /guidebook, never more than one on a player. */
+/** The handbook opens from a button in the inventory screen; the item is kept only for books players already carry. */
 public final class Handbook {
-    /** Entity tag that remembers the player has been given their first book, so it is never re-issued on later joins. */
+    /** Entity tag that remembers the player has seen the first-join hint (and, in older worlds, was given a book). */
     static final String GIVEN_TAG = "guide_handbook_given";
 
     private Handbook() {}
@@ -26,22 +26,10 @@ public final class Handbook {
         return false;
     }
 
-    /** Gives one book unless the player already carries one. Returns whether a book was given. */
-    public static boolean give(ServerPlayer player) {
-        if (has(player)) return false;
-        player.getInventory().placeItemBackInInventory(create(), Prediction.PREDICTED);
-        return true;
-    }
-
-    /** After a respawn: a player who lost the book with their inventory gets a new one; a player who kept it gets nothing. */
-    public static void onRespawn(ServerPlayer player) {
-        give(player);
-    }
-
-    /** On join: the first time only, hand out the book. */
+    /** On join: the first time only, tell the player where the handbook is. */
     public static void onJoin(ServerPlayer player) {
         if (player.entityTags().contains(GIVEN_TAG)) return;
         player.addTag(GIVEN_TAG);
-        give(player);
+        player.sendSystemMessage(Component.translatable("guide.handbook.hint"));
     }
 }

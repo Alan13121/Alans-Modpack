@@ -57,15 +57,30 @@ public final class GuideGameTest implements FabricClientGameTest {
                 return all.size() == 38 && roots == 6 && missingTables == 0;
             }), "38 advancements (33 tasks + 5 chapter headers) in 6 chapters, and every reward table exists");
 
-            // 1b. The handbook: one on first join, never a second, /guidebook only when none is carried, and no re-issue on rejoin.
-            check(books(server) == 1, "the first join handed out exactly one handbook");
+            // 1b. The handbook is no longer handed out: not on join, not by /guidebook (which opens the screen on the client).
+            check(books(server) == 0, "the first join hands out no handbook");
             server.runCommand("execute as @p run guidebook");
-            check(books(server) == 1, "/guidebook with a book in the inventory adds nothing");
-            server.runCommand("clear @p guide:handbook");
-            server.runOnServer(s -> dev.alan.guide.Handbook.onJoin(player(s)));
-            check(books(server) == 0, "a later join does not hand out another book");
-            server.runCommand("execute as @p run guidebook");
-            check(books(server) == 1, "/guidebook replaces a lost book");
+            check(books(server) == 0, "/guidebook hands out no book");
+            context.waitTicks(5);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof dev.alan.guide.client.HandbookScreen), "/guidebook opens the handbook on the client");
+            context.setScreen(() -> null);
+            // The inventory button opens the handbook and closing it returns to the inventory.
+            context.setScreen(() -> new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));
+            context.waitTicks(3);
+            context.takeScreenshot("guide-handbook-button");
+            double[] button = context.computeOnClient(mc -> {
+                double scale = mc.getWindow().getGuiScale();
+                return new double[] {32 * scale, 14 * scale};
+            });
+            context.getInput().setCursorPos(button[0], button[1]);
+            context.waitTicks(2);
+            context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+            context.waitTicks(3);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof dev.alan.guide.client.HandbookScreen), "the inventory button opens the handbook");
+            context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+            context.waitTicks(3);
+            check(context.computeOnClient(mc -> mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen), "closing the handbook returns to the inventory");
+            context.setScreen(() -> null);
 
             // 1c. The handbook screen: the first chapter, the last chapters (the chapter list scrolls to keep the selection
             // visible), and the end of a long chapter.
@@ -292,16 +307,13 @@ public final class GuideGameTest implements FabricClientGameTest {
                 return holder != null && holder.value().display().isPresent() && holder.value().display().get().announceToChat();
             }), "the Form King entry announces itself");
 
-            // 12. Last, because a respawn resets the player: dying without the book gives a new one, keeping the inventory keeps the one held.
+            // 12. Last, because a respawn resets the player: dying no longer hands out a book.
             server.runOnServer(s -> {
                 player(s).getInventory().clearContent();
                 s.getPlayerList().respawn(player(s), false, net.minecraft.world.entity.Entity.RemovalReason.KILLED);
             });
             context.waitTicks(10);
-            check(books(server) == 1, "respawning without the book hands out a new one");
-            server.runOnServer(s -> s.getPlayerList().respawn(player(s), true, net.minecraft.world.entity.Entity.RemovalReason.KILLED));
-            context.waitTicks(10);
-            check(books(server) == 1, "respawning with the book in the inventory does not add a second");
+            check(books(server) == 0, "respawning does not hand out a book");
         }
     }
 

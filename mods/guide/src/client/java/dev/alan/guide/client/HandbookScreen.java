@@ -36,8 +36,20 @@ public final class HandbookScreen extends Screen {
     private final List<Line> lines = new ArrayList<>();
     private int left, top, panelW, panelH, textX, textW, viewTop, viewH, contentH, scroll, sideScroll;
 
+    private final Screen parent;
+
     public HandbookScreen() {
+        this(null);
+    }
+
+    /** {@code parent} (the inventory, when opened from its button) is shown again on close. */
+    public HandbookScreen(Screen parent) {
         super(Component.translatable("item.guide.handbook"));
+        this.parent = parent;
+    }
+
+    @Override public void onClose() {
+        minecraft.gui.setScreen(parent);
     }
 
     private static List<ItemStack> icons() {
