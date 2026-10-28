@@ -51,9 +51,10 @@ BOOK = [
 - 物流：蓋一座倉庫，整理所有東西，再加自動化與傳送。
 - 變身：一路上擊殺生物，收集形態。
 - 終局：飾品、鐵砧強化，最後挑戰形態之王。
-# 手冊弄丟了？
-- 在聊天輸入 /guidebook 就能補一本，所有人都能用。
-- 身上已經有手冊時不會再給，所以最多只會有一本。""",
+# 怎麼打開手冊
+- 打開背包，點左上角的「手冊」按鈕；關掉手冊會回到背包。
+- 也可以在聊天輸入 /guidebook，所有人都能用。
+- 舊版發的手冊物品還是能右鍵打開，但新的世界不會再發書。""",
      """# Welcome to Alan's Modpack
 This handbook is the manual for the modpack: each chapter covers one topic, from how to make and use things to the numbers behind them. The quests that go with a chapter are listed at its end.
 # Reading this book
@@ -77,9 +78,10 @@ This handbook is the manual for the modpack: each chapter covers one topic, from
 - Logistics: build a warehouse for everything, then add automation and teleporters.
 - Shapeshift: collect forms by killing mobs along the way.
 - Endgame: trinkets, anvil upgrades and finally the Form King.
-# Lost this handbook?
-- Type /guidebook in chat for a new one. Everyone can use it.
-- You never get a second copy while carrying one.""",
+# Opening the handbook
+- Open your inventory and click the Handbook button in the top-left corner; closing the handbook returns to the inventory.
+- You can also type /guidebook in chat. Everyone can use it.
+- Handbook items from older versions still open it on right-click, but new worlds no longer hand out a book.""",
      []),
 
     ("minecraft:iron_pickaxe", "起步", "Getting started",
@@ -919,7 +921,7 @@ The modpack's final boss: it cycles through forms and attacks with each form's s
 
     ("minecraft:writable_book", "指令與問答", "Commands & FAQ",
      """# 所有人都能用的指令
-- /guidebook：補一本手冊（身上沒有手冊時）。
+- /guidebook：打開手冊。
 # 管理員指令
 需要遊戲管理員權限（單人世界要開啟作弊）。
 - /shapeshift unlock <生物>：解鎖某個形態。
@@ -945,7 +947,7 @@ The modpack's final boss: it cycles through forms and attacks with each form's s
 - 召喚不了形態之王？右鍵祭壇看缺什麼：一般形態、下界之星、龍息，或者祭壇還在冷卻。
 - 多人遊戲：伺服器和所有玩家必須使用相同版本的模組。""",
      """# Commands for everyone
-- /guidebook: a new handbook (when you carry none).
+- /guidebook: open the handbook.
 # Operator commands
 These need operator rights (cheats on in single-player).
 - /shapeshift unlock <mob>: unlock a form.

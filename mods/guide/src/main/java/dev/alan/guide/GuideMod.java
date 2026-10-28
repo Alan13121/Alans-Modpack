@@ -2,7 +2,8 @@ package dev.alan.guide;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.commands.Commands;
@@ -13,7 +14,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,15 +30,10 @@ public final class GuideMod implements ModInitializer {
     @Override public void onInitialize() {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> entries.accept(HANDBOOK));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> Handbook.onJoin(handler.getPlayer()));
-        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> Handbook.onRespawn(newPlayer));
+        PayloadTypeRegistry.clientboundPlay().register(OpenHandbook.TYPE, OpenHandbook.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, context, environment) ->
             dispatcher.register(Commands.literal("guidebook").executes(c -> {
-                var player = c.getSource().getPlayerOrException();
-                if (!Handbook.give(player)) {
-                    c.getSource().sendFailure(Component.translatable("guide.handbook.have"));
-                    return 0;
-                }
-                c.getSource().sendSuccess(() -> Component.translatable("guide.handbook.given"), false);
+                ServerPlayNetworking.send(c.getSource().getPlayerOrException(), new OpenHandbook());
                 return 1;
             })));
         LOG.info("Guide loaded");
